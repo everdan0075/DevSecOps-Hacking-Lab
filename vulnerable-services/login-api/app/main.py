@@ -4,17 +4,25 @@ Intentionally vulnerable authentication service for security testing
 """
 
 from fastapi import FastAPI, Request, HTTPException, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import Response
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import structlog
 from datetime import datetime
+from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from app.config import settings
 from app.models import LoginRequest, LoginResponse
 from app.security import verify_login, get_failed_attempts, record_failed_attempt, is_ip_banned, ban_ip
 from app.middleware import setup_middleware
+from app.metrics import (
+    observe_login_blocked,
+    observe_login_failure,
+    observe_login_success,
+    observe_rate_limit,
+)
 
 # Configure structured logging
 structlog.configure(
@@ -48,12 +56,32 @@ app = FastAPI(
     redoc_url="/redoc" if settings.ENVIRONMENT == "development" else None,
 )
 
+# Prometheus instrumentation
+instrumentator = Instrumentator(
+    should_group_status_codes=True,
+    should_ignore_untemplated=True,
+    should_respect_env_var=True,
+    env_var_name="PROMETHEUS_INSTRUMENTATION_DISABLED",
+    excluded_handlers={"/metrics"},
+    should_instrument_requests_inprogress=True,
+)
+
+instrumentator.instrument(app)
+
 # Add rate limiter to app
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Setup middleware
 setup_middleware(app)
+
+
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    """Capture rate limiting events for observability."""
+    observe_rate_limit(request.url.path)
+    return await _rate_limit_exceeded_handler(request, exc)
+
+
+app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
 
 @app.get("/")
@@ -66,6 +94,12 @@ async def root():
         "vulnerabilities": ["brute-force"],
         "defenses": ["rate-limiting", "ip-banning"] if settings.ENABLE_RATE_LIMITING else []
     }
+
+
+@app.get("/metrics")
+async def metrics() -> Response:
+    """Prometheus metrics endpoint"""
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.get("/health")
@@ -108,6 +142,7 @@ async def login(request: Request, login_data: LoginRequest):
             client_ip=client_ip,
             username=login_data.username
         )
+        observe_login_blocked("ip_banned")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Your IP has been temporarily banned due to suspicious activity"
@@ -122,6 +157,7 @@ async def login(request: Request, login_data: LoginRequest):
             username=login_data.username,
             client_ip=client_ip
         )
+        observe_login_success()
         return LoginResponse(
             success=True,
             message="Login successful",
@@ -130,7 +166,7 @@ async def login(request: Request, login_data: LoginRequest):
     else:
         # Record failed attempt
         failed_count = record_failed_attempt(client_ip, login_data.username)
-        
+        observe_login_failure("invalid_credentials")
         logger.warning(
             "login_failed",
             username=login_data.username,
@@ -140,7 +176,8 @@ async def login(request: Request, login_data: LoginRequest):
         
         # Check if we should ban this IP
         if settings.ENABLE_IP_BANNING and failed_count >= settings.BAN_THRESHOLD:
-            ban_ip(client_ip)
+            ban_ip(client_ip, reason="failed_attempt_threshold")
+            observe_login_blocked("ip_ban_threshold")
             logger.warning(
                 "ip_banned",
                 client_ip=client_ip,

@@ -56,11 +56,19 @@ Phase 3 of the roadmap will include:
 
 ## Current State
 
-**Status**: 📋 Planned for Phase 3
+**Status**: 🚧 Phase 2 in progress
 
-Currently, basic logging is available in:
+Currently available instrumentation:
+- FastAPI `/metrics` endpoint exposed via Prometheus client
+- Counters for login successes, failures, IP bans, and rate limiting blocks
 - Docker container logs: `docker-compose logs`
-- Application JSON logs: `vulnerable-services/login-api/logs/`
+- Structured JSON logs: `vulnerable-services/login-api/logs/`
+
+Quick test:
+```bash
+docker-compose up -d login-api
+curl http://localhost:8000/metrics | head
+```
 
 Stay tuned for full observability stack!
 

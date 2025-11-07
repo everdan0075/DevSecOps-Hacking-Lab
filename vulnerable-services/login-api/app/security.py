@@ -7,6 +7,7 @@ from typing import Dict
 import structlog
 
 from app.config import settings
+from app.metrics import observe_ip_ban
 
 logger = structlog.get_logger()
 
@@ -76,10 +77,11 @@ def get_failed_attempts(ip: str) -> int:
     return len(failed_attempts[ip])
 
 
-def ban_ip(ip: str):
+def ban_ip(ip: str, reason: str = "policy_violation"):
     """Ban an IP address temporarily"""
     banned_ips[ip] = datetime.utcnow()
-    logger.warning("ip_banned", ip=ip, duration=settings.BAN_DURATION)
+    logger.warning("ip_banned", ip=ip, duration=settings.BAN_DURATION, reason=reason)
+    observe_ip_ban(reason)
 
 
 def is_ip_banned(ip: str) -> bool:
