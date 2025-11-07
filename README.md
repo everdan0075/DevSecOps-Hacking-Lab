@@ -131,19 +131,22 @@ python brute_force.py --target http://localhost:8000/login --username admin
 - `/metrics` endpoint with login counters
 - Grafana dashboards (http://localhost:3000) – pre-provisioned
 - Attack visualization (coming soon)
-- Real-time alerting (coming soon)
+- Real-time alerting via Prometheus Alertmanager (http://localhost:9093)
 
 ### Monitoring Quick Start
 
 ```bash
 # Start services
-docker-compose up -d login-api prometheus grafana
+docker-compose up -d login-api prometheus grafana alertmanager alert-receiver
 
 # Check Prometheus targets
 open http://localhost:9090/targets    # Windows: start http://localhost:9090/targets
 
 # Open Grafana dashboard
 open http://localhost:3000/d/devsecops/attack-visibility
+
+# Check active alerts
+open http://localhost:9093/#/alerts
 
 # Query login attempts
 curl "http://localhost:9090/api/v1/query?query=login_attempts_total"

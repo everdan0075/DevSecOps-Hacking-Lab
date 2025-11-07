@@ -1,0 +1,37 @@
+groups:
+  - name: devsecops-login-alerts
+    interval: 15s
+    rules:
+      - alert: LoginFailureSpike
+        expr: increase(login_failed_total[1m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+          service: login-api
+          category: brute-force
+        annotations:
+          summary: "High rate of failed login attempts detected"
+          description: "More than 5 failed login attempts per minute observed on login-api. Possible brute-force attack."
+
+      - alert: RateLimiterBlocking
+        expr: increase(rate_limit_blocks_total[1m]) > 3
+        for: 1m
+        labels:
+          severity: critical
+          service: login-api
+          category: defense
+        annotations:
+          summary: "Rate limiter blocking sustained traffic"
+          description: "Rate limiter blocked more than 3 requests per minute for login-api. Investigate possible attack."
+
+      - alert: LoginAPIDown
+        expr: up{job="login-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: login-api
+          category: availability
+        annotations:
+          summary: "login-api scrape target is down"
+          description: "Prometheus cannot reach login-api metrics endpoint for more than 1 minute."
+
