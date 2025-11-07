@@ -1,0 +1,13 @@
+apiVersion: 1
+providers:
+  - name: "DevSecOps Hacking Lab"
+    orgId: 1
+    folder: "DevSecOps"
+    folderUid: "devsecops-lab"
+    type: file
+    disableDeletion: false
+    allowUiUpdates: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards
+

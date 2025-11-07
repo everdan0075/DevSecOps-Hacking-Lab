@@ -65,17 +65,46 @@ Currently available instrumentation:
 - Docker container logs: `docker-compose logs`
 - Structured JSON logs: `vulnerable-services/login-api/logs/`
 
-### Running Prometheus
+### Running Prometheus & Grafana
 
 ```bash
-# Start login-api and Prometheus
-docker-compose up -d login-api prometheus
+# Start login-api, Prometheus, Grafana
+docker-compose up -d login-api prometheus grafana
 
 # Confirm Prometheus is healthy
 docker-compose ps
 
 # Open Prometheus UI
 open http://localhost:9090   # Windows: start http://localhost:9090
+
+# Open Grafana UI
+open http://localhost:3000   # Windows: start http://localhost:3000
+```
+
+Default Grafana credentials: `admin` / `admin`
+
+Grafana provisioning:
+- Datasource: `monitoring/grafana/provisioning/datasources/datasource.yml`
+- Dashboards: `monitoring/grafana/dashboards/`
+- Dashboard title: **DevSecOps Attack Visibility**
+
+Key panels:
+- Login Attempts (success vs failure)
+- Rate limiter blocks
+- IP bans and failed attempts
+- Latency and scrape success
+
+### Demo flow
+
+```bash
+# Start stack
+docker-compose up -d login-api prometheus grafana
+
+# Run attack to generate data
+python attacks/brute-force/brute_force.py --target http://localhost:8000/login --username admin
+
+# Open Grafana dashboard (DevSecOps / DevSecOps Attack Visibility)
+open http://localhost:3000/d/devsecops/attack-visibility
 ```
 
 Prometheus configuration lives in `monitoring/prometheus/prometheus.yml`. The default scrape targets:
