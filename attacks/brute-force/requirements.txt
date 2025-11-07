@@ -1,0 +1,12 @@
+# HTTP Client
+httpx==0.25.2
+
+# CLI and output formatting
+rich==13.7.0
+
+# Utilities
+python-dotenv==1.0.0
+
+
+
+

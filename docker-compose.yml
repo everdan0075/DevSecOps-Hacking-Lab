@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  login-api:
+    build:
+      context: ./vulnerable-services/login-api
+      dockerfile: Dockerfile
+    container_name: login-api
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+      - ENABLE_RATE_LIMITING=true
+      - RATE_LIMIT_REQUESTS=5
+      - RATE_LIMIT_WINDOW=60
+      - ENABLE_IP_BANNING=true
+      - BAN_THRESHOLD=10
+      - BAN_DURATION=900
+    volumes:
+      - ./vulnerable-services/login-api:/app
+      - login-api-logs:/app/logs
+    networks:
+      - devsecops-lab
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.devsecops.service=login-api"
+      - "com.devsecops.vulnerability=brute-force"
+      - "com.devsecops.description=Vulnerable authentication service"
+
+volumes:
+  login-api-logs:
+    driver: local
+
+networks:
+  devsecops-lab:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+
+
