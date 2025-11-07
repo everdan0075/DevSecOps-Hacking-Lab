@@ -76,8 +76,9 @@ docker-compose ps
 
 Expected output:
 ```
-NAME                COMMAND                  SERVICE             STATUS
-login-api           "uvicorn app.main:ap…"   login-api           Up
+NAME                COMMAND                  SERVICE       STATUS
+login-api           "uvicorn app.main:ap…"   login-api     Up
+prometheus          "/bin/prometheus --c…"   prometheus    Up
 ```
 
 ### Testing the Environment
@@ -124,12 +125,26 @@ python brute_force.py --target http://localhost:8000/login --username admin
 - **Duration**: 15 minutes temporary ban
 - **Storage**: In-memory (Redis in production)
 
-## 📊 Monitoring (Coming Soon)
+## 📊 Monitoring (In Progress)
 
-- Prometheus metrics collection
-- Grafana dashboards
-- Attack visualization
-- Real-time alerting
+- Prometheus metrics collection (http://localhost:9090)
+- `/metrics` endpoint with login counters
+- Grafana dashboards (coming soon)
+- Attack visualization (coming soon)
+- Real-time alerting (coming soon)
+ 
+### Prometheus Quick Start
+
+```bash
+# Start services
+docker-compose up -d login-api prometheus
+
+# Check Prometheus targets
+open http://localhost:9090/targets    # Windows: start http://localhost:9090/targets
+
+# Query login attempts
+curl "http://localhost:9090/api/v1/query?query=login_attempts_total"
+```
 
 ## 🔧 Configuration
 

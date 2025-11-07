@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "login-api"
+    honor_labels: true
+    metrics_path: "/metrics"
+    static_configs:
+      - targets:
+          - "login-api:8000"
+        labels:
+          service: "login-api"
+          component: "vulnerable-service"
+          env: "local"
+
+  # Placeholder for future exporters (node, attack scripts, etc.)
+  - job_name: "prometheus"
+    static_configs:
+      - targets:
+          - "localhost:9090"
+

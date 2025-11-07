@@ -5,9 +5,9 @@ This directory will contain monitoring and observability configurations.
 ## Planned Stack
 
 ### Metrics
-- **Prometheus**: Time-series metrics collection
+- **Prometheus**: Time-series metrics collection (local service available)
 - **Grafana**: Visualization and dashboards
-- **Node Exporter**: System metrics
+- **Node Exporter**: System metrics (planned)
 - **Custom exporters**: Application-specific metrics
 
 ### Logging
@@ -60,14 +60,36 @@ Phase 3 of the roadmap will include:
 
 Currently available instrumentation:
 - FastAPI `/metrics` endpoint exposed via Prometheus client
+- Prometheus service scraping `login-api` every 15 seconds
 - Counters for login successes, failures, IP bans, and rate limiting blocks
 - Docker container logs: `docker-compose logs`
 - Structured JSON logs: `vulnerable-services/login-api/logs/`
 
-Quick test:
+### Running Prometheus
+
 ```bash
-docker-compose up -d login-api
-curl http://localhost:8000/metrics | head
+# Start login-api and Prometheus
+docker-compose up -d login-api prometheus
+
+# Confirm Prometheus is healthy
+docker-compose ps
+
+# Open Prometheus UI
+open http://localhost:9090   # Windows: start http://localhost:9090
+```
+
+Prometheus configuration lives in `monitoring/prometheus/prometheus.yml`. The default scrape targets:
+- `login-api:8000/metrics`
+- `prometheus:9090` (self-monitoring)
+
+### Quick Checks
+
+```bash
+# Verify metrics endpoint
+curl http://localhost:8000/metrics | Select-Object -First 20
+
+# Query Prometheus via HTTP API
+curl "http://localhost:9090/api/v1/query?query=login_attempts_total"
 ```
 
 Stay tuned for full observability stack!
