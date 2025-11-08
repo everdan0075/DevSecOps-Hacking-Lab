@@ -2,6 +2,8 @@
 
 This directory will contain monitoring and observability configurations.
 
+> Looking for a full guide? See [`docs/monitoring/README.md`](../docs/monitoring/README.md).
+
 ## Planned Stack
 
 ### Metrics
