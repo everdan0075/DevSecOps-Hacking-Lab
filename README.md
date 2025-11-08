@@ -134,6 +134,7 @@ python brute_force.py --target http://localhost:8000/login --username admin
 - Real-time alerting via Prometheus Alertmanager (http://localhost:9093)
 - Automated smoke test (`python monitoring/tests/monitoring_smoke_test.py`)
 - Detailed guide: see [`docs/monitoring/README.md`](docs/monitoring/README.md)
+- Secure auth upgrade plan: [`docs/auth/SECURE_LOGIN_API.md`](docs/auth/SECURE_LOGIN_API.md)
 
 ### Monitoring Quick Start
 
