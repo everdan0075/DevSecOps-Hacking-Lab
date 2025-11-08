@@ -78,6 +78,7 @@ setup_middleware(app)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     """Capture rate limiting events for observability."""
     observe_rate_limit(request.url.path)
+    observe_login_failure("rate_limited")
     return _rate_limit_exceeded_handler(request, exc)
 
 

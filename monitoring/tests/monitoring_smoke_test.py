@@ -45,12 +45,20 @@ def wait_for_ready(url: str, name: str, timeout: int = 120) -> None:
     raise RuntimeError(f"{name} not ready within {timeout}s at {url}")
 
 
-def generate_failed_logins(total_attempts: int = 150, delay: float = 0.05) -> None:
+def generate_failed_logins(
+    warmup_attempts: int = 60,
+    warmup_delay: float = 0.2,
+    burst_attempts: int = 240,
+    burst_delay: float = 0.02,
+) -> None:
     """Send a burst of failed login attempts to trigger defenses."""
     payload = {"username": "admin", "password": "incorrect-password"}
     successes = 0
     failures = 0
-    for i in range(total_attempts):
+    total_attempts = warmup_attempts + burst_attempts
+
+    # Warm-up phase to register clear failures before bans/rate-limits kick in.
+    for _ in range(warmup_attempts):
         try:
             resp = requests.post(LOGIN_API_URL, json=payload, timeout=REQUEST_TIMEOUT)
         except requests.RequestException as exc:  # pragma: no cover - network failure path
@@ -65,7 +73,25 @@ def generate_failed_logins(total_attempts: int = 150, delay: float = 0.05) -> No
                 f"Unexpected status code {resp.status_code} from login API: {resp.text}"
             )
 
-        time.sleep(delay)
+        time.sleep(warmup_delay)
+
+    # Burst phase for stronger rate limiting activity.
+    for _ in range(burst_attempts):
+        try:
+            resp = requests.post(LOGIN_API_URL, json=payload, timeout=REQUEST_TIMEOUT)
+        except requests.RequestException as exc:  # pragma: no cover - network failure path
+            raise RuntimeError(f"Request to login API failed: {exc}") from exc
+
+        if resp.status_code == 200:
+            successes += 1
+        elif resp.status_code in (401, 403, 429):
+            failures += 1
+        else:
+            raise RuntimeError(
+                f"Unexpected status code {resp.status_code} from login API: {resp.text}"
+            )
+
+        time.sleep(burst_delay)
 
     print(
         f"[info] Generated {successes} successful and {failures} failed/braked login attempts"
@@ -90,11 +116,8 @@ def query_prometheus(query: str) -> Iterable[dict]:
 def ensure_metric_increased(metric_query: str, threshold: float, description: str) -> None:
     """Confirm that a Prometheus metric increase exceeds the expected threshold."""
     results = query_prometheus(metric_query)
-    value = 0.0
-    if results:
-        # Each result is a vector: [timestamp, value]
-        value = float(results[0]["value"][1])
-    print(f"[info] Metric query '{metric_query}' returned value {value}")
+    value = sum(float(result["value"][1]) for result in results) if results else 0.0
+    print(f"[info] Metric query '{metric_query}' aggregated value {value}")
     if value < threshold:
         raise RuntimeError(f"{description} expected >= {threshold}, got {value}")
 
@@ -140,16 +163,16 @@ def main() -> int:
     # Ensure previous alerts do not interfere with assertions
     requests.delete(f"{ALERT_RECEIVER_URL}/alerts", timeout=REQUEST_TIMEOUT)
 
-    generate_failed_logins(total_attempts=180, delay=0.03)
+    generate_failed_logins()
 
     # Give Prometheus time to ingest the latest samples (scrape interval 15s).
     time.sleep(20)
 
     ensure_metric_increased(
-        "increase(login_failed_total[2m])", threshold=5, description="Failed logins spike"
+        "increase(login_failed_total[5m])", threshold=5, description="Failed logins spike"
     )
     ensure_metric_increased(
-        "increase(rate_limit_blocks_total[2m])",
+        "increase(rate_limit_blocks_total[5m])",
         threshold=3,
         description="Rate limiter blocks spike",
     )

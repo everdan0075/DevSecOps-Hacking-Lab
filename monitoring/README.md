@@ -96,8 +96,8 @@ Alerting configuration:
 - Alertmanager config: `monitoring/alertmanager/alertmanager.yml`
 - Webhook receiver service: http://localhost:5001 (FastAPI)
 - Alert thresholds:
-  - `LoginFailureSpike`: `increase(login_failed_total[2m]) > 5`
-  - `RateLimiterBlocking`: `increase(rate_limit_blocks_total[2m]) > 3`
+  - `LoginFailureSpike`: `increase(login_failed_total[5m]) > 5`
+  - `RateLimiterBlocking`: `increase(rate_limit_blocks_total[5m]) > 3`
 
 Key panels:
 - Login Attempts (success vs failure)
