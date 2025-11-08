@@ -132,6 +132,7 @@ python brute_force.py --target http://localhost:8000/login --username admin
 - Grafana dashboards (http://localhost:3000) – pre-provisioned
 - Attack visualization (coming soon)
 - Real-time alerting via Prometheus Alertmanager (http://localhost:9093)
+- Automated smoke test (`python monitoring/tests/monitoring_smoke_test.py`)
 
 ### Monitoring Quick Start
 
@@ -147,6 +148,9 @@ open http://localhost:3000/d/devsecops/attack-visibility
 
 # Check active alerts
 open http://localhost:9093/#/alerts
+
+# View webhook payloads
+open http://localhost:5001/alerts
 
 # Query login attempts
 curl "http://localhost:9090/api/v1/query?query=login_attempts_total"

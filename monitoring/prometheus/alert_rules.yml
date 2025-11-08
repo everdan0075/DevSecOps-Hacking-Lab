@@ -3,8 +3,8 @@ groups:
     interval: 15s
     rules:
       - alert: LoginFailureSpike
-        expr: increase(login_failed_total[1m]) > 5
-        for: 1m
+        expr: increase(login_failed_total[2m]) > 5
+        for: 30s
         labels:
           severity: warning
           service: login-api
@@ -14,8 +14,8 @@ groups:
           description: "More than 5 failed login attempts per minute observed on login-api. Possible brute-force attack."
 
       - alert: RateLimiterBlocking
-        expr: increase(rate_limit_blocks_total[1m]) > 3
-        for: 1m
+        expr: increase(rate_limit_blocks_total[2m]) > 3
+        for: 30s
         labels:
           severity: critical
           service: login-api

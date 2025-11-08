@@ -110,12 +110,18 @@ services:
       start_period: 30s
 
   alert-receiver:
-    image: ealen/echo-server:latest
+    build:
+      context: ./monitoring/alert-receiver
+      dockerfile: Dockerfile
     container_name: alert-receiver
-    environment:
-      - PORT=5001
     ports:
       - "5001:5001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - devsecops-lab
     restart: unless-stopped

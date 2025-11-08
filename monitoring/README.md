@@ -94,7 +94,10 @@ Grafana provisioning:
 Alerting configuration:
 - Rule file: `monitoring/prometheus/alert_rules.yml`
 - Alertmanager config: `monitoring/alertmanager/alertmanager.yml`
-- Webhook receiver (echo server): http://localhost:5001
+- Webhook receiver service: http://localhost:5001 (FastAPI)
+- Alert thresholds:
+  - `LoginFailureSpike`: `increase(login_failed_total[2m]) > 5`
+  - `RateLimiterBlocking`: `increase(rate_limit_blocks_total[2m]) > 3`
 
 Key panels:
 - Login Attempts (success vs failure)
@@ -118,9 +121,35 @@ open http://localhost:3000/d/devsecops/attack-visibility
 open http://localhost:9090/alerts
 open http://localhost:9093/#/alerts
 
-# View webhook payload received by echo server
-curl http://localhost:5001/requests | python -m json.tool
+# View webhook payloads captured by alert receiver
+curl http://localhost:5001/alerts | python -m json.tool
+
+# Optional: clear stored alerts
+curl -X DELETE http://localhost:5001/alerts
 ```
+
+### Automated Smoke Test
+
+The repository includes an automated smoke test that validates metrics and alert delivery:
+
+```bash
+# Install dependencies (once)
+pip install -r monitoring/tests/requirements.txt
+
+# Ensure services are running
+docker-compose up -d login-api prometheus grafana alertmanager alert-receiver
+
+# Run the smoke test
+python monitoring/tests/monitoring_smoke_test.py
+```
+
+The script will:
+1. Confirm service readiness
+2. Generate failed login attempts
+3. Wait for Prometheus to scrape new samples (≈20s)
+4. Wait for alerts to reach the firing state
+5. Poll the webhook receiver until alert payloads are stored
+6. Expose captured payloads via `GET /alerts`
 
 Prometheus configuration lives in `monitoring/prometheus/prometheus.yml`. The default scrape targets:
 - `login-api:8000/metrics`
