@@ -32,6 +32,9 @@ services:
       - "com.devsecops.vulnerability=brute-force"
       - "com.devsecops.description=Vulnerable authentication service"
 
+    depends_on:
+      - redis
+
   prometheus:
     image: prom/prometheus:v2.53.1
     container_name: prometheus
@@ -122,6 +125,33 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      - devsecops-lab
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    networks:
+      - devsecops-lab
+    restart: unless-stopped
+
+  reverse-proxy:
+    image: traefik:v3.0
+    container_name: reverse-proxy
+    command:
+      - "--configFile=/etc/traefik/traefik.yml"
+    ports:
+      - "8081:8081"
+      - "8443:8443"
+    volumes:
+      - ./reverse-proxy/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./reverse-proxy/dynamic:/etc/traefik/dynamic:ro
+    depends_on:
+      - login-api
     networks:
       - devsecops-lab
     restart: unless-stopped

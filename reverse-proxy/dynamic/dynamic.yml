@@ -1,0 +1,38 @@
+http:
+  routers:
+    login-api-router:
+      rule: "Host(`localhost`)"
+      entryPoints:
+        - websecure
+      service: login-api-service
+      middlewares:
+        - security-headers
+        - login-rate-limit
+      tls: {}
+
+  services:
+    login-api-service:
+      loadBalancer:
+        servers:
+          - url: "http://login-api:8000"
+
+  middlewares:
+    security-headers:
+      headers:
+        frameDeny: true
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "no-referrer"
+        permissionsPolicy: "camera=(), microphone=(), geolocation=()"
+        customResponseHeaders:
+          X-Content-Security-Policy: "default-src 'self'"
+          X-DNS-Prefetch-Control: "off"
+    login-rate-limit:
+      rateLimit:
+        average: 30
+        burst: 60
+        period: 1m
+

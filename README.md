@@ -90,6 +90,18 @@ curl -X POST http://localhost:8000/login \
   -d '{"username":"admin","password":"admin123"}'
 ```
 
+#### Secure Endpoint (HTTPS via reverse proxy)
+```bash
+# macOS / Linux (curl)
+curl -k https://localhost:8443/health
+
+# Windows PowerShell
+curl.exe -k https://localhost:8443/health
+```
+> The `-k` flag skips certificate verification because Traefik uses a self-signed development cert. Import the certificate into your trust store for production-like testing.
+>
+> HTTP on port 8081 automatically redirects to HTTPS. Use it only for debugging (`curl -I http://localhost:8081/health`).
+
 #### Run Brute-Force Attack (Ethical Testing)
 ```bash
 cd attacks/brute-force

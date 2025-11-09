@@ -132,7 +132,7 @@ Out of scope for Phase 2.1: external identity providers, cloud deployment, Terra
 
 | Milestone | Deliverables |
 |-----------|--------------|
-| **M1. Proxy Scaffolding** | Traefik/Envoy service, TLS certs, security headers, integration into `docker-compose`. |
+| **M1. Proxy Scaffolding** | Traefik reverse-proxy (port 8443), TLS termination (self-signed dev cert), security headers, rate limiting, integration into `docker-compose`. |
 | **M2. Auth-Service Refactor** | New endpoints, JWT/MFA logic, Redis integration, updated Pydantic models, tests. |
 | **M3. Offense Toolkit Update** | Scripts for credential stuffing, token replay, MFA brute force, updated wordlists/data. |
 | **M4. Observability** | Metrics exposed, Prometheus scrape config, Grafana panels, Alertmanager rules. |
