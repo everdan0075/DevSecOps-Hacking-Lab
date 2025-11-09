@@ -1,0 +1,19 @@
+# Ignore all certificate files (sensitive data)
+*.pem
+*.csr
+*.srl
+*.key
+
+# Keep directory structure
+!.gitignore
+!README.md
+!generate-certs.sh
+!generate-certs.ps1
+
+# Keep CA and services directories (but not their contents)
+ca/.gitkeep
+services/.gitkeep
+services/gateway/.gitkeep
+services/auth-service/.gitkeep
+services/user-service/.gitkeep
+
