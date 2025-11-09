@@ -3,11 +3,21 @@ API Gateway - Main Application
 Routes requests to backend microservices
 """
 import logging
+import time
 import httpx
-from fastapi import FastAPI, Request, Response, HTTPException, status
+from typing import Dict, Any
+from fastapi import FastAPI, Request, Response, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from .config import settings
+from .middleware import (
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+    RequestValidationMiddleware,
+    LoggingMiddleware
+)
+from .security import get_current_user
+from . import metrics as metrics_module
 
 # Configure logging
 logging.basicConfig(
@@ -25,7 +35,24 @@ app = FastAPI(
     redoc_url="/redoc" if settings.DEBUG else None,
 )
 
-# CORS middleware
+# Add middleware (order matters - first added = last executed)
+# 1. Logging (outer layer - logs everything)
+app.add_middleware(LoggingMiddleware)
+
+# 2. Security headers
+app.add_middleware(SecurityHeadersMiddleware)
+
+# 3. Rate limiting
+app.add_middleware(
+    RateLimitMiddleware,
+    requests_per_minute=60,  # 60 requests per minute
+    burst_size=10  # Allow bursts of 10 requests
+)
+
+# 4. WAF / Request validation
+app.add_middleware(RequestValidationMiddleware)
+
+# 5. CORS middleware
 if settings.ENABLE_CORS:
     app.add_middleware(
         CORSMiddleware,
@@ -74,6 +101,23 @@ async def health_check():
             "url": settings.AUTH_SERVICE_URL
         }
     
+    # Check user-service
+    try:
+        user_response = await http_client.get(
+            f"{settings.USER_SERVICE_URL}/health",
+            timeout=5.0
+        )
+        backend_status["user-service"] = {
+            "status": "healthy" if user_response.status_code == 200 else "unhealthy",
+            "url": settings.USER_SERVICE_URL
+        }
+    except Exception as e:
+        backend_status["user-service"] = {
+            "status": "unreachable",
+            "error": str(e),
+            "url": settings.USER_SERVICE_URL
+        }
+    
     # Overall gateway status
     all_healthy = all(
         svc.get("status") == "healthy" 
@@ -96,27 +140,63 @@ async def root():
         "service": settings.APP_NAME,
         "version": settings.VERSION,
         "message": "API Gateway for DevSecOps Hacking Lab",
+        "security": {
+            "rate_limiting": "enabled (60 req/min)",
+            "waf": "enabled",
+            "jwt_validation": "enabled for protected routes"
+        },
         "endpoints": {
             "health": "/health",
+            "metrics": "/metrics",
             "docs": "/docs" if settings.DEBUG else "disabled",
             "auth": "/auth/*",
-            "users": "/api/users/*"
+            "users": "/api/users/*",
+            "protected_demo": "/protected"
         }
+    }
+
+
+@app.get("/metrics")
+async def get_metrics():
+    """
+    Prometheus metrics endpoint
+    Returns metrics in Prometheus text format
+    """
+    return metrics_module.get_metrics()
+
+
+@app.get("/protected")
+async def protected_endpoint(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """
+    Demo protected endpoint - requires valid JWT
+    Shows how to protect routes with JWT authentication
+    """
+    # Track successful JWT validation
+    metrics_module.track_jwt_validation(success=True)
+    
+    return {
+        "message": "Access granted to protected resource",
+        "user": current_user.get("sub"),
+        "token_type": current_user.get("type"),
+        "authenticated": True,
+        "gateway": settings.APP_NAME
     }
 
 
 async def proxy_request(
     request: Request,
     backend_url: str,
-    path: str
+    path: str,
+    backend_name: str = "unknown"
 ) -> Response:
     """
-    Proxy HTTP request to backend service
+    Proxy HTTP request to backend service with metrics tracking
     
     Args:
         request: Incoming FastAPI request
         backend_url: Backend service base URL
         path: Path to append to backend URL
+        backend_name: Name of backend service (for metrics)
     
     Returns:
         Response from backend service
@@ -136,6 +216,9 @@ async def proxy_request(
     
     logger.info(f"Proxying {request.method} {path} -> {target_url}")
     
+    # Start timer for metrics
+    start_time = time.time()
+    
     try:
         # Forward request to backend
         backend_response = await http_client.request(
@@ -146,6 +229,22 @@ async def proxy_request(
             content=body,
         )
         
+        # Track metrics
+        duration = time.time() - start_time
+        metrics_module.track_backend_request(
+            backend=backend_name,
+            method=request.method,
+            status_code=backend_response.status_code,
+            duration=duration
+        )
+        
+        # Track gateway request metrics
+        metrics_module.gateway_requests_total.labels(
+            method=request.method,
+            path=f"/{path.split('/')[0]}/*",  # Group by first path segment
+            status_code=backend_response.status_code
+        ).inc()
+        
         # Return backend response
         return Response(
             content=backend_response.content,
@@ -155,18 +254,21 @@ async def proxy_request(
         
     except httpx.ConnectError as e:
         logger.error(f"Backend connection error: {e}")
+        metrics_module.track_backend_error(backend_name, "connection_error")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Backend service unavailable: {backend_url}"
         )
     except httpx.TimeoutException as e:
         logger.error(f"Backend timeout: {e}")
+        metrics_module.track_backend_error(backend_name, "timeout")
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             detail="Backend service timeout"
         )
     except Exception as e:
         logger.error(f"Proxy error: {e}")
+        metrics_module.track_backend_error(backend_name, "bad_gateway")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Gateway error while processing request"
@@ -190,7 +292,33 @@ async def route_auth(request: Request, path: str):
     return await proxy_request(
         request,
         settings.AUTH_SERVICE_URL,
-        f"/auth/{path}"
+        f"/auth/{path}",
+        backend_name="auth-service"
+    )
+
+
+# ============================================================================
+# Route: User Service
+# ============================================================================
+
+@app.api_route("/api/users/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+async def route_users(request: Request, path: str):
+    """
+    Route all /api/users/* requests to user-service
+    
+    Examples:
+        GET /api/users/profile/1 -> http://user-service:8000/profile/1
+        GET /api/users/settings -> http://user-service:8000/settings
+    
+    NOTE: User service has intentional vulnerabilities:
+    - IDOR in /profile/{user_id}
+    - Missing authentication in /settings
+    """
+    return await proxy_request(
+        request,
+        settings.USER_SERVICE_URL,
+        f"/{path}",
+        backend_name="user-service"
     )
 
 

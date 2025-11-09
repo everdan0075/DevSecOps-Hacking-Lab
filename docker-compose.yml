@@ -168,6 +168,37 @@ services:
       - devsecops-lab
     restart: unless-stopped
 
+  user-service:
+    build:
+      context: ./vulnerable-services/user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    ports:
+      - "8002:8000"
+    environment:
+      - SERVICE_NAME=user-service
+      - SERVICE_VERSION=0.1.0
+      - DEBUG=false
+      - SECRET_KEY=dev-secret-key-change-in-production-this-is-not-secure
+      - JWT_ALGORITHM=HS256
+      - ENABLE_METRICS=true
+    volumes:
+      - ./vulnerable-services/user-service:/app
+    networks:
+      - devsecops-lab
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.devsecops.service=user-service"
+      - "com.devsecops.vulnerability=idor,no-auth"
+      - "com.devsecops.phase=2.2"
+      - "com.devsecops.description=Vulnerable user management service with IDOR"
+
   api-gateway:
     build:
       context: ./vulnerable-services/api-gateway
@@ -181,10 +212,14 @@ services:
       - HOST=0.0.0.0
       - PORT=8080
       - AUTH_SERVICE_URL=http://login-api:8000
-      - USER_SERVICE_URL=http://user-service:8001
+      - USER_SERVICE_URL=http://user-service:8000
       - SECRET_KEY=dev-secret-key-change-in-production-this-is-not-secure
       - JWT_ALGORITHM=HS256
       - ENABLE_CORS=true
+      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_REQUESTS_PER_MINUTE=60
+      - RATE_LIMIT_BURST_SIZE=10
+      - WAF_ENABLED=true
       - LOG_LEVEL=INFO
     volumes:
       - ./vulnerable-services/api-gateway:/app
@@ -203,6 +238,7 @@ services:
       - "com.devsecops.description=API Gateway with routing and security"
     depends_on:
       - login-api
+      - user-service
       - redis
 
 volumes:

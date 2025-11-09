@@ -30,6 +30,15 @@ class Settings:
     ENABLE_CORS: bool = os.getenv("ENABLE_CORS", "true").lower() == "true"
     ALLOWED_ORIGINS: list = ["http://localhost:3000", "http://localhost:8080"]
     
+    # Rate Limiting
+    RATE_LIMIT_ENABLED: bool = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
+    RATE_LIMIT_REQUESTS_PER_MINUTE: int = int(os.getenv("RATE_LIMIT_REQUESTS_PER_MINUTE", "60"))
+    RATE_LIMIT_BURST_SIZE: int = int(os.getenv("RATE_LIMIT_BURST_SIZE", "10"))
+    
+    # WAF
+    WAF_ENABLED: bool = os.getenv("WAF_ENABLED", "true").lower() == "true"
+    WAF_MAX_BODY_SIZE: int = int(os.getenv("WAF_MAX_BODY_SIZE", str(10 * 1024 * 1024)))  # 10MB
+    
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     
