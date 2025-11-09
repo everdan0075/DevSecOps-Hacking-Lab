@@ -168,6 +168,43 @@ services:
       - devsecops-lab
     restart: unless-stopped
 
+  api-gateway:
+    build:
+      context: ./vulnerable-services/api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - ENVIRONMENT=development
+      - DEBUG=false
+      - HOST=0.0.0.0
+      - PORT=8080
+      - AUTH_SERVICE_URL=http://login-api:8000
+      - USER_SERVICE_URL=http://user-service:8001
+      - SECRET_KEY=dev-secret-key-change-in-production-this-is-not-secure
+      - JWT_ALGORITHM=HS256
+      - ENABLE_CORS=true
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./vulnerable-services/api-gateway:/app
+    networks:
+      - devsecops-lab
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.devsecops.service=api-gateway"
+      - "com.devsecops.phase=2.2"
+      - "com.devsecops.description=API Gateway with routing and security"
+    depends_on:
+      - login-api
+      - redis
+
 volumes:
   login-api-logs:
     driver: local

@@ -54,11 +54,15 @@ async def record_failed_attempt(redis: Redis, ip: str, username: str) -> int:
     Record a failed login attempt from an IP address
     Returns the total number of failed attempts
     """
+    import uuid
     key = f"failed_attempts:{ip}"
     now = int(datetime.utcnow().timestamp())
     
+    # Use unique member with UUID to allow multiple attempts in same second
+    member = f"{username}:{now}:{uuid.uuid4().hex[:8]}"
+    
     # Add new attempt with current timestamp as score
-    await redis.zadd(key, {username: now})
+    await redis.zadd(key, {member: now})
     
     # Clean old attempts (older than BAN_DURATION)
     cutoff = now - settings.BAN_DURATION
@@ -275,7 +279,8 @@ async def get_mfa_challenge(redis: Redis, challenge_id: str) -> Optional[dict]:
     key = f"mfa_challenge:{challenge_id}"
     challenge_data = await redis.hgetall(key)
     
-    if not challenge_data:
+    # hgetall returns empty dict {} or None for non-existent keys
+    if not challenge_data or challenge_data is None:
         return None
     
     return challenge_data

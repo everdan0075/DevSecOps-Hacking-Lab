@@ -335,11 +335,29 @@ uvicorn app.main:app --reload
 ### Running Tests
 
 ```bash
-# Run unit tests
-pytest tests/
+# Run Login API tests (comprehensive suite)
+cd vulnerable-services/login-api
 
-# Run security tests
-python -m attacks.brute-force.brute_force --test-mode
+# Linux/macOS
+./run_tests.sh
+
+# Windows PowerShell
+.\run_tests.ps1
+
+# Or run pytest directly
+pytest -v --cov=app
+
+# Run specific test file
+pytest tests/test_security.py -v
+pytest tests/test_api.py -v
+
+# Run with coverage report
+pytest --cov=app --cov-report=html
+# Open htmlcov/index.html
+
+# Run monitoring smoke test
+cd ../..
+python monitoring/tests/monitoring_smoke_test.py
 ```
 
 ## 📈 Roadmap

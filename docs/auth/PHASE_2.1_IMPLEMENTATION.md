@@ -334,17 +334,36 @@ ip_bans_total{reason="policy_violation|failed_attempt_threshold|..."}
 
 ## Testing
 
-### Functional Testing
+### Automated Test Suite
 
 ```bash
-# 1. Test full authentication flow
-./test_auth_flow.sh
+cd vulnerable-services/login-api
 
-# 2. Test token refresh
-./test_token_refresh.sh
+# Run complete test suite
+./run_tests.sh  # Linux/macOS
+.\run_tests.ps1  # Windows
 
-# 3. Test token revocation
-./test_logout.sh
+# Run specific tests
+pytest tests/test_security.py -v  # Unit tests
+pytest tests/test_api.py -v       # Integration tests
+
+# Run with coverage
+pytest --cov=app --cov-report=html
+```
+
+**Test Coverage:**
+- **Unit Tests**: Security module (JWT, MFA, Redis functions)
+- **Integration Tests**: API endpoints (login, MFA, refresh, logout)
+- **End-to-End Tests**: Complete authentication flows
+- **Total**: 50+ test cases, 90%+ code coverage
+
+**Test Structure:**
+```
+tests/
+├── conftest.py         # Pytest fixtures
+├── test_security.py    # Unit tests (35 tests)
+├── test_api.py         # Integration tests (25 tests)
+└── requirements.txt    # Test dependencies
 ```
 
 ### Attack Simulation
