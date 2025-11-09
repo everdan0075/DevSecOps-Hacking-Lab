@@ -9,12 +9,24 @@ services:
     environment:
       - ENVIRONMENT=development
       - LOG_LEVEL=INFO
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
       - ENABLE_RATE_LIMITING=true
       - RATE_LIMIT_REQUESTS=5
       - RATE_LIMIT_WINDOW=60
       - ENABLE_IP_BANNING=true
       - BAN_THRESHOLD=10
       - BAN_DURATION=900
+      - SECRET_KEY=dev-secret-key-change-in-production-this-is-not-secure
+      - JWT_ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=5
+      - REFRESH_TOKEN_EXPIRE_MINUTES=60
+      - MFA_ENABLED=true
+      - MFA_CHALLENGE_TTL=300
+      - MFA_CODE_STEP=30
+      - MFA_VALID_WINDOW=1
+      - MFA_MAX_ATTEMPTS=5
     volumes:
       - ./vulnerable-services/login-api:/app
       - login-api-logs:/app/logs

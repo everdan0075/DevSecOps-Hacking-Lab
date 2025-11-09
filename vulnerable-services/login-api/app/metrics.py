@@ -29,6 +29,24 @@ RATE_LIMIT_BLOCKS_TOTAL = Counter(
     ["endpoint"],
 )
 
+LOGIN_STAGE_TOTAL = Counter(
+    "login_stage_total",
+    "Total number of authentication flow events grouped by stage",
+    ["stage"],
+)
+
+MFA_ATTEMPTS_TOTAL = Counter(
+    "mfa_attempts_total",
+    "Total number of MFA verification attempts",
+    ["result"],
+)
+
+JWT_REFRESH_TOTAL = Counter(
+    "jwt_refresh_total",
+    "Total number of refresh token operations",
+    ["status"],
+)
+
 
 def observe_login_success() -> None:
     """Increment counters when a login succeeds."""
@@ -55,4 +73,19 @@ def observe_ip_ban(reason: str) -> None:
 def observe_rate_limit(endpoint: str) -> None:
     """Increment counters when the rate limiter blocks a request."""
     RATE_LIMIT_BLOCKS_TOTAL.labels(endpoint=endpoint).inc()
+
+
+def observe_login_stage(stage: str) -> None:
+    """Observe a particular stage in the authentication flow."""
+    LOGIN_STAGE_TOTAL.labels(stage=stage).inc()
+
+
+def observe_mfa_attempt(result: str) -> None:
+    """Observe MFA verification attempts."""
+    MFA_ATTEMPTS_TOTAL.labels(result=result).inc()
+
+
+def observe_refresh(status: str) -> None:
+    """Observe refresh token operations."""
+    JWT_REFRESH_TOTAL.labels(status=status).inc()
 

@@ -25,7 +25,7 @@ import requests
 PROMETHEUS_URL = os.getenv("PROMETHEUS_URL", "http://localhost:9090")
 ALERTMANAGER_URL = os.getenv("ALERTMANAGER_URL", "http://localhost:9093")
 ALERT_RECEIVER_URL = os.getenv("ALERT_RECEIVER_URL", "http://localhost:5001")
-LOGIN_API_URL = os.getenv("LOGIN_API_URL", "http://localhost:8000/login")
+LOGIN_API_URL = os.getenv("LOGIN_API_URL", "http://localhost:8000/auth/login")
 
 REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "5"))
 

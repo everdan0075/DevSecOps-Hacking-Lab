@@ -14,22 +14,33 @@ DevSecOps Hacking Lab is an educational, ethical testing environment designed to
 
 **READ THIS FIRST**: This project is for educational purposes only. All attacks must be performed exclusively in controlled, local environments. See [DISCLAIMER.md](./DISCLAIMER.md) for full ethical usage guidelines.
 
-## 🎯 Current Features (MVP)
+## 🎯 Current Features (Faza 2.1)
 
 ### Vulnerable Services
-- **login-api**: FastAPI-based authentication service vulnerable to brute-force attacks
+- **login-api**: Secure authentication service with JWT, MFA, and refresh tokens
+  - Multi-factor authentication (TOTP)
+  - JWT-based access tokens (5 min expiry)
+  - Refresh tokens (60 min expiry)
+  - Token revocation and session management
 
 ### Attack Scenarios
 - **Brute-Force Attack**: Automated password guessing against login endpoints
+- **MFA Bypass Attempts**: Testing MFA implementation vulnerabilities
+- **Token Replay**: Demonstrating JWT security
 
 ### Defense Mechanisms
-- **Rate Limiting**: Token-bucket algorithm to prevent abuse
-- **IP-based Blocking**: Automatic temporary bans for suspicious activity
+- **Rate Limiting**: Token-bucket algorithm to prevent abuse (5 req/min per IP)
+- **IP-based Blocking**: Automatic temporary bans for suspicious activity (10 failures = 15 min ban)
+- **Multi-Factor Authentication**: TOTP-based second factor
+- **Token Expiration**: Short-lived access tokens with refresh mechanism
+- **Session Management**: Redis-based token storage and revocation
 
 ### Infrastructure
-- Docker containerization
-- Docker Compose orchestration
-- Health checks and service monitoring
+- Docker containerization with security best practices
+- Docker Compose orchestration with health checks
+- HTTPS reverse proxy (Traefik) with TLS
+- Redis for session storage
+- Monitoring stack (Prometheus, Grafana, Alertmanager)
 
 ## 🏗️ Architecture
 
@@ -83,11 +94,55 @@ prometheus          "/bin/prometheus --c…"   prometheus    Up
 
 ### Testing the Environment
 
-#### Manual Login Test
+#### Manual Login Test (Password Step)
 ```bash
-curl -X POST http://localhost:8000/login \
+curl -X POST http://localhost:8000/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}'
+```
+
+The response includes a `challenge_id`. The one-time MFA code is logged for demo purposes:
+
+```bash
+docker-compose logs login-api | grep mfa_code
+```
+
+#### Complete MFA Verification
+```bash
+curl -X POST http://localhost:8000/auth/mfa/verify \
+  -H "Content-Type: application/json" \
+  -d '{"challenge_id":"<value from previous step>","code":"<mfa-code>"}'
+```
+
+Response includes JWT tokens:
+```json
+{
+  "success": true,
+  "access_token": "eyJhbGci...",
+  "refresh_token": "AbCd1234...",
+  "expires_in": 300,
+  "refresh_expires_in": 3600
+}
+```
+
+#### Refresh Access Token
+```bash
+curl -X POST http://localhost:8000/auth/token/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token":"<refresh_token from previous step>"}'
+```
+
+#### Logout (Revoke Token)
+```bash
+# Revoke single session
+curl -X POST http://localhost:8000/auth/logout \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token":"<refresh_token>","all_sessions":false}'
+
+# Revoke all sessions for user
+curl -X POST http://localhost:8000/auth/logout \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token":"<refresh_token>","all_sessions":true}'
 ```
 
 #### Secure Endpoint (HTTPS via reverse proxy)
@@ -105,7 +160,7 @@ curl.exe -k https://localhost:8443/health
 #### Run Brute-Force Attack (Ethical Testing)
 ```bash
 cd attacks/brute-force
-python brute_force.py --target http://localhost:8000/login --username admin
+python brute_force.py --target http://localhost:8000/auth/login --username admin
 ```
 
 ## 🧪 Attack Scenarios

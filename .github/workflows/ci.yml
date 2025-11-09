@@ -120,7 +120,7 @@ jobs:
     
     - name: Test login endpoint
       run: |
-        curl -X POST http://localhost:8000/login \
+        curl -X POST http://localhost:8000/auth/login \
           -H "Content-Type: application/json" \
           -d '{"username":"admin","password":"wrongpassword"}' \
           -w "\nHTTP Status: %{http_code}\n"
@@ -162,7 +162,7 @@ jobs:
       run: |
         cd attacks/brute-force
         python brute_force.py \
-          --target http://localhost:8000/login \
+          --target http://localhost:8000/auth/login \
           --username admin \
           --delay 0.5 \
           --max-concurrent 2
@@ -206,7 +206,7 @@ jobs:
 
     - name: Start monitoring stack
       run: |
-        docker-compose up -d login-api prometheus grafana alertmanager alert-receiver
+        docker-compose up -d login-api redis prometheus grafana alertmanager alert-receiver
         sleep 20
 
     - name: Run monitoring smoke test
@@ -216,7 +216,7 @@ jobs:
     - name: Capture alert receiver payloads
       if: always()
       run: |
-        curl http://localhost:5001/requests | python -m json.tool > alert-receiver.json
+        curl http://localhost:5001/alerts | python -m json.tool > alert-receiver.json || true
 
     - name: Upload monitoring artifacts
       if: always()
