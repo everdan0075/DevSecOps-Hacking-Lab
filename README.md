@@ -169,16 +169,77 @@ python brute_force.py --target http://localhost:8000/auth/login --username admin
 
 **Objective**: Demonstrate vulnerability to password guessing attacks
 
-**Steps**:
-1. Start the vulnerable login-api service
-2. Run the brute-force attack script
-3. Observe rate limiting kicking in
-4. Review logs and metrics
+**Usage**:
+```bash
+cd attacks/brute-force
+python brute_force.py \
+  --target http://localhost:8000/auth/login \
+  --username admin
+```
 
 **Expected Outcome**: 
 - Initial requests succeed
 - Rate limiter blocks excessive requests (429 status)
 - IP gets temporarily banned after threshold
+
+### Scenario 2: Credential Stuffing
+
+**Objective**: Test leaked credential pairs from data breaches
+
+**Usage**:
+```bash
+cd attacks/credential-stuffing
+python credential_stuffing.py \
+  --target http://localhost:8000/auth/login \
+  --credentials wordlists/leaked-credentials.txt
+```
+
+**Expected Outcome**:
+- Valid credentials identified
+- MFA required for successful logins
+- Rate limiting and IP banning trigger on sustained attacks
+
+### Scenario 3: MFA Brute-Force
+
+**Objective**: Attempt to guess 6-digit TOTP codes
+
+**Usage**:
+```bash
+cd attacks/mfa-bruteforce
+python mfa_bruteforce.py \
+  --target http://localhost:8000 \
+  --username admin \
+  --password admin123 \
+  --code-count 100
+```
+
+**Expected Outcome**:
+- Max attempts limit enforced (5 attempts)
+- Challenge expires after TTL (5 minutes)
+- Attack is impractical due to defenses
+
+### Scenario 4: Token Replay
+
+**Objective**: Test JWT security (expiration, revocation, tampering)
+
+**Usage**:
+```bash
+# Get current MFA code
+MFA_CODE=$(docker exec login-api python -c "import pyotp; print(pyotp.TOTP('DEVSECOPSTWENTYFOURHACKINGLAB', interval=30).now())")
+
+cd attacks/token-replay
+python token_replay.py \
+  --target http://localhost:8000 \
+  --username admin \
+  --password admin123 \
+  --mfa-code $MFA_CODE
+```
+
+**Expected Outcome**:
+- Expired tokens rejected
+- Revoked tokens cannot be reused
+- Token rotation prevents replay attacks
+- Tampered JWTs fail signature verification
 
 ## 🛡️ Defense Mechanisms
 
@@ -192,16 +253,23 @@ python brute_force.py --target http://localhost:8000/auth/login --username admin
 - **Duration**: 15 minutes temporary ban
 - **Storage**: In-memory (Redis in production)
 
-## 📊 Monitoring (In Progress)
+## 📊 Monitoring
 
 - Prometheus metrics collection (http://localhost:9090)
-- `/metrics` endpoint with login counters
 - Grafana dashboards (http://localhost:3000) – pre-provisioned
-- Attack visualization (coming soon)
+  - **Attack Visibility**: Login attempts, rate limiting, IP bans
+  - **Auth Security (Phase 2.1)**: JWT, MFA, token management
 - Real-time alerting via Prometheus Alertmanager (http://localhost:9093)
+  - LoginFailureSpike, RateLimiterBlocking
+  - MFABypassAttempts, RefreshTokenAbuse
+  - IPBanThresholdReached, TokenRevocationSpike
+- Alert webhook receiver (http://localhost:5001)
 - Automated smoke test (`python monitoring/tests/monitoring_smoke_test.py`)
-- Detailed guide: see [`docs/monitoring/README.md`](docs/monitoring/README.md)
-- Secure auth upgrade plan: [`docs/auth/SECURE_LOGIN_API.md`](docs/auth/SECURE_LOGIN_API.md)
+
+### Documentation
+- **Phase 2.1 Implementation**: [`docs/auth/PHASE_2.1_IMPLEMENTATION.md`](docs/auth/PHASE_2.1_IMPLEMENTATION.md)
+- **Monitoring Guide**: [`docs/monitoring/README.md`](docs/monitoring/README.md)
+- **Secure Login API (Original Plan)**: [`docs/auth/SECURE_LOGIN_API.md`](docs/auth/SECURE_LOGIN_API.md)
 
 ### Monitoring Quick Start
 
@@ -282,17 +350,41 @@ python -m attacks.brute-force.brute_force --test-mode
 - [x] Rate limiting defense
 - [x] Docker containerization
 
-### Phase 2: Enhanced Security
+### Phase 2.1: Secure Login API 2.0 ✅ COMPLETED
+- [x] JWT access tokens with 5-minute expiry
+- [x] Refresh tokens with rotation
+- [x] Multi-Factor Authentication (TOTP)
+- [x] Redis-based session management
+- [x] Credential stuffing attack script
+- [x] MFA brute-force attack script
+- [x] Token replay attack script
+- [x] Enhanced monitoring (MFA, JWT metrics)
+- [x] New Prometheus alerts
+- [x] Auth Security dashboard
+- [x] Complete documentation
+
+### Phase 2.2: API Gateway + User Service
+- [ ] FastAPI or Kong/OpenResty gateway
+- [ ] User microservice (CRUD + profiles)
+- [ ] WAF rules on gateway
+- [ ] mTLS between services
+- [ ] Service-to-service auth
+- [ ] Distributed tracing
+- [ ] Gateway metrics dashboard
+
+### Phase 2.3: Advanced Attacks
 - [ ] SQL Injection vulnerable endpoint
 - [ ] XSS vulnerable frontend
 - [ ] CORS misconfiguration
-- [ ] Advanced WAF implementation
+- [ ] IDOR (Insecure Direct Object Reference)
 
 ### Phase 3: Observability
-- [ ] Prometheus metrics
-- [ ] Grafana dashboards
+- [x] Prometheus metrics
+- [x] Grafana dashboards (2x)
+- [x] Alertmanager integration
 - [ ] ELK Stack integration
 - [ ] Security event correlation
+- [ ] Log aggregation
 
 ### Phase 4: Cloud Deployment
 - [ ] Terraform AWS infrastructure

@@ -35,3 +35,69 @@ groups:
           summary: "login-api scrape target is down"
           description: "Prometheus cannot reach login-api metrics endpoint for more than 1 minute."
 
+      - alert: MFABypassAttempts
+        expr: increase(mfa_attempts_total{result="failure"}[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+          service: login-api
+          category: mfa-attack
+        annotations:
+          summary: "High rate of failed MFA verification attempts"
+          description: "More than 10 failed MFA attempts in 5 minutes. Possible MFA brute-force attack."
+
+      - alert: MFAChallengeExpired
+        expr: increase(login_failed_total{reason="mfa_challenge_missing"}[5m]) > 5
+        for: 30s
+        labels:
+          severity: info
+          service: login-api
+          category: mfa
+        annotations:
+          summary: "Multiple expired MFA challenges"
+          description: "Users are experiencing expired MFA challenges. May indicate slow user response or attack."
+
+      - alert: RefreshTokenAbuse
+        expr: increase(jwt_refresh_total{status="denied"}[5m]) > 15
+        for: 1m
+        labels:
+          severity: warning
+          service: login-api
+          category: token-abuse
+        annotations:
+          summary: "High rate of invalid refresh token attempts"
+          description: "More than 15 rejected refresh token attempts in 5 minutes. Possible token replay attack."
+
+      - alert: TokenRevocationSpike
+        expr: increase(jwt_refresh_total{status=~"revoked_.*"}[5m]) > 20
+        for: 1m
+        labels:
+          severity: info
+          service: login-api
+          category: session-management
+        annotations:
+          summary: "Unusual token revocation activity"
+          description: "High volume of token revocations detected. May indicate compromised sessions or mass logout."
+
+      - alert: IPBanThresholdReached
+        expr: increase(ip_bans_total[10m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          service: login-api
+          category: defense
+        annotations:
+          summary: "Multiple IPs banned in short period"
+          description: "More than 5 IPs banned in 10 minutes. Indicates distributed attack or aggressive scanning."
+
+      - alert: AuthenticationFlowStalled
+        expr: (rate(login_stage_total{stage="password_success"}[5m]) - rate(login_stage_total{stage="mfa_success"}[5m])) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: login-api
+          category: user-experience
+        annotations:
+          summary: "Users completing password but not MFA"
+          description: "Significant gap between password success and MFA completion. Users may be struggling with MFA."
+
