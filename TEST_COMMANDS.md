@@ -576,3 +576,173 @@ Files:
 - README.md - Vulnerability documentation
 "
 ```
+
+---
+
+## Group 7: Automated Tests (Smoke + Integration) 🧪
+
+### Prerequisites
+
+```powershell
+# Install Python dependencies
+pip install -r tests/smoke/requirements.txt
+pip install -r tests/integration/requirements.txt
+
+# Ensure all services running
+docker-compose up -d
+docker-compose ps
+```
+
+### 1. Smoke Tests - API Gateway
+
+**Purpose**: Fast validation of Gateway core functionality
+
+```powershell
+# Run all Gateway smoke tests
+pytest tests/smoke/test_gateway.py -v
+
+# Run specific test classes
+pytest tests/smoke/test_gateway.py::TestGatewayHealth -v
+pytest tests/smoke/test_gateway.py::TestGatewayJWTValidation -v
+pytest tests/smoke/test_gateway.py::TestGatewayWAF -v
+
+# Skip slow tests (rate limiting)
+pytest tests/smoke/test_gateway.py -v -m "not slow"
+```
+
+**Expected Output**:
+```
+tests/smoke/test_gateway.py::TestGatewayHealth::test_health_endpoint PASSED
+tests/smoke/test_gateway.py::TestGatewayHealth::test_root_endpoint PASSED
+tests/smoke/test_gateway.py::TestGatewayRouting::test_route_to_auth_service PASSED
+tests/smoke/test_gateway.py::TestGatewayRouting::test_route_to_user_service PASSED
+tests/smoke/test_gateway.py::TestGatewayJWTValidation::test_protected_endpoint_without_token PASSED
+tests/smoke/test_gateway.py::TestGatewayJWTValidation::test_protected_endpoint_with_invalid_token PASSED
+tests/smoke/test_gateway.py::TestGatewayJWTValidation::test_protected_endpoint_with_valid_token PASSED
+tests/smoke/test_gateway.py::TestGatewayWAF::test_waf_sql_injection_detection PASSED
+tests/smoke/test_gateway.py::TestGatewayWAF::test_waf_xss_detection PASSED
+tests/smoke/test_gateway.py::TestGatewayWAF::test_waf_path_traversal_detection PASSED
+tests/smoke/test_gateway.py::TestGatewayMetrics::test_metrics_endpoint PASSED
+======================== 16 passed in 12.34s ========================
+```
+
+### 2. Smoke Tests - User Service
+
+**Purpose**: Validate vulnerabilities are exploitable
+
+```powershell
+# Run all User Service smoke tests
+pytest tests/smoke/test_user_service.py -v
+
+# Test IDOR vulnerability
+pytest tests/smoke/test_user_service.py::TestUserServiceIDOR -v
+
+# Test auth bypass
+pytest tests/smoke/test_user_service.py::TestUserServiceAuthBypass -v
+
+# Test direct access detection
+pytest tests/smoke/test_user_service.py::TestDirectServiceAccess -v
+```
+
+**Expected Output**:
+```
+tests/smoke/test_user_service.py::TestUserServiceIDOR::test_idor_vulnerability_exists PASSED
+tests/smoke/test_user_service.py::TestUserServiceIDOR::test_idor_access_own_profile PASSED
+tests/smoke/test_user_service.py::TestUserServiceIDOR::test_idor_metrics_tracking PASSED
+tests/smoke/test_user_service.py::TestUserServiceAuthBypass::test_settings_auth_bypass_exists PASSED
+tests/smoke/test_user_service.py::TestDirectServiceAccess::test_direct_access_bypasses_gateway PASSED
+======================== 12 passed in 8.56s ========================
+```
+
+### 3. Integration Tests - End-to-End
+
+**Purpose**: Validate complete authentication and request flow
+
+```powershell
+# Run all E2E tests
+pytest tests/integration/test_e2e_auth_flow.py -v
+
+# Test authentication flow only
+pytest tests/integration/test_e2e_auth_flow.py::TestE2EAuthenticationFlow -v
+
+# Test Gateway integration only
+pytest tests/integration/test_e2e_auth_flow.py::TestE2EGatewayIntegration -v
+
+# Test User Service access through Gateway
+pytest tests/integration/test_e2e_auth_flow.py::TestE2EUserServiceAccess -v
+
+# Test security controls
+pytest tests/integration/test_e2e_auth_flow.py::TestE2ESecurityControls -v
+```
+
+**Expected Output**:
+```
+tests/integration/test_e2e_auth_flow.py::TestE2EAuthenticationFlow::test_full_login_flow PASSED
+tests/integration/test_e2e_auth_flow.py::TestE2EAuthenticationFlow::test_failed_login_invalid_credentials PASSED
+tests/integration/test_e2e_auth_flow.py::TestE2EGatewayIntegration::test_gateway_jwt_validation_and_routing PASSED
+tests/integration/test_e2e_auth_flow.py::TestE2EUserServiceAccess::test_access_user_profile_through_gateway PASSED
+tests/integration/test_e2e_auth_flow.py::TestE2EUserServiceAccess::test_idor_exploitation_through_gateway PASSED
+tests/integration/test_e2e_auth_flow.py::TestE2ESecurityControls::test_gateway_rate_limiting PASSED
+tests/integration/test_e2e_auth_flow.py::TestE2ESecurityControls::test_gateway_waf_protection PASSED
+======================== 15 passed in 22.45s ========================
+```
+
+### 4. Run All Tests
+
+```powershell
+# All tests (smoke + integration)
+pytest tests/ -v
+
+# All tests with detailed output
+pytest tests/ -v -s
+
+# All tests, stop on first failure
+pytest tests/ -v -x
+
+# Generate coverage report
+pytest tests/ --cov=vulnerable-services --cov-report=html
+start htmlcov/index.html
+```
+
+**Expected Total**: 43 tests passed (~35 seconds)
+
+### 5. Troubleshooting Tests
+
+```powershell
+# If tests fail with "Could not authenticate"
+docker-compose restart login-api
+curl http://localhost:8000/health
+
+# If tests fail with connection errors
+docker-compose ps
+docker-compose restart api-gateway user-service
+
+# Check Gateway logs
+docker-compose logs api-gateway | Select-String -Pattern "error\|ERROR" -CaseSensitive
+
+# Check User Service logs
+docker-compose logs user-service | Select-String -Pattern "error\|ERROR" -CaseSensitive
+
+# Verify services manually
+curl.exe http://localhost:8000/health  # Auth Service
+curl.exe http://localhost:8080/health  # Gateway
+curl.exe http://localhost:8002/health  # User Service
+
+# Test manual authentication
+$login = curl.exe -X POST http://localhost:8000/auth/login -H "Content-Type: application/json" -d '{"username":"admin","password":"admin123"}' | ConvertFrom-Json
+$mfa = docker exec login-api python -c "import pyotp; print(pyotp.TOTP('DEVSECOPSTWENTYFOURHACKINGLAB', interval=30).now())"
+$mfa_verify = curl.exe -X POST http://localhost:8000/auth/mfa/verify -H "Content-Type: application/json" -d "{`"challenge_id`":`"$($login.challenge_id)`",`"totp_code`":`"$mfa`"}" | ConvertFrom-Json
+$token = $mfa_verify.access_token
+curl.exe http://localhost:8080/protected -H "Authorization: Bearer $token"
+```
+
+### Test Coverage
+
+| Component | Smoke Tests | Integration Tests | Total |
+|-----------|-------------|-------------------|-------|
+| Gateway | 16 tests | 13 tests | 29 |
+| User Service | 12 tests | Included in E2E | 12 |
+| Auth Flow | - | 15 tests | 15 |
+| **Total** | **28 tests** | **15 tests** | **43 tests** |
+
+---
