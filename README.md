@@ -34,12 +34,45 @@ DevSecOps Hacking Lab is an educational, ethical testing environment designed to
 - IP-based Blocking
 - Redis-backed session storage
 
-### Phase 2.2: API Gateway & Microservices 🔥 NEW!
+### Phase 2.2: API Gateway & Microservices ✅
 
 **Architecture**:
 - **API Gateway**: Central entry point with security controls (port 8080)
 - **Auth Service**: JWT-based authentication (port 8000)
 - **User Service**: User management with intentional vulnerabilities (port 8002)
+
+### Phase 2.3: Incident Response Automation 🚀 NEWEST!
+
+**Automated Security Response**:
+- **Incident Bot**: Automated incident response system (port 5002)
+- **Runbook Engine**: JSON-based playbooks for different attack scenarios
+- **Action Handlers**: IP banning, notifications, report generation
+- **Integration**: Prometheus → Alertmanager → Incident Bot → Actions
+
+**Features**:
+- ✅ Automated IP banning in Redis for detected attacks
+- ✅ Instant notifications (console/Slack) for security incidents
+- ✅ Automated incident report generation (JSON/Markdown)
+- ✅ 8 prebuilt runbooks for common attack patterns
+- ✅ Grafana dashboard for incident visualization
+- ✅ Metrics tracking (incidents handled, actions executed, success rate)
+
+**Incident Response Flow**:
+1. **Detection**: Prometheus detects anomaly → fires alert
+2. **Routing**: Alertmanager routes to incident-bot based on severity/category
+3. **Matching**: Bot finds appropriate runbook (playbook)
+4. **Execution**: Automated actions (IP ban, notify, report, remediate)
+5. **Documentation**: Full incident timeline and reports generated
+
+**Supported Scenarios**:
+- 🔥 Brute Force Response (IP ban 1h + notify)
+- 🔥 MFA Bypass Attempts (IP ban 2h + analysis)
+- 🔥 Token Abuse Response (IP ban + token revocation guidance)
+- 🔥 Gateway Bypass Detection (IP ban 24h + critical alert)
+- 🔥 IDOR Exploitation (IP ban 12h + remediation steps)
+- 🔥 SQL Injection Attack (IP ban 24h + full forensics)
+- 🔥 Multiple IP Bans (Distributed attack analysis)
+- 🔥 Credential Leak Chain (Advanced: leak detection + chain prevention)
 
 **Security Features**:
 - ✅ JWT verification middleware
@@ -90,13 +123,15 @@ DevSecOps Hacking Lab
 │   ├── prometheus/           # Metrics collection & alert rules
 │   ├── grafana/              # Visualization dashboards
 │   ├── alertmanager/         # Alert routing
+│   ├── incident-bot/         # Automated incident response (Phase 2.3) 🚀 NEW
 │   └── tests/                # Monitoring smoke tests
 ├── infrastructure/            # Infrastructure as Code
 │   ├── certs/                # mTLS certificates (Phase 2.2) ✨ NEW
 │   └── README.md             # Infrastructure documentation
 ├── docs/                      # Architecture documentation
 │   ├── auth/                 # Authentication system docs
-│   ├── gateway/              # API Gateway architecture (Phase 2.2) ✨ NEW
+│   ├── gateway/              # API Gateway architecture (Phase 2.2)
+│   ├── incident-response/    # Incident automation docs (Phase 2.3) 🚀 NEW
 │   └── monitoring/           # Observability documentation
 ├── defenses/                  # Security hardening examples
 ├── reverse-proxy/             # Traefik configuration
@@ -506,6 +541,7 @@ user_service_unauthorized_settings_access_total
 ### Documentation
 - **Phase 2.1 Implementation**: [`docs/auth/PHASE_2.1_IMPLEMENTATION.md`](docs/auth/PHASE_2.1_IMPLEMENTATION.md)
 - **Monitoring Guide**: [`docs/monitoring/README.md`](docs/monitoring/README.md)
+- **Incident Response**: [`docs/incident-response/README.md`](docs/incident-response/README.md) 🚀 NEW
 - **Secure Login API (Original Plan)**: [`docs/auth/SECURE_LOGIN_API.md`](docs/auth/SECURE_LOGIN_API.md)
 
 ### Monitoring Quick Start
@@ -529,6 +565,59 @@ open http://localhost:5001/alerts
 # Query login attempts
 curl "http://localhost:9090/api/v1/query?query=login_attempts_total"
 ```
+
+### Phase 2.3: Incident Response Quick Start 🚀 NEW
+
+```bash
+# Start full environment including incident-bot
+docker-compose up -d
+
+# Verify incident-bot is running
+curl http://localhost:5002/health
+
+# Check loaded runbooks
+curl http://localhost:5002/stats | jq
+
+# Simulate security incidents (automated attack chain)
+cd monitoring/incident-bot
+python simulate_incident.py --attack all
+
+# Watch incident bot logs
+docker logs -f incident-bot
+
+# View Incident Response dashboard
+open http://localhost:3000/d/incident-response
+
+# Check automated incident reports
+docker exec incident-bot ls -la /app/reports/
+
+# Run advanced credential leak demo
+python demo_credential_leak.py
+
+# Check incident history
+curl http://localhost:5002/incidents | jq
+```
+
+**Test Individual Runbooks**:
+```bash
+# Trigger brute force (should execute: notify + IP ban + report)
+cd attacks/brute-force
+python brute_force.py --target http://localhost:8000/login
+
+# Trigger IDOR (should execute: IP ban 12h + remediation)
+cd attacks/idor-exploit
+python idor_attack.py
+
+# Trigger gateway bypass (should execute: IP ban 24h + critical alert)
+cd attacks/direct-access
+python direct_access_attack.py
+```
+
+**Monitor Automated Response**:
+- **Incident Timeline**: http://localhost:3000/d/incident-response
+- **Alertmanager**: http://localhost:9093/#/alerts
+- **Incident Bot Metrics**: http://localhost:5002/metrics
+- **Generated Reports**: `docker exec incident-bot ls /app/reports/`
 
 ## 🔧 Configuration
 
@@ -618,20 +707,27 @@ python monitoring/tests/monitoring_smoke_test.py
 - [x] Auth Security dashboard
 - [x] Complete documentation
 
-### Phase 2.2: API Gateway + User Service
-- [ ] FastAPI or Kong/OpenResty gateway
-- [ ] User microservice (CRUD + profiles)
-- [ ] WAF rules on gateway
-- [ ] mTLS between services
-- [ ] Service-to-service auth
-- [ ] Distributed tracing
-- [ ] Gateway metrics dashboard
+### Phase 2.2: API Gateway + User Service ✅ COMPLETED
+- [x] FastAPI API Gateway with security middleware
+- [x] User microservice (CRUD + profiles)
+- [x] WAF rules on gateway (SQL injection, XSS, path traversal)
+- [x] JWT validation middleware
+- [x] Rate limiting (60 req/min, burst 10)
+- [x] Security metrics & monitoring
+- [x] Attack demos (IDOR, direct access, rate limit bypass)
+- [x] Grafana dashboards (Attack Visibility, Service Mesh Security)
+- [x] mTLS certificates generated (ready for implementation)
 
-### Phase 2.3: Advanced Attacks
-- [ ] SQL Injection vulnerable endpoint
-- [ ] XSS vulnerable frontend
-- [ ] CORS misconfiguration
-- [ ] IDOR (Insecure Direct Object Reference)
+### Phase 2.3: Incident Response Automation ✅ COMPLETED
+- [x] Incident Bot service with runbook engine
+- [x] 8 prebuilt runbooks for common attack patterns  
+- [x] Automated action handlers (IP ban, notify, report)
+- [x] Integration with Prometheus/Alertmanager
+- [x] Grafana dashboard for incident visualization
+- [x] Attack simulation scripts (chain attacks)
+- [x] Advanced credential leak + chain demo
+- [x] Comprehensive incident response documentation
+- [x] Smoke tests for incident automation
 
 ### Phase 3: Observability
 - [x] Prometheus metrics
