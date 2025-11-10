@@ -1,21 +1,49 @@
 global:
   resolve_timeout: 2m
 
+# Root route - fan out to multiple receivers
 route:
   receiver: "default"
   group_wait: 10s
   group_interval: 30s
   repeat_interval: 30m
   group_by: ["alertname", "service", "severity"]
+  
+  # Child routes for specific alert handling
+  routes:
+    # Critical alerts go to incident-bot for automated response
+    - receiver: "incident-bot"
+      matchers:
+        - severity = "critical"
+      continue: true  # Also send to default receiver
+    
+    # High-priority security categories go to incident-bot
+    - receiver: "incident-bot"
+      matchers:
+        - category =~ "brute-force|idor|gateway-bypass|token-abuse|waf"
+      continue: true
+    
+    # All alerts still go to alert-receiver for monitoring
+    - receiver: "default"
+      continue: false
 
 receivers:
+  # Alert receiver - stores all alerts for monitoring/testing
   - name: "default"
     webhook_configs:
       - url: "http://alert-receiver:5001/alerts"
         max_alerts: 10
         send_resolved: true
+  
+  # Incident bot - automated response for critical/security alerts
+  - name: "incident-bot"
+    webhook_configs:
+      - url: "http://incident-bot:5002/webhook"
+        max_alerts: 20
+        send_resolved: true
 
 inhibit_rules:
+  # Critical alerts inhibit warnings for same alert
   - source_matchers:
       - "severity = critical"
     target_matchers:

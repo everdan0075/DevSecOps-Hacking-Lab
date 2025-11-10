@@ -1,0 +1,55 @@
+{
+  "name": "SQL Injection Attack Response",
+  "description": "Critical response to SQL injection attempts detected by WAF",
+  "version": "1.0",
+  "enabled": true,
+  "trigger": {
+    "alertname": "WAFSQLInjectionAttempt",
+    "severity": "critical",
+    "category": "waf"
+  },
+  "priority": 50,
+  "actions": [
+    {
+      "type": "notify",
+      "description": "CRITICAL: SQL injection attack",
+      "params": {
+        "channel": "console",
+        "message": "🚨 CRITICAL: SQL Injection attack detected and blocked by WAF! Immediate investigation required."
+      },
+      "continue_on_error": true
+    },
+    {
+      "type": "ip_ban",
+      "description": "Permanently ban SQL injection attacker (24h)",
+      "params": {
+        "duration": 86400,
+        "reason": "SQL injection attack - critical security threat"
+      },
+      "continue_on_error": false,
+      "retry_count": 3
+    },
+    {
+      "type": "report",
+      "description": "Generate detailed SQL injection analysis",
+      "params": {
+        "format": "json",
+        "include_context": true
+      },
+      "continue_on_error": true
+    },
+    {
+      "type": "report",
+      "description": "Generate human-readable report",
+      "params": {
+        "format": "markdown",
+        "include_context": true
+      },
+      "continue_on_error": true
+    }
+  ],
+  "author": "DevSecOps Team",
+  "tags": ["sql-injection", "waf", "owasp-a03"],
+  "created_at": "2025-11-10T00:00:00Z"
+}
+

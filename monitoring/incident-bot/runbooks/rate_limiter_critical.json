@@ -1,0 +1,45 @@
+{
+  "name": "Rate Limiter Critical Response",
+  "description": "Response when rate limiter is blocking sustained traffic (possible DDoS)",
+  "version": "1.0",
+  "enabled": true,
+  "trigger": {
+    "alertname": "RateLimiterBlocking",
+    "severity": "critical",
+    "category": "defense"
+  },
+  "priority": 30,
+  "actions": [
+    {
+      "type": "notify",
+      "description": "Critical alert - rate limiter under heavy load",
+      "params": {
+        "channel": "console",
+        "message": "🚨 CRITICAL: Rate limiter blocking sustained attack traffic!"
+      },
+      "continue_on_error": true
+    },
+    {
+      "type": "report",
+      "description": "Generate detailed attack analysis report",
+      "params": {
+        "format": "markdown",
+        "include_context": true
+      },
+      "continue_on_error": true
+    },
+    {
+      "type": "notify",
+      "description": "Send follow-up with report link",
+      "params": {
+        "channel": "console",
+        "message": "📊 Attack analysis report generated. Review for attack patterns and consider additional mitigation."
+      },
+      "continue_on_error": true
+    }
+  ],
+  "author": "DevSecOps Team",
+  "tags": ["rate-limiting", "ddos", "critical"],
+  "created_at": "2025-11-10T00:00:00Z"
+}
+

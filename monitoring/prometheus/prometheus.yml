@@ -46,6 +46,17 @@ scrape_configs:
           component: "vulnerable-service"
           env: "local"
 
+  - job_name: "incident-bot"
+    honor_labels: true
+    metrics_path: "/metrics"
+    static_configs:
+      - targets:
+          - "incident-bot:5002"
+        labels:
+          service: "incident-bot"
+          component: "security-automation"
+          env: "local"
+
   # Placeholder for future exporters (node, attack scripts, etc.)
   - job_name: "prometheus"
     static_configs:

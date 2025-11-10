@@ -1,0 +1,55 @@
+{
+  "name": "Gateway Bypass Response",
+  "description": "Critical response when services are accessed directly, bypassing API Gateway",
+  "version": "1.0",
+  "enabled": true,
+  "trigger": {
+    "alertname": "DirectServiceAccessDetected",
+    "severity": "critical",
+    "category": "gateway-bypass"
+  },
+  "priority": 40,
+  "actions": [
+    {
+      "type": "notify",
+      "description": "CRITICAL: Gateway bypass detected",
+      "params": {
+        "channel": "console",
+        "message": "🚨 CRITICAL: Direct service access detected! Attacker bypassing API Gateway security controls. Immediate action required!"
+      },
+      "continue_on_error": true
+    },
+    {
+      "type": "ip_ban",
+      "description": "Immediately ban bypassing IP",
+      "params": {
+        "duration": 86400,
+        "reason": "Gateway bypass - direct service access"
+      },
+      "continue_on_error": false,
+      "retry_count": 3
+    },
+    {
+      "type": "report",
+      "description": "Generate detailed bypass analysis",
+      "params": {
+        "format": "markdown",
+        "include_context": true
+      },
+      "continue_on_error": true
+    },
+    {
+      "type": "notify",
+      "description": "Remediation instructions",
+      "params": {
+        "channel": "console",
+        "message": "💡 REMEDIATION: Remove direct port exposure in docker-compose.yml and implement mTLS between services."
+      },
+      "continue_on_error": true
+    }
+  ],
+  "author": "DevSecOps Team",
+  "tags": ["gateway-bypass", "critical", "architecture"],
+  "created_at": "2025-11-10T00:00:00Z"
+}
+

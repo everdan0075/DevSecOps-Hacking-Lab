@@ -1,0 +1,45 @@
+{
+  "name": "Multiple IP Bans Response",
+  "description": "Response when multiple IPs are banned quickly (distributed attack)",
+  "version": "1.0",
+  "enabled": true,
+  "trigger": {
+    "alertname": "IPBanThresholdReached",
+    "severity": "critical",
+    "category": "defense"
+  },
+  "priority": 25,
+  "actions": [
+    {
+      "type": "notify",
+      "description": "Alert about distributed attack",
+      "params": {
+        "channel": "console",
+        "message": "🚨 Distributed attack detected! Multiple IPs banned in short period - indicates coordinated attack or botnet."
+      },
+      "continue_on_error": true
+    },
+    {
+      "type": "report",
+      "description": "Generate attack pattern analysis",
+      "params": {
+        "format": "markdown",
+        "include_context": true
+      },
+      "continue_on_error": true
+    },
+    {
+      "type": "notify",
+      "description": "Suggest enhanced defenses",
+      "params": {
+        "channel": "console",
+        "message": "💡 Consider enabling stricter rate limiting and implementing CAPTCHA challenges for suspicious traffic."
+      },
+      "continue_on_error": true
+    }
+  ],
+  "author": "DevSecOps Team",
+  "tags": ["distributed-attack", "botnet", "defense"],
+  "created_at": "2025-11-10T00:00:00Z"
+}
+
