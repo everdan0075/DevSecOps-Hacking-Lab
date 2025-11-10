@@ -101,3 +101,198 @@ groups:
           summary: "Users completing password but not MFA"
           description: "Significant gap between password success and MFA completion. Users may be struggling with MFA."
 
+  # ============================================================================
+  # Phase 2.2: API Gateway & Microservices Security Alerts
+  # ============================================================================
+  - name: devsecops-gateway-alerts
+    interval: 15s
+    rules:
+      # Gateway Availability
+      - alert: APIGatewayDown
+        expr: up{job="api-gateway"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: api-gateway
+          category: availability
+        annotations:
+          summary: "API Gateway is down"
+          description: "API Gateway metrics endpoint unreachable for >1 minute. All client traffic blocked."
+
+      # Gateway Bypass - Direct Service Access
+      - alert: DirectServiceAccessDetected
+        expr: increase(user_service_direct_access_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: critical
+          service: user-service
+          category: gateway-bypass
+        annotations:
+          summary: "Direct service access detected (Gateway bypass)"
+          description: "More than 10 direct accesses to user-service in 5 minutes. Attacker bypassing API Gateway security controls."
+          remediation: "Remove port exposure in docker-compose.yml, implement mTLS"
+
+      - alert: DirectServiceAccessSustained
+        expr: rate(user_service_direct_access_total[5m]) > 0.5
+        for: 3m
+        labels:
+          severity: warning
+          service: user-service
+          category: gateway-bypass
+        annotations:
+          summary: "Sustained direct service access pattern"
+          description: "Continuous direct access to backend services bypassing Gateway. Possible automated attack or misconfiguration."
+
+      # IDOR Exploitation
+      - alert: IDORExploitationAttempt
+        expr: increase(user_service_idor_attempts_total{result="success"}[5m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          service: user-service
+          category: idor
+        annotations:
+          summary: "IDOR exploitation detected"
+          description: "More than 5 successful IDOR attempts in 5 minutes. User accessing unauthorized profiles."
+          owasp: "A01:2021 - Broken Access Control"
+          remediation: "Add authorization check: authenticated_user == requested_user_id"
+
+      - alert: IDOREnumerationPattern
+        expr: count(increase(user_service_idor_attempts_total{result="success"}[1m]) > 0) by (authenticated_user) > 3
+        for: 2m
+        labels:
+          severity: warning
+          service: user-service
+          category: idor
+        annotations:
+          summary: "IDOR enumeration pattern detected"
+          description: "User sequentially accessing multiple other users' profiles. Profile enumeration attack."
+
+      # Unauthorized Settings Access
+      - alert: UnauthorizedSettingsAccess
+        expr: increase(user_service_unauthorized_settings_access_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: critical
+          service: user-service
+          category: auth-bypass
+        annotations:
+          summary: "Unauthorized access to /settings endpoint"
+          description: "More than 10 accesses to /settings without JWT authentication in 5 minutes."
+          remediation: "Add JWT validation to /settings endpoint"
+
+      # Gateway Rate Limiting
+      - alert: GatewayRateLimitExceeded
+        expr: increase(gateway_rate_limit_blocks_total[5m]) > 20
+        for: 1m
+        labels:
+          severity: warning
+          service: api-gateway
+          category: rate-limiting
+        annotations:
+          summary: "High rate of requests blocked by rate limiter"
+          description: "Gateway rate limiter blocked >20 requests in 5 minutes. Possible DoS attack or aggressive client."
+
+      - alert: GatewayRateLimitBypass
+        expr: (rate(user_service_requests_total[5m]) / rate(gateway_requests_total[5m])) > 1.5
+        for: 2m
+        labels:
+          severity: critical
+          service: api-gateway
+          category: rate-limiting
+        annotations:
+          summary: "Rate limit bypass detected"
+          description: "Backend receiving significantly more traffic than Gateway. Rate limiting bypassed via direct access."
+
+      # WAF Blocks
+      - alert: WAFBlockSpike
+        expr: increase(gateway_waf_blocks_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+          service: api-gateway
+          category: waf
+        annotations:
+          summary: "High rate of WAF blocks"
+          description: "WAF blocked >10 suspicious requests in 5 minutes. Active attack detected (SQL injection, XSS, etc.)"
+
+      - alert: WAFSQLInjectionAttempt
+        expr: increase(gateway_waf_blocks_total{attack_type="sql_injection"}[5m]) > 5
+        for: 30s
+        labels:
+          severity: critical
+          service: api-gateway
+          category: waf
+        annotations:
+          summary: "SQL injection attack detected"
+          description: "WAF detected and blocked SQL injection attempts. Immediate investigation required."
+
+      # JWT Validation Failures
+      - alert: GatewayJWTValidationFailureSpike
+        expr: increase(gateway_jwt_validation_failures_total[5m]) > 15
+        for: 1m
+        labels:
+          severity: warning
+          service: api-gateway
+          category: jwt
+        annotations:
+          summary: "High rate of JWT validation failures"
+          description: "More than 15 JWT validation failures in 5 minutes. Possible token tampering or replay attack."
+
+      - alert: ExpiredTokenFlood
+        expr: increase(gateway_jwt_validation_failures_total{reason="expired"}[5m]) > 20
+        for: 1m
+        labels:
+          severity: info
+          service: api-gateway
+          category: jwt
+        annotations:
+          summary: "Many expired token attempts"
+          description: "High volume of expired JWT tokens. Users not refreshing tokens properly or cached tokens reused."
+
+      # Backend Service Health
+      - alert: UserServiceDown
+        expr: up{job="user-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: user-service
+          category: availability
+        annotations:
+          summary: "User Service is down"
+          description: "User Service metrics endpoint unreachable. Profile and settings endpoints unavailable."
+
+      - alert: BackendServiceError
+        expr: increase(gateway_backend_errors_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: critical
+          service: api-gateway
+          category: backend-health
+        annotations:
+          summary: "High backend service error rate"
+          description: "Gateway receiving errors from backend services. Check backend health and logs."
+
+      # Performance Degradation
+      - alert: GatewayHighLatency
+        expr: histogram_quantile(0.95, rate(gateway_request_duration_seconds_bucket[5m])) > 2
+        for: 2m
+        labels:
+          severity: warning
+          service: api-gateway
+          category: performance
+        annotations:
+          summary: "Gateway experiencing high latency"
+          description: "95th percentile request duration >2 seconds. Performance degradation or under attack."
+
+      - alert: BackendHighLatency
+        expr: histogram_quantile(0.95, rate(gateway_backend_request_duration_seconds_bucket[5m])) > 1.5
+        for: 2m
+        labels:
+          severity: warning
+          service: api-gateway
+          category: performance
+        annotations:
+          summary: "Backend services responding slowly"
+          description: "95th percentile backend response time >1.5 seconds. Investigate backend performance."
+
