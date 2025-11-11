@@ -262,34 +262,33 @@ class TestIncidentBotResilience:
         """Test handling multiple webhooks concurrently."""
         import concurrent.futures
 
-        webhook_payload = {
-            "version": "4",
-            "groupKey": "concurrent-test",
-            "status": "firing",
-            "receiver": "incident-bot",
-            "groupLabels": {},
-            "commonLabels": {},
-            "commonAnnotations": {},
-            "externalURL": "http://alertmanager:9093",
-            "alerts": [
-                {
-                    "status": "firing",
-                    "labels": {
-                        "alertname": "ConcurrentTest",
-                        "severity": "info",
-                        "service": "test",
-                        "category": "test",
-                    },
-                    "annotations": {
-                        "summary": "Concurrent test",
-                    },
-                    "startsAt": datetime.utcnow().isoformat() + "Z",
-                    "fingerprint": f"concurrent{i}",
-                }
-            ],
-        }
-
-        def send_webhook():
+        def send_webhook(index):
+            webhook_payload = {
+                "version": "4",
+                "groupKey": "concurrent-test",
+                "status": "firing",
+                "receiver": "incident-bot",
+                "groupLabels": {},
+                "commonLabels": {},
+                "commonAnnotations": {},
+                "externalURL": "http://alertmanager:9093",
+                "alerts": [
+                    {
+                        "status": "firing",
+                        "labels": {
+                            "alertname": "ConcurrentTest",
+                            "severity": "info",
+                            "service": "test",
+                            "category": "test",
+                        },
+                        "annotations": {
+                            "summary": "Concurrent test",
+                        },
+                        "startsAt": datetime.utcnow().isoformat() + "Z",
+                        "fingerprint": f"concurrent{index}",
+                    }
+                ],
+            }
             return requests.post(
                 f"{BASE_URL}/webhook",
                 json=webhook_payload,
@@ -298,7 +297,7 @@ class TestIncidentBotResilience:
 
         # Send 5 webhooks concurrently
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            futures = [executor.submit(send_webhook) for _ in range(5)]
+            futures = [executor.submit(send_webhook, i) for i in range(5)]
             results = [f.result() for f in futures]
 
         # All should succeed
