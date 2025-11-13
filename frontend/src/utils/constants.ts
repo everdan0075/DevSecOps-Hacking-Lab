@@ -1,0 +1,208 @@
+/**
+ * API Configuration
+ *
+ * In production (GitHub Pages): APIs are not accessible, UI shows connection error
+ * In local development: Vite proxy forwards requests to localhost:8080
+ */
+
+// Determine if we're in production or development
+export const IS_PRODUCTION = import.meta.env.PROD
+export const IS_DEVELOPMENT = import.meta.env.DEV
+
+// Base URL configuration
+// In dev: use proxy (empty string = same origin)
+// In prod: would need CORS-enabled backend or show disconnected state
+export const API_BASE_URL = IS_DEVELOPMENT ? '' : 'http://localhost:8080'
+
+// Service endpoints
+export const ENDPOINTS = {
+  // Authentication Service (via Gateway)
+  AUTH: {
+    LOGIN: '/auth/login',
+    MFA_VERIFY: '/auth/mfa/verify',
+    REFRESH: '/auth/token/refresh',
+    LOGOUT: '/auth/logout',
+    STATS: '/auth/stats',
+  },
+
+  // User Service (via Gateway)
+  USER: {
+    PROFILE: (userId: number) => `/api/users/profile/${userId}`,
+    SETTINGS: '/api/users/settings',
+  },
+
+  // Gateway
+  GATEWAY: {
+    HEALTH: '/health',
+    PROTECTED: '/protected',
+    METRICS: '/metrics',
+  },
+
+  // Incident Bot
+  INCIDENTS: {
+    LIST: 'http://localhost:5002/incidents',
+    STATS: 'http://localhost:5002/stats',
+    HEALTH: 'http://localhost:5002/health',
+  },
+
+  // Prometheus
+  PROMETHEUS: {
+    QUERY: 'http://localhost:9090/api/v1/query',
+    QUERY_RANGE: 'http://localhost:9090/api/v1/query_range',
+    TARGETS: 'http://localhost:9090/api/v1/targets',
+  },
+
+  // Grafana (embedded)
+  GRAFANA: {
+    BASE: 'http://localhost:3000',
+    DASHBOARDS: {
+      AUTH_SECURITY: 'http://localhost:3000/d/auth-security',
+      ATTACK_VISIBILITY: 'http://localhost:3000/d/devsecops-attack-visibility',
+      SERVICE_MESH: 'http://localhost:3000/d/service-mesh-security',
+      INCIDENT_RESPONSE: 'http://localhost:3000/d/incident-response',
+    },
+  },
+} as const
+
+// Attack scenarios metadata
+export const ATTACK_SCENARIOS = [
+  {
+    id: 'brute-force',
+    name: 'Brute Force Attack',
+    category: 'auth',
+    difficulty: 'easy',
+    description: 'Automated password guessing against login endpoint',
+    owasp_category: 'A07:2021 - Identification and Authentication Failures',
+    target_endpoint: 'POST /auth/login',
+    estimated_duration: '2-5 minutes',
+    requires_auth: false,
+    detection_metrics: ['login_attempts_total', 'login_failures_total', 'ip_bans_total'],
+  },
+  {
+    id: 'mfa-bruteforce',
+    name: 'MFA Bypass (Bruteforce)',
+    category: 'auth',
+    difficulty: 'medium',
+    description: 'TOTP code enumeration (000000-999999)',
+    owasp_category: 'A07:2021 - Identification and Authentication Failures',
+    target_endpoint: 'POST /auth/mfa/verify',
+    estimated_duration: '1-3 minutes',
+    requires_auth: false,
+    detection_metrics: ['mfa_attempts_total', 'mfa_failures_total'],
+  },
+  {
+    id: 'token-replay',
+    name: 'Token Replay Attack',
+    category: 'auth',
+    difficulty: 'easy',
+    description: 'Reuse revoked refresh tokens',
+    owasp_category: 'A07:2021 - Identification and Authentication Failures',
+    target_endpoint: 'POST /auth/token/refresh',
+    estimated_duration: '< 1 minute',
+    requires_auth: true,
+    detection_metrics: ['refresh_token_attempts_total'],
+  },
+  {
+    id: 'credential-stuffing',
+    name: 'Credential Stuffing',
+    category: 'auth',
+    difficulty: 'medium',
+    description: 'Test leaked username/password pairs from breach databases',
+    owasp_category: 'A07:2021 - Identification and Authentication Failures',
+    target_endpoint: 'POST /auth/login',
+    estimated_duration: '3-10 minutes',
+    requires_auth: false,
+    detection_metrics: ['login_attempts_total', 'rate_limit_blocks_total'],
+  },
+  {
+    id: 'idor-exploit',
+    name: 'IDOR Exploitation',
+    category: 'idor',
+    difficulty: 'easy',
+    description: 'Access other users\' profiles without authorization',
+    owasp_category: 'A01:2021 - Broken Access Control',
+    target_endpoint: 'GET /api/users/profile/{user_id}',
+    estimated_duration: '< 1 minute',
+    requires_auth: true,
+    detection_metrics: ['user_service_idor_attempts_total'],
+  },
+  {
+    id: 'direct-access',
+    name: 'Gateway Bypass (Direct Access)',
+    category: 'gateway-bypass',
+    difficulty: 'easy',
+    description: 'Bypass API Gateway security by accessing services directly',
+    owasp_category: 'A01:2021 - Broken Access Control',
+    target_endpoint: 'http://localhost:8002 (User Service)',
+    estimated_duration: '< 1 minute',
+    requires_auth: false,
+    detection_metrics: ['user_service_direct_access_total'],
+  },
+  {
+    id: 'rate-limit-bypass',
+    name: 'Rate Limit Bypass',
+    category: 'gateway-bypass',
+    difficulty: 'medium',
+    description: 'Evade gateway rate limiting via direct service access',
+    owasp_category: 'A04:2021 - Insecure Design',
+    target_endpoint: 'Backend services on public ports',
+    estimated_duration: '1-2 minutes',
+    requires_auth: false,
+    detection_metrics: ['gateway_rate_limit_blocks_total', 'user_service_direct_access_total'],
+  },
+] as const
+
+// Demo users (from backend)
+export const DEMO_USERS = [
+  {
+    user_id: 1,
+    username: 'admin',
+    password: 'admin123',
+    role: 'admin',
+    mfa_secret: 'DEVSECOPSTWENTYFOURHACKINGLAB',
+  },
+  {
+    user_id: 2,
+    username: 'user1',
+    password: 'password123',
+    role: 'user',
+    mfa_secret: 'DEVSECOPSTWENTYFOURHACKINGLAB',
+  },
+] as const
+
+// Timeout configurations
+export const TIMEOUTS = {
+  API_REQUEST: 10000, // 10 seconds
+  BACKEND_HEALTH_CHECK: 5000, // 5 seconds
+  ATTACK_EXECUTION: 300000, // 5 minutes
+} as const
+
+// Local storage keys
+export const STORAGE_KEYS = {
+  ACCESS_TOKEN: 'devsecops_access_token',
+  REFRESH_TOKEN: 'devsecops_refresh_token',
+  TOKEN_EXPIRY: 'devsecops_token_expiry',
+  USER_PROFILE: 'devsecops_user_profile',
+  THEME: 'devsecops_theme',
+} as const
+
+// HTTP status codes
+export const HTTP_STATUS = {
+  OK: 200,
+  CREATED: 201,
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  TOO_MANY_REQUESTS: 429,
+  INTERNAL_SERVER_ERROR: 500,
+  SERVICE_UNAVAILABLE: 503,
+} as const
+
+// Refresh intervals (milliseconds)
+export const REFRESH_INTERVALS = {
+  BACKEND_STATUS: 10000, // 10 seconds
+  INCIDENT_LIST: 5000, // 5 seconds
+  METRICS: 15000, // 15 seconds
+  ATTACK_PROGRESS: 1000, // 1 second
+} as const

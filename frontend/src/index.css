@@ -1,0 +1,148 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-cyber-border;
+  }
+
+  body {
+    @apply bg-cyber-bg text-gray-100 font-mono;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  #root {
+    min-height: 100vh;
+    position: relative;
+  }
+
+  /* Cyberpunk scan line effect */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      rgba(0, 255, 65, 0.3),
+      transparent
+    );
+    animation: scan-line 8s linear infinite;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Subtle grid background */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+      linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
+@layer components {
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-cyber-surface;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-cyber-primary/30;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-cyber-primary/50;
+  }
+
+  /* Glowing button effect */
+  .btn-glow {
+    @apply relative overflow-hidden;
+    transition: all 0.3s ease;
+  }
+
+  .btn-glow::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(0, 255, 65, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+  }
+
+  .btn-glow:hover::before {
+    width: 300px;
+    height: 300px;
+  }
+
+  /* Terminal-style code blocks */
+  .terminal {
+    @apply bg-black/50 rounded-lg p-4 border border-cyber-primary/30 font-mono text-sm;
+    box-shadow: 0 0 20px rgba(0, 255, 65, 0.1);
+  }
+
+  /* Card with glow effect */
+  .card-glow {
+    @apply bg-cyber-surface border border-cyber-border rounded-lg p-6;
+    box-shadow: 0 0 30px rgba(0, 255, 65, 0.05);
+    transition: all 0.3s ease;
+  }
+
+  .card-glow:hover {
+    @apply border-cyber-primary/50;
+    box-shadow: 0 0 40px rgba(0, 255, 65, 0.15);
+  }
+
+  /* Status indicators */
+  .status-connected {
+    @apply text-cyber-success;
+    text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  }
+
+  .status-disconnected {
+    @apply text-cyber-danger;
+    text-shadow: 0 0 10px rgba(255, 0, 85, 0.5);
+  }
+
+  /* Matrix-style text */
+  .text-matrix {
+    @apply text-cyber-primary;
+    text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  }
+}
+
+@layer utilities {
+  .text-glow {
+    text-shadow: 0 0 10px currentColor;
+  }
+
+  .border-glow {
+    box-shadow: 0 0 10px currentColor;
+  }
+}
