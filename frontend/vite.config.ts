@@ -21,7 +21,7 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // Proxy API calls to local backend when running locally
+      // Proxy API Gateway routes
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
@@ -29,6 +29,37 @@ export default defineConfig({
       '/auth': {
         target: 'http://localhost:8080',
         changeOrigin: true,
+      },
+      '/health': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      // Proxy direct service access (for gateway bypass attacks)
+      '/direct/user-service': {
+        target: 'http://localhost:8002',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/direct\/user-service/, ''),
+      },
+      '/direct/auth-service': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/direct\/auth-service/, ''),
+      },
+      // Proxy monitoring services
+      '/prometheus': {
+        target: 'http://localhost:9090',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/prometheus/, ''),
+      },
+      '/grafana': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/grafana/, ''),
+      },
+      '/incidents': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/incidents/, ''),
       },
     },
   },

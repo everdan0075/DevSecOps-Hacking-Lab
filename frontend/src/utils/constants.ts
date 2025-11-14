@@ -38,28 +38,28 @@ export const ENDPOINTS = {
     METRICS: '/metrics',
   },
 
-  // Incident Bot
+  // Incident Bot (via Vite proxy in dev)
   INCIDENTS: {
-    LIST: 'http://localhost:5002/incidents',
-    STATS: 'http://localhost:5002/stats',
-    HEALTH: 'http://localhost:5002/health',
+    LIST: IS_DEVELOPMENT ? '/incidents' : 'http://localhost:5002/incidents',
+    STATS: IS_DEVELOPMENT ? '/incidents/stats' : 'http://localhost:5002/stats',
+    HEALTH: IS_DEVELOPMENT ? '/incidents/health' : 'http://localhost:5002/health',
   },
 
-  // Prometheus
+  // Prometheus (via Vite proxy in dev)
   PROMETHEUS: {
-    QUERY: 'http://localhost:9090/api/v1/query',
-    QUERY_RANGE: 'http://localhost:9090/api/v1/query_range',
-    TARGETS: 'http://localhost:9090/api/v1/targets',
+    QUERY: IS_DEVELOPMENT ? '/prometheus/api/v1/query' : 'http://localhost:9090/api/v1/query',
+    QUERY_RANGE: IS_DEVELOPMENT ? '/prometheus/api/v1/query_range' : 'http://localhost:9090/api/v1/query_range',
+    TARGETS: IS_DEVELOPMENT ? '/prometheus/api/v1/targets' : 'http://localhost:9090/api/v1/targets',
   },
 
-  // Grafana (embedded)
+  // Grafana (embedded, via Vite proxy in dev)
   GRAFANA: {
-    BASE: 'http://localhost:3000',
+    BASE: IS_DEVELOPMENT ? '/grafana' : 'http://localhost:3000',
     DASHBOARDS: {
-      AUTH_SECURITY: 'http://localhost:3000/d/auth-security',
-      ATTACK_VISIBILITY: 'http://localhost:3000/d/devsecops-attack-visibility',
-      SERVICE_MESH: 'http://localhost:3000/d/service-mesh-security',
-      INCIDENT_RESPONSE: 'http://localhost:3000/d/incident-response',
+      AUTH_SECURITY: IS_DEVELOPMENT ? '/grafana/d/auth-security' : 'http://localhost:3000/d/auth-security',
+      ATTACK_VISIBILITY: IS_DEVELOPMENT ? '/grafana/d/devsecops-attack-visibility' : 'http://localhost:3000/d/devsecops-attack-visibility',
+      SERVICE_MESH: IS_DEVELOPMENT ? '/grafana/d/service-mesh-security' : 'http://localhost:3000/d/service-mesh-security',
+      INCIDENT_RESPONSE: IS_DEVELOPMENT ? '/grafana/d/incident-response' : 'http://localhost:3000/d/incident-response',
     },
   },
 } as const

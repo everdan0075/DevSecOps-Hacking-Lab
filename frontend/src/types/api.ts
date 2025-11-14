@@ -154,7 +154,7 @@ export interface AttackScenario {
   target_endpoint: string
   estimated_duration: string
   requires_auth: boolean
-  detection_metrics: string[]
+  detection_metrics: readonly string[]
 }
 
 export interface AttackExecutionRequest {

@@ -7,22 +7,14 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { Home } from './pages/Home'
+import { Attacks } from './pages/Attacks'
 
-// Placeholder pages (will be implemented in Phase 2)
-function AttacksPage() {
-  return (
-    <div className="container mx-auto px-4 py-16">
-      <h1 className="text-4xl font-bold text-matrix mb-4">Attack Scenarios</h1>
-      <p className="text-gray-400">Coming soon in Phase 2...</p>
-    </div>
-  )
-}
-
+// Placeholder pages (will be implemented in Phase 3)
 function MonitoringPage() {
   return (
     <div className="container mx-auto px-4 py-16">
       <h1 className="text-4xl font-bold text-matrix mb-4">Security Monitoring</h1>
-      <p className="text-gray-400">Coming soon in Phase 2...</p>
+      <p className="text-gray-400">Coming soon in Phase 3...</p>
     </div>
   )
 }
@@ -31,7 +23,7 @@ function DocsPage() {
   return (
     <div className="container mx-auto px-4 py-16">
       <h1 className="text-4xl font-bold text-matrix mb-4">Documentation</h1>
-      <p className="text-gray-400">Coming soon in Phase 2...</p>
+      <p className="text-gray-400">Coming soon in Phase 3...</p>
     </div>
   )
 }
@@ -42,7 +34,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
-          <Route path="attacks" element={<AttacksPage />} />
+          <Route path="attacks" element={<Attacks />} />
           <Route path="monitoring" element={<MonitoringPage />} />
           <Route path="docs" element={<DocsPage />} />
           <Route path="docs/:slug" element={<DocsPage />} />

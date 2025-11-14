@@ -60,10 +60,14 @@ class BackendDetectionService {
     const startTime = Date.now()
 
     // Check all services in parallel
+    // In dev mode: use Vite proxy paths
+    // In prod: use direct localhost URLs (will fail on GitHub Pages - expected)
+    const isDev = import.meta.env.DEV
+
     const [gateway, auth, userService, incidentBot, prometheus, grafana] = await Promise.all([
       this.checkService(ENDPOINTS.GATEWAY.HEALTH),
       this.checkService(`${ENDPOINTS.AUTH.LOGIN.replace('/login', '')}/health`),
-      this.checkService('http://localhost:8002/health'),
+      this.checkService(isDev ? '/direct/user-service/health' : 'http://localhost:8002/health'),
       this.checkService(ENDPOINTS.INCIDENTS.HEALTH),
       this.checkService(`${ENDPOINTS.PROMETHEUS.QUERY.replace('/api/v1/query', '')}/api/v1/status/buildinfo`),
       this.checkService(`${ENDPOINTS.GRAFANA.BASE}/api/health`),
