@@ -8,16 +8,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { Home } from './pages/Home'
 import { Attacks } from './pages/Attacks'
-
-// Placeholder pages (will be implemented in Phase 3)
-function MonitoringPage() {
-  return (
-    <div className="container mx-auto px-4 py-16">
-      <h1 className="text-4xl font-bold text-matrix mb-4">Security Monitoring</h1>
-      <p className="text-gray-400">Coming soon in Phase 3...</p>
-    </div>
-  )
-}
+import { Monitoring } from './pages/Monitoring'
 
 function DocsPage() {
   return (
@@ -35,7 +26,7 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
           <Route path="attacks" element={<Attacks />} />
-          <Route path="monitoring" element={<MonitoringPage />} />
+          <Route path="monitoring" element={<Monitoring />} />
           <Route path="docs" element={<DocsPage />} />
           <Route path="docs/:slug" element={<DocsPage />} />
         </Route>

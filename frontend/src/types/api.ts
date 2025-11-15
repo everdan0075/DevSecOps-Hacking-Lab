@@ -141,6 +141,53 @@ export interface PrometheusQueryResponse {
 }
 
 // ============================================================================
+// Enhanced Monitoring Types (Phase 3)
+// ============================================================================
+
+export interface PrometheusMetric {
+  metric: Record<string, string>
+  value: [number, string] // [timestamp, value]
+}
+
+export interface PrometheusRangeMetric {
+  metric: Record<string, string>
+  values: Array<[number, string]> // Array of [timestamp, value]
+}
+
+export interface SecurityMetrics {
+  login_attempts_total: number
+  login_failures_total: number
+  mfa_attempts_total: number
+  idor_attempts_total: number
+  rate_limit_blocks_total: number
+  ip_bans_active: number
+}
+
+export interface MetricTimeSeriesPoint {
+  timestamp: number
+  value: number
+}
+
+export interface IncidentListResponse {
+  incidents: Incident[]
+  total: number
+}
+
+export interface IncidentStatsResponse {
+  total_incidents: number
+  runbooks_loaded: number
+  total_actions: number
+  actions_success: number
+  actions_failure: number
+  incidents_by_severity: {
+    critical: number
+    warning: number
+    info: number
+  }
+  most_common_category?: string
+}
+
+// ============================================================================
 // Attack Simulation Types
 // ============================================================================
 
