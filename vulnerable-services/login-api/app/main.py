@@ -451,6 +451,32 @@ async def get_stats(request: Request, redis: Redis = Depends(get_redis)):
     }
 
 
+@app.get("/demo/mfa-code")
+async def get_demo_mfa_code():
+    """
+    DEMO ONLY: Get current MFA code for testing.
+    This endpoint should NEVER exist in production!
+
+    Returns the current TOTP code for the demo environment.
+    Uses the shared MFA secret for all demo users.
+    """
+    if settings.ENVIRONMENT != "development":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="This endpoint is only available in development mode"
+        )
+
+    # Use admin as default demo user (all demo users share the same MFA secret)
+    code = current_mfa_code("admin")
+    logger.info("demo_mfa_code_requested", code=code)
+
+    return {
+        "mfa_code": code,
+        "warning": "DEMO ONLY - Never expose MFA codes in production!",
+        "expires_in_seconds": 30,  # TOTP codes expire every 30 seconds
+    }
+
+
 @app.on_event("startup")
 async def startup_event():
     """Startup event handler."""

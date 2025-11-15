@@ -4,13 +4,14 @@
  * Modal panel for executing attacks with parameter inputs and results
  */
 
-import { useState } from 'react'
-import { X, Play, Loader2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, Play, Loader2, Copy, Check } from 'lucide-react'
 import type { AttackScenario, AttackLog } from '@/types/api'
 import { attackService, COMMON_PASSWORDS, LEAKED_CREDENTIALS } from '@/services/attackService'
 import { AttackLogger } from './AttackLogger'
 import { AttackResults } from './AttackResults'
 import { cn } from '@/utils/cn'
+import { STORAGE_KEYS } from '@/utils/constants'
 
 interface AttackExecutionPanelProps {
   scenario: AttackScenario
@@ -35,6 +36,66 @@ export function AttackExecutionPanel({ scenario, onClose }: AttackExecutionPanel
   const [rateLimitCount, setRateLimitCount] = useState('100')
   const [mfaChallengeId, setMfaChallengeId] = useState('')
   const [tokenToReplay, setTokenToReplay] = useState('')
+
+  // Auto-load refresh token for Token Replay attack
+  const [currentRefreshToken, setCurrentRefreshToken] = useState('')
+  const [tokenCopied, setTokenCopied] = useState(false)
+  const [challengeIdLoading, setChallengeIdLoading] = useState(false)
+
+  useEffect(() => {
+    if (scenario.id === 'token-replay') {
+      const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN)
+      if (refreshToken) {
+        setCurrentRefreshToken(refreshToken)
+      }
+    }
+  }, [scenario.id])
+
+  const copyRefreshToken = () => {
+    navigator.clipboard.writeText(currentRefreshToken)
+    setTokenCopied(true)
+    setTimeout(() => setTokenCopied(false), 2000)
+  }
+
+  const fetchChallengeId = async () => {
+    setChallengeIdLoading(true)
+    try {
+      // Use Vite proxy path in dev, direct URL in prod
+      const isDev = import.meta.env.DEV
+      const loginUrl = isDev ? '/auth/login' : 'http://localhost:8080/auth/login'
+
+      const response = await fetch(loginUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'admin', password: 'admin123' }),
+      })
+
+      const data = await response.json()
+
+      if (data.challenge_id) {
+        setMfaChallengeId(data.challenge_id)
+        setLogs([
+          {
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            message: `Challenge ID obtained: ${data.challenge_id}`,
+          },
+        ])
+      } else {
+        throw new Error('No challenge_id in response')
+      }
+    } catch (error) {
+      setLogs([
+        {
+          timestamp: new Date().toISOString(),
+          level: 'error',
+          message: `Failed to get challenge ID: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        },
+      ])
+    } finally {
+      setChallengeIdLoading(false)
+    }
+  }
 
   const handleLogUpdate = (log: AttackLog) => {
     setLogs((prev) => [...prev, log])
@@ -183,6 +244,11 @@ export function AttackExecutionPanel({ scenario, onClose }: AttackExecutionPanel
               setMfaChallengeId,
               tokenToReplay,
               setTokenToReplay,
+              currentRefreshToken,
+              tokenCopied,
+              copyRefreshToken,
+              challengeIdLoading,
+              fetchChallengeId,
             })}
           </div>
 
@@ -247,6 +313,11 @@ interface ParameterProps {
   setMfaChallengeId: (value: string) => void
   tokenToReplay: string
   setTokenToReplay: (value: string) => void
+  currentRefreshToken: string
+  tokenCopied: boolean
+  copyRefreshToken: () => void
+  challengeIdLoading: boolean
+  fetchChallengeId: () => Promise<void>
 }
 
 function renderParameters(scenarioId: string, props: ParameterProps) {
@@ -309,46 +380,95 @@ function renderParameters(scenarioId: string, props: ParameterProps) {
 
     case 'mfa-bruteforce':
       return (
-        <div className="space-y-2">
-          <label className="text-xs text-gray-400 mb-1 block">Challenge ID</label>
-          <input
-            type="text"
-            value={props.mfaChallengeId}
-            onChange={(e) => props.setMfaChallengeId(e.target.value)}
-            className={inputClass}
-            placeholder="Get this from login response"
-          />
-          <div className="p-3 bg-cyber-bg/50 border border-cyber-border/50 rounded text-xs text-gray-400 space-y-1">
-            <div className="font-semibold text-cyber-warning">How to get Challenge ID:</div>
-            <ol className="list-decimal list-inside space-y-0.5 ml-2">
-              <li>Open browser DevTools (F12) → Network tab</li>
-              <li>Login using Authentication Panel (admin/admin123)</li>
-              <li>Find POST request to /auth/login</li>
-              <li>Copy the "challenge_id" from the response JSON</li>
-              <li>Paste it here and execute the attack</li>
-            </ol>
+        <div className="space-y-3">
+          <div className="p-3 bg-cyber-primary/10 border border-cyber-primary/30 rounded-lg space-y-2">
+            <div className="text-xs font-semibold text-cyber-primary mb-2">Demo Environment</div>
+            <button
+              type="button"
+              onClick={props.fetchChallengeId}
+              disabled={props.challengeIdLoading}
+              className="w-full py-2 px-3 rounded bg-cyber-primary/20 hover:bg-cyber-primary/30 text-cyber-primary text-sm font-medium transition-colors border border-cyber-primary/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {props.challengeIdLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Getting Challenge ID...
+                </>
+              ) : (
+                <>Get Challenge ID (Auto Login)</>
+              )}
+            </button>
+            <div className="text-xs text-gray-500">
+              Clicks login endpoint with admin credentials and retrieves challenge_id automatically
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-gray-400 mb-1 block">Challenge ID</label>
+            <input
+              type="text"
+              value={props.mfaChallengeId}
+              onChange={(e) => props.setMfaChallengeId(e.target.value)}
+              className={inputClass}
+              placeholder="Click button above to get challenge ID"
+              readOnly={props.challengeIdLoading}
+            />
           </div>
         </div>
       )
 
     case 'token-replay':
       return (
-        <div className="space-y-2">
-          <label className="text-xs text-gray-400 mb-1 block">Revoked Refresh Token</label>
-          <textarea
-            value={props.tokenToReplay}
-            onChange={(e) => props.setTokenToReplay(e.target.value)}
-            className={cn(inputClass, 'font-mono text-xs h-24')}
-            placeholder="Paste a refresh token that was revoked via logout"
-          />
+        <div className="space-y-3">
+          {/* Current Token Display */}
+          {props.currentRefreshToken && (
+            <div className="p-3 bg-cyber-primary/5 border border-cyber-primary/30 rounded-lg space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-semibold text-cyber-primary">Current Refresh Token</div>
+                <button
+                  onClick={props.copyRefreshToken}
+                  className="flex items-center gap-1 px-2 py-1 rounded bg-cyber-primary/20 hover:bg-cyber-primary/30 text-cyber-primary text-xs transition-colors"
+                >
+                  {props.tokenCopied ? (
+                    <>
+                      <Check className="w-3 h-3" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      Copy Token
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className="text-xs font-mono text-gray-400 break-all bg-cyber-bg/50 p-2 rounded">
+                {props.currentRefreshToken.substring(0, 100)}...
+              </div>
+              <div className="text-xs text-cyber-warning">
+                ⚠️ Copy this token, then logout to revoke it
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="text-xs text-gray-400 mb-1 block">Revoked Refresh Token</label>
+            <textarea
+              value={props.tokenToReplay}
+              onChange={(e) => props.setTokenToReplay(e.target.value)}
+              className={cn(inputClass, 'font-mono text-xs h-24')}
+              placeholder="Paste the revoked token here after logout"
+            />
+          </div>
+
           <div className="p-3 bg-cyber-bg/50 border border-cyber-border/50 rounded text-xs text-gray-400 space-y-1">
-            <div className="font-semibold text-cyber-warning">How to get Revoked Token:</div>
+            <div className="font-semibold text-cyber-warning">Steps to Test Token Replay:</div>
             <ol className="list-decimal list-inside space-y-0.5 ml-2">
-              <li>Login using Authentication Panel</li>
-              <li>Click "Show Token Details" and copy the Refresh Token</li>
-              <li>Click "Logout" button (this revokes the token in Redis)</li>
-              <li>Paste the copied token here</li>
-              <li>Execute attack - it should be rejected</li>
+              <li>Login using Authentication Panel below</li>
+              <li>Click "Copy Token" button above</li>
+              <li>Click "Logout" in Authentication Panel (this revokes the token)</li>
+              <li>Paste the copied token in the textarea above</li>
+              <li>Execute attack - backend should reject the revoked token</li>
             </ol>
           </div>
         </div>

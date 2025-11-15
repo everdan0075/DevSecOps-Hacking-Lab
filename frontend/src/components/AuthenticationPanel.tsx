@@ -188,14 +188,29 @@ export function AuthenticationPanel({ onAuthSuccess }: AuthenticationPanelProps)
           </div>
         </div>
 
-        <div className="p-3 bg-cyber-bg/50 rounded border border-cyber-border mb-4">
-          <div className="text-xs text-gray-500 mb-1">Demo Environment:</div>
-          <div className="text-xs text-gray-400">
-            Check backend logs for MFA code or use TOTP with secret:
+        <div className="p-3 bg-cyber-primary/10 border border-cyber-primary/30 rounded mb-4">
+          <div className="text-xs font-semibold text-cyber-primary mb-2">Demo Environment</div>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                // Use Vite proxy path in dev, direct URL in prod
+                const isDev = import.meta.env.DEV
+                const url = isDev ? '/direct/auth-service/demo/mfa-code' : 'http://localhost:8000/demo/mfa-code'
+                const response = await fetch(url)
+                const data = await response.json()
+                setMfaCode(data.mfa_code)
+              } catch (error) {
+                setMfaError('Failed to get MFA code. Check if backend is running.')
+              }
+            }}
+            className="w-full py-2 px-3 rounded bg-cyber-primary/20 hover:bg-cyber-primary/30 text-cyber-primary text-sm font-medium transition-colors border border-cyber-primary/50"
+          >
+            Get Current MFA Code
+          </button>
+          <div className="text-xs text-gray-500 mt-2">
+            Or use TOTP generator with secret: <code className="text-cyber-primary">DEVSECOPSTWENTYFOURHACKINGLAB</code>
           </div>
-          <code className="text-xs font-mono text-cyber-primary">
-            DEVSECOPSTWENTYFOURHACKINGLAB
-          </code>
         </div>
 
         <form onSubmit={handleMfaVerify} className="space-y-4">
