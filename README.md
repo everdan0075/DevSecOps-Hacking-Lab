@@ -161,6 +161,68 @@ API Gateway (:8080)
 
 **See detailed architecture**: [`docs/gateway/README.md`](docs/gateway/README.md)
 
+## 🖥️ Frontend Web Interface
+
+**NEW**: Interactive React + TypeScript web UI for exploring attack scenarios, monitoring security events, and visualizing the system architecture.
+
+### Features
+
+- **Attack Playground**: Execute 7 real-world attack scenarios with live feedback and results visualization
+- **Real-time Monitoring**: Embedded Grafana dashboards showing authentication metrics, security events, and incident response
+- **Architecture Visualization**: Interactive service diagram, port mapping table, and data flow animations
+- **Documentation Browser**: Built-in markdown viewer with syntax highlighting and navigation
+- **Cyberpunk Theme**: Matrix-inspired dark UI with green glow effects and terminal aesthetics
+- **Backend Detection**: Auto-detects local Docker stack for hybrid mode (live data vs. demo mode)
+
+### Live Demo
+
+Visit the deployed frontend: **[GitHub Pages Demo](https://[your-username].github.io/DevSecOps-Hacking-Lab/)**
+
+> Note: The live demo runs in demonstration mode. For full functionality (real attacks, live metrics), run the frontend locally with the Docker backend.
+
+### Quick Start (Frontend + Backend)
+
+```bash
+# Start backend services (Terminal 1)
+docker-compose up -d
+
+# In another terminal, start frontend (Terminal 2)
+cd frontend
+npm install
+npm run dev
+
+# Open browser to http://localhost:5173
+```
+
+### Frontend Only (Development)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The UI will work without the backend, but attack execution and live monitoring will be unavailable.
+
+### Available Pages
+
+- **Home** (`/`) - Landing page with project overview and quick start
+- **Attacks** (`/attacks`) - Interactive execution of 7 attack scenarios
+- **Monitoring** (`/monitoring`) - Real-time metrics and Grafana dashboard embeds
+- **Architecture** (`/architecture`) - System visualization and service health checks
+- **Docs** (`/docs`) - Documentation browser with markdown rendering
+
+### Deployment
+
+Deploy to GitHub Pages:
+
+```bash
+cd frontend
+npm run deploy
+```
+
+For detailed frontend documentation, see [`frontend/README.md`](frontend/README.md).
+
 ## 🚀 Quick Start
 
 ### Prerequisites

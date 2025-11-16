@@ -161,7 +161,7 @@ class IncidentService {
   private extractActions(actionResults: any[]): any[] {
     if (!actionResults || actionResults.length === 0) return []
 
-    return actionResults.map((action, idx) => ({
+    return actionResults.map((action) => ({
       action_type: action.action_type || action.description || 'Unknown Action',
       status: action.success ? 'success' : 'failure',
       timestamp: action.timestamp || new Date().toISOString(),

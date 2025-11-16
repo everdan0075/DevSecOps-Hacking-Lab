@@ -4,7 +4,7 @@
  * Global state for security settings (gateway bypass toggle)
  */
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { attackService } from '@/services/attackService'
 
 interface SecurityContextType {

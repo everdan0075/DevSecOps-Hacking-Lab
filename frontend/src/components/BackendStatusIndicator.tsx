@@ -4,9 +4,11 @@
  * Displays connection status to backend services with visual feedback
  */
 
+import { useMemo } from 'react'
 import { useBackendStatus } from '@/hooks/useBackendStatus'
 import { Activity, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react'
 import { cn } from '@/utils/cn'
+import { motion } from 'framer-motion'
 
 interface BackendStatusIndicatorProps {
   variant?: 'compact' | 'detailed'
@@ -25,7 +27,7 @@ export function BackendStatusIndicator({ variant = 'compact', className }: Backe
   const statusText = isConnected ? 'Connected' : 'Disconnected'
   const statusColor = isConnected ? 'text-cyber-success' : 'text-cyber-danger'
 
-  const timeSinceCheck = Math.floor((Date.now() - lastCheck) / 1000)
+  const timeSinceCheck = useMemo(() => Math.floor((Date.now() - lastCheck) / 1000), [lastCheck])
 
   if (variant === 'compact') {
     return (
@@ -33,7 +35,7 @@ export function BackendStatusIndicator({ variant = 'compact', className }: Backe
         onClick={checkStatus}
         disabled={isChecking}
         className={cn(
-          'flex items-center gap-2 px-3 py-1.5 rounded-lg',
+          'flex items-center gap-2 px-3 py-1.5 rounded-lg relative',
           'bg-cyber-surface border border-cyber-border',
           'hover:border-cyber-primary/50 transition-all',
           'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -41,11 +43,42 @@ export function BackendStatusIndicator({ variant = 'compact', className }: Backe
         )}
         title="Click to refresh connection status"
       >
+        {/* Pulsing glow effect when connected */}
+        {isConnected && !isChecking && (
+          <motion.div
+            className="absolute inset-0 rounded-lg bg-cyber-success/20 blur-md"
+            animate={{
+              opacity: [0.3, 0.6, 0.3],
+              scale: [0.98, 1.02, 0.98]
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: 'easeInOut'
+            }}
+            style={{
+              zIndex: -1,
+              filter: 'blur(8px)'
+            }}
+          />
+        )}
+
         {isChecking ? (
           <RefreshCw className="w-4 h-4 animate-spin text-cyber-primary" />
         ) : (
           <div className={cn(statusColor, 'flex items-center gap-2')}>
-            {statusIcon}
+            <motion.div
+              animate={isConnected ? {
+                scale: [1, 1.2, 1],
+              } : {}}
+              transition={{
+                duration: 2,
+                repeat: isConnected ? Infinity : 0,
+                ease: 'easeInOut'
+              }}
+            >
+              {statusIcon}
+            </motion.div>
             <span className="text-sm font-medium">{statusText}</span>
           </div>
         )}

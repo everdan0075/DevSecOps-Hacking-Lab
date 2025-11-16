@@ -1,0 +1,18 @@
+# robots.txt for DevSecOps Hacking Lab
+# Allow all crawlers to index the site
+
+User-agent: *
+Allow: /
+
+# Disallow crawling of API proxy endpoints (not useful for search engines)
+Disallow: /api/
+Disallow: /direct/
+Disallow: /prometheus/
+Disallow: /grafana/
+Disallow: /incidents/
+
+# Sitemap location (update with actual sitemap if generated)
+# Sitemap: https://yourusername.github.io/DevSecOps-Hacking-Lab/sitemap.xml
+
+# Crawl delay (polite crawling)
+Crawl-delay: 1

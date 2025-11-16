@@ -7,6 +7,7 @@
 import { Shield, AlertTriangle, Key, Lock, Ban, Activity } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import type { SecurityMetrics } from '@/types/api'
+import { motion } from 'framer-motion'
 
 interface MetricsGridProps {
   metrics: SecurityMetrics | null
@@ -126,12 +127,17 @@ function MetricCard({ card, value }: MetricCardProps) {
   }
 
   return (
-    <div
+    <motion.div
       className={cn(
         'relative p-4 rounded-lg bg-cyber-surface border transition-all',
         'hover:border-cyber-primary/50',
         borderColor
       )}
+      whileHover={{
+        scale: 1.03,
+        y: -2,
+        transition: { duration: 0.2, ease: 'easeOut' }
+      }}
     >
       <div className="flex items-start justify-between mb-3">
         <div className={cn('p-2 rounded-lg', bgColor)}>
@@ -152,7 +158,7 @@ function MetricCard({ card, value }: MetricCardProps) {
         <Activity className="w-3 h-3" />
         <span>Live metric</span>
       </div>
-    </div>
+    </motion.div>
   )
 }
 

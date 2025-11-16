@@ -75,8 +75,13 @@ export default defineConfig(({ mode }) => ({
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'charts': ['recharts'],
           'query': ['@tanstack/react-query'],
+          'icons': ['lucide-react'],
+          'animations': ['framer-motion'],
+          'search': ['fuse.js'],
+          'utils': ['clsx', 'tailwind-merge', 'zustand', 'axios'],
         },
       },
     },
+    chunkSizeWarningLimit: 1000, // Increase limit for vendor chunks
   },
 }))

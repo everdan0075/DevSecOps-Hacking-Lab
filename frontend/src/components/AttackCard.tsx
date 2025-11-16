@@ -7,6 +7,7 @@
 import { Target, Lock, Shield, Zap, Eye, Activity, AlertTriangle } from 'lucide-react'
 import type { AttackScenario } from '@/types/api'
 import { cn } from '@/utils/cn'
+import { motion } from 'framer-motion'
 
 interface AttackCardProps {
   scenario: AttackScenario
@@ -34,13 +35,19 @@ export function AttackCard({ scenario, disabled, onLaunch }: AttackCardProps) {
   const Icon = ICON_MAP[scenario.id as keyof typeof ICON_MAP] || Target
 
   return (
-    <div
+    <motion.div
       className={cn(
         'group relative bg-cyber-surface border border-cyber-border rounded-lg p-6',
         'transition-all duration-300',
         !disabled && 'hover:border-cyber-primary/50 hover:shadow-lg hover:shadow-cyber-primary/10',
         disabled && 'opacity-50 cursor-not-allowed'
       )}
+      whileHover={!disabled ? {
+        scale: 1.02,
+        y: -4,
+        transition: { duration: 0.2, ease: 'easeOut' }
+      } : {}}
+      whileTap={!disabled ? { scale: 0.98 } : {}}
     >
       {/* Glow effect on hover */}
       {!disabled && (
@@ -127,7 +134,7 @@ export function AttackCard({ scenario, disabled, onLaunch }: AttackCardProps) {
           Launch Attack
         </button>
       </div>
-    </div>
+    </motion.div>
   )
 }
 

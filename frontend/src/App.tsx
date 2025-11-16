@@ -1,16 +1,65 @@
 /**
  * Main App Component
  *
- * Sets up routing and global providers
+ * Sets up routing and global providers with lazy loading and page transitions
  */
 
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { AnimatePresence } from 'framer-motion'
 import { SecurityProvider } from './contexts/SecurityContext'
 import { Layout } from './components/Layout'
-import { Home } from './pages/Home'
-import { Attacks } from './pages/Attacks'
-import { Monitoring } from './pages/Monitoring'
-import { Docs } from './pages/Docs'
+import { LoadingSkeleton } from './components/LoadingSkeleton'
+
+// Lazy load page components for code splitting
+const Home = lazy(() => import('./pages/Home').then(m => ({ default: m.Home })))
+const Attacks = lazy(() => import('./pages/Attacks').then(m => ({ default: m.Attacks })))
+const Monitoring = lazy(() => import('./pages/Monitoring').then(m => ({ default: m.Monitoring })))
+const Docs = lazy(() => import('./pages/Docs').then(m => ({ default: m.Docs })))
+const Architecture = lazy(() => import('./pages/Architecture').then(m => ({ default: m.Architecture })))
+
+function AnimatedRoutes() {
+  const location = useLocation()
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<Layout />}>
+          <Route index element={
+            <Suspense fallback={<LoadingSkeleton variant="page" />}>
+              <Home />
+            </Suspense>
+          } />
+          <Route path="attacks" element={
+            <Suspense fallback={<LoadingSkeleton variant="page" />}>
+              <Attacks />
+            </Suspense>
+          } />
+          <Route path="monitoring" element={
+            <Suspense fallback={<LoadingSkeleton variant="page" />}>
+              <Monitoring />
+            </Suspense>
+          } />
+          <Route path="architecture" element={
+            <Suspense fallback={<LoadingSkeleton variant="page" />}>
+              <Architecture />
+            </Suspense>
+          } />
+          <Route path="docs" element={
+            <Suspense fallback={<LoadingSkeleton variant="page" />}>
+              <Docs />
+            </Suspense>
+          } />
+          <Route path="docs/:slug" element={
+            <Suspense fallback={<LoadingSkeleton variant="page" />}>
+              <Docs />
+            </Suspense>
+          } />
+        </Route>
+      </Routes>
+    </AnimatePresence>
+  )
+}
 
 function App() {
   // Use basename only in production (GitHub Pages)
@@ -19,15 +68,7 @@ function App() {
   return (
     <SecurityProvider>
       <BrowserRouter basename={basename}>
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Home />} />
-            <Route path="attacks" element={<Attacks />} />
-            <Route path="monitoring" element={<Monitoring />} />
-            <Route path="docs" element={<Docs />} />
-            <Route path="docs/:slug" element={<Docs />} />
-          </Route>
-        </Routes>
+        <AnimatedRoutes />
       </BrowserRouter>
     </SecurityProvider>
   )

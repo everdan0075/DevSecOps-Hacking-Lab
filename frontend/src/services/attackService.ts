@@ -59,10 +59,6 @@ class AttackService {
     return this.securityEnabled ? ENDPOINTS.USER.PROFILE(userId) : ENDPOINTS.DIRECT_ACCESS.USER.PROFILE(userId)
   }
 
-  private getUserHealthEndpoint(): string {
-    return this.securityEnabled ? ENDPOINTS.GATEWAY.HEALTH : ENDPOINTS.DIRECT_ACCESS.USER.HEALTH
-  }
-
   /**
    * Add log entry with timestamp
    */
