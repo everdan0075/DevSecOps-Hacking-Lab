@@ -5,7 +5,7 @@
  * with test endpoint functionality
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Server, CheckCircle, XCircle, Loader2, AlertCircle, Play } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import axios from 'axios'
@@ -107,7 +107,7 @@ export function PortMappingTable({ onServiceSelect, selectedService }: PortMappi
   const [healthStatus, setHealthStatus] = useState<Record<string, HealthStatus>>({})
   const [filter, setFilter] = useState<string>('all')
 
-  const checkHealth = async (service: Service) => {
+  const checkHealth = useCallback(async (service: Service) => {
     if (!service.healthEndpoint) {
       setHealthStatus(prev => ({ ...prev, [service.id]: 'unknown' }))
       return
@@ -126,23 +126,23 @@ export function PortMappingTable({ onServiceSelect, selectedService }: PortMappi
       } else {
         setHealthStatus(prev => ({ ...prev, [service.id]: 'unhealthy' }))
       }
-    } catch (error) {
+    } catch {
       setHealthStatus(prev => ({ ...prev, [service.id]: 'unhealthy' }))
     }
-  }
+  }, [])
 
-  const checkAllHealth = () => {
+  const checkAllHealth = useCallback(() => {
     services.forEach(service => {
       if (service.healthEndpoint) {
         checkHealth(service)
       }
     })
-  }
+  }, [checkHealth])
 
   useEffect(() => {
     // Auto-check health on mount
     checkAllHealth()
-  }, [])
+  }, [checkAllHealth])
 
   const getStatusIcon = (status: HealthStatus) => {
     switch (status) {

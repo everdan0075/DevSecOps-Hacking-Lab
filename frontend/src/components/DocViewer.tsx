@@ -17,7 +17,7 @@ export function DocViewer({ guide }: DocViewerProps) {
   // Scroll to top when guide changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [guide.slug])
+  }, [guide])
 
   const renderContent = (content: DocContent, index: number) => {
     switch (content.type) {

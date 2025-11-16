@@ -4,7 +4,7 @@
  * Fuzzy search functionality with keyboard navigation using fuse.js
  */
 
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, X, Hash } from 'lucide-react'
 import { DOC_SECTIONS } from '@/content/docs'
@@ -76,7 +76,7 @@ export function DocSearch({ onResultSelect }: DocSearchProps) {
     return () => clearTimeout(timer)
   }, [query, fuse])
 
-  const handleSelectGuide = (guide: DocGuide) => {
+  const handleSelectGuide = useCallback((guide: DocGuide) => {
     navigate(`/docs/${guide.slug}`)
     setQuery('')
     setShowResults(false)
@@ -86,7 +86,7 @@ export function DocSearch({ onResultSelect }: DocSearchProps) {
     if (onResultSelect) {
       onResultSelect()
     }
-  }
+  }, [navigate, onResultSelect])
 
   // Keyboard navigation
   useEffect(() => {
