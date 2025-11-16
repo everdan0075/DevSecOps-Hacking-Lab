@@ -11,6 +11,7 @@ import { useBackendStatus } from '@/hooks/useBackendStatus'
 import { AttackCard } from '@/components/AttackCard'
 import { AttackExecutionPanel } from '@/components/AttackExecutionPanel'
 import { AuthenticationPanel } from '@/components/AuthenticationPanel'
+import { UnbanButton } from '@/components/UnbanButton'
 import type { AttackScenario } from '@/types/api'
 
 export function Attacks() {
@@ -77,7 +78,10 @@ export function Attacks() {
       {/* Authentication Panel */}
       {isConnected && (
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-white mb-4">Authentication</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-white">Authentication</h2>
+            <UnbanButton />
+          </div>
           <AuthenticationPanel />
         </div>
       )}

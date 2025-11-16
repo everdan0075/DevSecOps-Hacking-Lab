@@ -23,6 +23,7 @@ export const ENDPOINTS = {
     REFRESH: '/auth/token/refresh',
     LOGOUT: '/auth/logout',
     STATS: '/auth/stats',
+    UNBAN_ME: '/demo/unban-me',
   },
 
   // User Service (via Gateway)

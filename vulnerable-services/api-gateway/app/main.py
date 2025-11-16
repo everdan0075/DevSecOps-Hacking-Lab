@@ -305,11 +305,11 @@ async def route_auth(request: Request, path: str):
 async def route_users(request: Request, path: str):
     """
     Route all /api/users/* requests to user-service
-    
+
     Examples:
         GET /api/users/profile/1 -> http://user-service:8000/profile/1
         GET /api/users/settings -> http://user-service:8000/settings
-    
+
     NOTE: User service has intentional vulnerabilities:
     - IDOR in /profile/{user_id}
     - Missing authentication in /settings
@@ -319,6 +319,29 @@ async def route_users(request: Request, path: str):
         settings.USER_SERVICE_URL,
         f"/{path}",
         backend_name="user-service"
+    )
+
+
+# ============================================================================
+# Route: Demo Endpoints (for testing/development)
+# ============================================================================
+
+@app.api_route("/demo/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+async def route_demo(request: Request, path: str):
+    """
+    Route all /demo/* requests to auth-service (development only)
+
+    Examples:
+        GET /demo/mfa-code -> http://login-api:8000/demo/mfa-code
+        POST /demo/unban-me -> http://login-api:8000/demo/unban-me
+
+    NOTE: Demo endpoints should only be available in development environment
+    """
+    return await proxy_request(
+        request,
+        settings.AUTH_SERVICE_URL,
+        f"/demo/{path}",
+        backend_name="auth-service-demo"
     )
 
 

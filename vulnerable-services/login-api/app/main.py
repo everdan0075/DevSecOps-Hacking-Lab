@@ -52,6 +52,7 @@ from app.security import (
     record_failed_attempt,
     revoke_all_refresh_tokens,
     revoke_refresh_token,
+    unban_ip,
     verify_login,
     verify_mfa_code,
     verify_refresh_token,
@@ -499,6 +500,36 @@ async def get_demo_mfa_code():
         "mfa_code": code,
         "warning": "DEMO ONLY - Never expose MFA codes in production!",
         "expires_in_seconds": 30,  # TOTP codes expire every 30 seconds
+    }
+
+
+@app.post("/demo/unban-me")
+async def unban_me(request: Request, redis: Redis = Depends(get_redis)):
+    """
+    DEMO ONLY: Unban the current IP address.
+    This endpoint should NEVER exist in production!
+
+    Allows users to unban themselves for testing purposes.
+    Clears both IP ban and failed login attempts.
+    """
+    if settings.ENVIRONMENT != "development":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="This endpoint is only available in development mode"
+        )
+
+    client_ip = get_remote_address(request)
+    was_banned = await is_ip_banned(redis, client_ip)
+
+    await unban_ip(redis, client_ip)
+
+    logger.info("demo_unban_requested", ip=client_ip, was_banned=was_banned)
+
+    return {
+        "success": True,
+        "message": f"IP {client_ip} has been unbanned",
+        "was_banned": was_banned,
+        "warning": "DEMO ONLY - Never allow self-unban in production!"
     }
 
 

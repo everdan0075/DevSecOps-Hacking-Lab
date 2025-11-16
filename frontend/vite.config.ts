@@ -30,6 +30,10 @@ export default defineConfig(({ mode }) => ({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '/demo': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
       '/health': {
         target: 'http://localhost:8080',
         changeOrigin: true,

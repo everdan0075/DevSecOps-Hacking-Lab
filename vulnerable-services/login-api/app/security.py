@@ -111,6 +111,15 @@ async def clear_failed_attempts(redis: Redis, ip: str):
     await redis.delete(key)
 
 
+async def unban_ip(redis: Redis, ip: str):
+    """Unban an IP address (for demo/testing purposes)"""
+    ban_key = f"banned_ip:{ip}"
+    attempts_key = f"failed_attempts:{ip}"
+    await redis.delete(ban_key)
+    await redis.delete(attempts_key)
+    logger.info("ip_unbanned", ip=ip, reason="manual_unban")
+
+
 async def get_security_stats(redis: Redis) -> dict:
     """Get overall security statistics"""
     # Count banned IPs
