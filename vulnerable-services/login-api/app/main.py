@@ -77,8 +77,31 @@ structlog.configure(
 
 logger = structlog.get_logger()
 
-# Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+# Custom key function for rate limiting that skips direct access
+def custom_rate_limit_key(request: Request) -> str:
+    """
+    Generate rate limit key.
+    Returns unique key for each direct access request to effectively bypass rate limiting.
+    """
+    # Check for X-Direct-Access header (Security OFF mode)
+    if request.headers.get("X-Direct-Access") == "true":
+        # Return unique key for each request - effectively no rate limiting
+        import uuid
+        unique_key = f"direct-access-{uuid.uuid4()}"
+        logger.info(
+            "rate_limit_bypassed",
+            path=request.url.path,
+            client_ip=get_remote_address(request),
+            reason="direct_access_header"
+        )
+        return unique_key
+
+    # Normal rate limiting by IP
+    return get_remote_address(request)
+
+
+# Initialize rate limiter with custom key function
+limiter = Limiter(key_func=custom_rate_limit_key)
 
 # Create FastAPI app
 app = FastAPI(
@@ -159,6 +182,8 @@ async def login(
 ):
     """
     Primary authentication step: validate username/password and issue MFA challenge.
+
+    Rate limiting can be bypassed with X-Direct-Access header for security demos.
     """
     client_ip = get_remote_address(request)
     observe_login_stage("password_attempt")

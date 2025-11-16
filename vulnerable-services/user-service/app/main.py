@@ -3,6 +3,7 @@ User Service - Intentionally Vulnerable Microservice
 Demonstrates IDOR and authorization bypass vulnerabilities
 """
 from fastapi import FastAPI, Request, HTTPException, Header
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 import time
 import logging
@@ -36,6 +37,15 @@ app = FastAPI(
     title="User Service",
     description="Vulnerable User Management Service for DevSecOps Lab",
     version=SERVICE_VERSION,
+)
+
+# Add CORS middleware (permissive for demo/testing)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for demo
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -169,18 +179,19 @@ async def get_profile(
     
     # Extract authenticated user from token
     authenticated_user = extract_user_from_token(authorization)
-    
+
     # Check if user exists
     if user_id not in USERS_DB:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     # VULNERABILITY: No authorization check!
     # We should verify: authenticated_user == user_id or authenticated_user is admin
     # But we don't... 🚨
-    
+
     user_data = USERS_DB[user_id]
-    
-    # Track IDOR attempt if authenticated user tries to access someone else's profile
+
+    # Track IDOR attempt
+    # Case 1: Authenticated user accessing someone else's profile
     if authenticated_user and authenticated_user != user_data["username"]:
         user_service_idor_attempts_total.labels(
             authenticated_user=authenticated_user,
@@ -190,6 +201,16 @@ async def get_profile(
         logger.warning(
             f"🚨 IDOR EXPLOIT: User '{authenticated_user}' "
             f"accessed profile of '{user_data['username']}' (user_id: {user_id})"
+        )
+    # Case 2: Unauthenticated access (no token) - also IDOR!
+    elif not authenticated_user:
+        user_service_idor_attempts_total.labels(
+            authenticated_user="anonymous",
+            target_user=user_data["username"],
+            result="success"
+        ).inc()
+        logger.warning(
+            f"🚨 IDOR EXPLOIT: Anonymous access to profile '{user_data['username']}' (user_id: {user_id})"
         )
     
     # Return profile with sensitive data (another vulnerability!)

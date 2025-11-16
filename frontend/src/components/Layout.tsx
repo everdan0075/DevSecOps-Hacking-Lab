@@ -7,6 +7,7 @@
 import { Link, Outlet } from 'react-router-dom'
 import { Shield, Target, Activity, BookOpen, Github } from 'lucide-react'
 import { BackendStatusIndicator } from './BackendStatusIndicator'
+import { SecurityToggle } from './SecurityToggle'
 import { cn } from '@/utils/cn'
 
 export function Layout() {
@@ -36,8 +37,9 @@ export function Layout() {
               <NavLink to="/docs" icon={BookOpen}>Docs</NavLink>
             </nav>
 
-            {/* Status & GitHub */}
+            {/* Status, Security Toggle & GitHub */}
             <div className="flex items-center gap-3">
+              <SecurityToggle />
               <BackendStatusIndicator variant="compact" />
               <a
                 href="https://github.com/yourusername/DevSecOps-Hacking-Lab"

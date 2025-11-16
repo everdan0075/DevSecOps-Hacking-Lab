@@ -3,9 +3,9 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
-  base: '/DevSecOps-Hacking-Lab/', // GitHub Pages repo name
+  base: mode === 'production' ? '/DevSecOps-Hacking-Lab/' : '/', // GitHub Pages repo name in production only
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -59,7 +59,6 @@ export default defineConfig({
       '/incidents': {
         target: 'http://localhost:5002',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/incidents/, ''),
       },
     },
   },
@@ -76,4 +75,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

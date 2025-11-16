@@ -66,7 +66,7 @@ class BackendDetectionService {
 
     const [gateway, auth, userService, incidentBot, prometheus, grafana] = await Promise.all([
       this.checkService(ENDPOINTS.GATEWAY.HEALTH),
-      this.checkService(`${ENDPOINTS.AUTH.LOGIN.replace('/login', '')}/health`),
+      this.checkService(isDev ? '/direct/auth-service/health' : 'http://localhost:8000/health'),
       this.checkService(isDev ? '/direct/user-service/health' : 'http://localhost:8002/health'),
       this.checkService(ENDPOINTS.INCIDENTS.HEALTH),
       this.checkService(`${ENDPOINTS.PROMETHEUS.QUERY.replace('/api/v1/query', '')}/api/v1/status/buildinfo`),

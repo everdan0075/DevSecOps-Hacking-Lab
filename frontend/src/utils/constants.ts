@@ -62,6 +62,21 @@ export const ENDPOINTS = {
       INCIDENT_RESPONSE: IS_DEVELOPMENT ? '/grafana/d/incident-response' : 'http://localhost:3000/d/incident-response',
     },
   },
+
+  // Direct Service Access (bypassing gateway) - for attack demos
+  DIRECT_ACCESS: {
+    AUTH: {
+      LOGIN: IS_DEVELOPMENT ? '/direct/auth-service/auth/login' : 'http://localhost:8000/auth/login',
+      MFA_VERIFY: IS_DEVELOPMENT ? '/direct/auth-service/auth/mfa/verify' : 'http://localhost:8000/auth/mfa/verify',
+      REFRESH: IS_DEVELOPMENT ? '/direct/auth-service/auth/token/refresh' : 'http://localhost:8000/auth/token/refresh',
+      HEALTH: IS_DEVELOPMENT ? '/direct/auth-service/health' : 'http://localhost:8000/health',
+    },
+    USER: {
+      PROFILE: (userId: number) => IS_DEVELOPMENT ? `/direct/user-service/profile/${userId}` : `http://localhost:8002/profile/${userId}`,
+      SETTINGS: IS_DEVELOPMENT ? '/direct/user-service/settings' : 'http://localhost:8002/settings',
+      HEALTH: IS_DEVELOPMENT ? '/direct/user-service/health' : 'http://localhost:8002/health',
+    },
+  },
 } as const
 
 // Attack scenarios metadata

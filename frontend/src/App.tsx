@@ -5,33 +5,31 @@
  */
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { SecurityProvider } from './contexts/SecurityContext'
 import { Layout } from './components/Layout'
 import { Home } from './pages/Home'
 import { Attacks } from './pages/Attacks'
 import { Monitoring } from './pages/Monitoring'
-
-function DocsPage() {
-  return (
-    <div className="container mx-auto px-4 py-16">
-      <h1 className="text-4xl font-bold text-matrix mb-4">Documentation</h1>
-      <p className="text-gray-400">Coming soon in Phase 3...</p>
-    </div>
-  )
-}
+import { Docs } from './pages/Docs'
 
 function App() {
+  // Use basename only in production (GitHub Pages)
+  const basename = import.meta.env.PROD ? '/DevSecOps-Hacking-Lab' : ''
+
   return (
-    <BrowserRouter basename="/DevSecOps-Hacking-Lab">
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Home />} />
-          <Route path="attacks" element={<Attacks />} />
-          <Route path="monitoring" element={<Monitoring />} />
-          <Route path="docs" element={<DocsPage />} />
-          <Route path="docs/:slug" element={<DocsPage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <SecurityProvider>
+      <BrowserRouter basename={basename}>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Home />} />
+            <Route path="attacks" element={<Attacks />} />
+            <Route path="monitoring" element={<Monitoring />} />
+            <Route path="docs" element={<Docs />} />
+            <Route path="docs/:slug" element={<Docs />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </SecurityProvider>
   )
 }
 
