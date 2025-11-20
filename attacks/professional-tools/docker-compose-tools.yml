@@ -1,0 +1,157 @@
+# Docker Compose for Professional Pentesting Tools
+# Run security tools in isolated containers
+
+version: '3.8'
+
+services:
+  # OWASP ZAP - Automated Web App Scanner
+  zap:
+    image: owasp/zap2docker-stable
+    container_name: devsecops-zap
+    ports:
+      - "8090:8090"
+    command: zap.sh -daemon -host 0.0.0.0 -port 8090 -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true
+    networks:
+      - devsecops-tools
+
+  # Nuclei - Vulnerability Scanner
+  nuclei:
+    image: projectdiscovery/nuclei:latest
+    container_name: devsecops-nuclei
+    volumes:
+      - ./nuclei-templates.yaml:/nuclei-templates.yaml
+      - ./results:/results
+    command: -u http://api-gateway:8080 -t /nuclei-templates.yaml -json -o /results/nuclei.json
+    networks:
+      - devsecops-tools
+      - devsecops_default
+    depends_on:
+      - api-gateway
+
+  # SQLMap - SQL Injection Tool
+  sqlmap:
+    image: paoloo/sqlmap
+    container_name: devsecops-sqlmap
+    volumes:
+      - ./results:/output
+    command: -u "http://user-service:8000/users?id=1" --batch --output-dir=/output/sqlmap
+    networks:
+      - devsecops-tools
+      - devsecops_default
+    depends_on:
+      - user-service
+
+  # Trivy - Container Scanner
+  trivy:
+    image: aquasec/trivy:latest
+    container_name: devsecops-trivy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./results:/results
+    command: image --severity HIGH,CRITICAL -f json -o /results/trivy.json login-api:latest
+    networks:
+      - devsecops-tools
+
+  # Metasploit Framework
+  metasploit:
+    image: metasploitframework/metasploit-framework
+    container_name: devsecops-metasploit
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./results:/results
+      - ./msf-data:/root/.msf4
+    networks:
+      - devsecops-tools
+      - devsecops_default
+    command: msfconsole
+
+  # Nmap - Network Scanner
+  nmap:
+    image: instrumentisto/nmap
+    container_name: devsecops-nmap
+    volumes:
+      - ./results:/results
+    command: -sV -p 8000,8002,8080,9090,3000,9093,5002,6379 -oN /results/nmap.txt api-gateway
+    networks:
+      - devsecops-tools
+      - devsecops_default
+    depends_on:
+      - api-gateway
+
+  # ffuf - Web Fuzzer
+  ffuf:
+    image: docker.io/ffuf/ffuf:latest
+    container_name: devsecops-ffuf
+    volumes:
+      - ./results:/results
+      - ./wordlists:/wordlists
+    command: -w /wordlists/api-endpoints.txt -u http://api-gateway:8080/api/FUZZ -mc 200,201,401,403 -o /results/ffuf.json
+    networks:
+      - devsecops-tools
+      - devsecops_default
+    depends_on:
+      - api-gateway
+
+  # GitLeaks - Secret Scanner
+  gitleaks:
+    image: zricethezav/gitleaks:latest
+    container_name: devsecops-gitleaks
+    volumes:
+      - ../../:/repo
+      - ./results:/results
+    working_dir: /repo
+    command: detect --source . --report-path /results/gitleaks.json --no-git
+    networks:
+      - devsecops-tools
+
+  # Nikto - Web Server Scanner
+  nikto:
+    image: securecodebox/nikto
+    container_name: devsecops-nikto
+    volumes:
+      - ./results:/results
+    command: -h http://api-gateway:8080 -output /results/nikto.xml -Format xml
+    networks:
+      - devsecops-tools
+      - devsecops_default
+    depends_on:
+      - api-gateway
+
+  # JWT_Tool - JWT Manipulation
+  jwt_tool:
+    build:
+      context: .
+      dockerfile: Dockerfile.jwt_tool
+    container_name: devsecops-jwt-tool
+    volumes:
+      - ./results:/results
+    networks:
+      - devsecops-tools
+      - devsecops_default
+    stdin_open: true
+    tty: true
+
+  # Burp Suite Proxy (Community Edition)
+  # Note: Professional features require license
+  burp:
+    image: raesene/burp-rest-api
+    container_name: devsecops-burp
+    ports:
+      - "8091:8080"  # Burp proxy
+      - "8092:8090"  # REST API
+    environment:
+      - BURP_KEY=burp
+    volumes:
+      - ./results:/results
+    networks:
+      - devsecops-tools
+
+networks:
+  devsecops-tools:
+    driver: bridge
+  devsecops_default:
+    external: true
+
+volumes:
+  msf-data:

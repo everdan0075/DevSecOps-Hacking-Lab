@@ -1,0 +1,17 @@
+FROM python:3.11-slim
+
+# Install jwt_tool
+RUN apt-get update && \
+    apt-get install -y git && \
+    git clone https://github.com/ticarpi/jwt_tool /opt/jwt_tool && \
+    cd /opt/jwt_tool && \
+    pip install -r requirements.txt && \
+    chmod +x jwt_tool.py
+
+# Install additional tools
+RUN pip install pyjwt cryptography
+
+WORKDIR /opt/jwt_tool
+
+ENTRYPOINT ["python3", "jwt_tool.py"]
+CMD ["--help"]
