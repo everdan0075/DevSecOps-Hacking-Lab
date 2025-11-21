@@ -1,5 +1,5 @@
 # Rate Limit Bypass Attack Dependencies
 requests==2.31.0
 httpx==0.27.0
-rich==13.7.0
+rich==14.2.0
 
