@@ -1,0 +1,376 @@
+name: Attack Simulation Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run weekly on Monday at 3 AM UTC
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+jobs:
+  # Start infrastructure for testing
+  setup-infrastructure:
+    name: Setup Test Environment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Start Docker Compose
+        run: |
+          docker-compose up -d
+          sleep 30  # Wait for services to be ready
+
+      - name: Health check
+        run: |
+          curl --retry 10 --retry-delay 3 http://localhost:8080/health
+          curl --retry 10 --retry-delay 3 http://localhost:8000/health
+          curl --retry 10 --retry-delay 3 http://localhost:8002/health
+
+      - name: Export service logs
+        if: failure()
+        run: |
+          docker-compose logs > docker-logs.txt
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: infrastructure-logs
+          path: docker-logs.txt
+
+  # Run smoke tests (basic vulnerability validation)
+  smoke-tests:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    needs: setup-infrastructure
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Start infrastructure
+        run: |
+          docker-compose up -d
+          sleep 30
+
+      - name: Install test dependencies
+        run: |
+          pip install pytest pytest-asyncio httpx
+
+      - name: Run smoke tests
+        run: |
+          pytest tests/smoke/ -v --tb=short --maxfail=3
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-results
+          path: pytest-report.xml
+
+  # Simulate IDOR attack
+  idor-attack-test:
+    name: IDOR Exploitation Test
+    runs-on: ubuntu-latest
+    needs: setup-infrastructure
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Start infrastructure
+        run: |
+          docker-compose up -d
+          sleep 30
+
+      - name: Install attack dependencies
+        run: |
+          cd attacks/idor-exploit
+          pip install -r requirements.txt
+
+      - name: Run IDOR attack simulation
+        run: |
+          cd attacks/idor-exploit
+          timeout 120 python intelligent_idor_attack.py || true
+
+      - name: Check attack results
+        run: |
+          if [ -d "attacks/idor-exploit/results" ]; then
+            echo "Attack completed, checking results..."
+            latest_result=$(ls -t attacks/idor-exploit/results/*.json | head -1)
+
+            if [ -f "$latest_result" ]; then
+              successful=$(jq '.successful_exploits' "$latest_result")
+              echo "Successful IDOR exploits: $successful"
+
+              # Verify IDOR vulnerability exists (educational lab)
+              if [ "$successful" -gt 0 ]; then
+                echo "✅ IDOR vulnerability confirmed (as expected in lab)"
+              else
+                echo "⚠️ IDOR attack failed - vulnerability may have been fixed"
+              fi
+            fi
+          fi
+
+      - name: Upload attack results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: idor-attack-results
+          path: attacks/idor-exploit/results/
+
+  # Simulate JWT manipulation attack
+  jwt-attack-test:
+    name: JWT Manipulation Test
+    runs-on: ubuntu-latest
+    needs: setup-infrastructure
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Start infrastructure
+        run: |
+          docker-compose up -d
+          sleep 30
+
+      - name: Install attack dependencies
+        run: |
+          cd attacks/token-replay
+          pip install -r requirements.txt
+
+      - name: Run JWT attack simulation
+        run: |
+          cd attacks/token-replay
+          timeout 120 python intelligent_token_replay.py || true
+
+      - name: Check JWT vulnerabilities
+        run: |
+          if [ -d "attacks/token-replay/results" ]; then
+            latest_result=$(ls -t attacks/token-replay/results/*.json | head -1)
+
+            if [ -f "$latest_result" ]; then
+              successful=$(jq '.successful_attacks' "$latest_result")
+              echo "Successful JWT attacks: $successful"
+
+              # Check if specific vulnerabilities exist
+              tests=$(jq '.tests[] | .name' "$latest_result")
+              echo "Tests performed: $tests"
+            fi
+          fi
+
+      - name: Upload attack results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jwt-attack-results
+          path: attacks/token-replay/results/
+
+  # Simulate rate limit bypass
+  rate-limit-test:
+    name: Rate Limit Bypass Test
+    runs-on: ubuntu-latest
+    needs: setup-infrastructure
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Start infrastructure
+        run: |
+          docker-compose up -d
+          sleep 30
+
+      - name: Install attack dependencies
+        run: |
+          cd attacks/rate-limit-bypass
+          pip install -r requirements.txt
+
+      - name: Run rate limit bypass simulation
+        run: |
+          cd attacks/rate-limit-bypass
+          timeout 180 python intelligent_rate_limit_bypass.py || true
+
+      - name: Check rate limit effectiveness
+        run: |
+          if [ -d "attacks/rate-limit-bypass/results" ]; then
+            latest_result=$(ls -t attacks/rate-limit-bypass/results/*.json | head -1)
+
+            if [ -f "$latest_result" ]; then
+              bypasses=$(jq '.successful_bypasses' "$latest_result")
+              echo "Successful rate limit bypasses: $bypasses"
+
+              if [ "$bypasses" -gt 0 ]; then
+                echo "⚠️ Rate limiting can be bypassed"
+              else
+                echo "✅ Rate limiting is effective"
+              fi
+            fi
+          fi
+
+      - name: Upload attack results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rate-limit-test-results
+          path: attacks/rate-limit-bypass/results/
+
+  # Check incident response system
+  incident-response-test:
+    name: Incident Response Validation
+    runs-on: ubuntu-latest
+    needs: setup-infrastructure
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Start infrastructure
+        run: |
+          docker-compose up -d
+          sleep 30
+
+      - name: Check incident bot health
+        run: |
+          curl http://localhost:5002/health
+
+      - name: Get incident statistics
+        run: |
+          curl http://localhost:5002/stats | jq '.'
+
+      - name: Check runbooks loaded
+        run: |
+          stats=$(curl -s http://localhost:5002/stats)
+          runbooks=$(echo "$stats" | jq '.runbooks_loaded')
+
+          echo "Runbooks loaded: $runbooks"
+
+          if [ "$runbooks" -gt 0 ]; then
+            echo "✅ Incident response system operational"
+          else
+            echo "⚠️ No runbooks loaded"
+          fi
+
+  # Aggregate attack simulation results
+  attack-summary:
+    name: Attack Simulation Summary
+    runs-on: ubuntu-latest
+    needs: [smoke-tests, idor-attack-test, jwt-attack-test, rate-limit-test, incident-response-test]
+    if: always()
+    steps:
+      - name: Download all attack results
+        uses: actions/download-artifact@v4
+        with:
+          path: ./attack-results
+
+      - name: Generate attack summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY <<EOF
+          # 🎯 Attack Simulation Summary
+
+          ## Tests Performed
+
+          | Attack Type | Status | Notes |
+          |-------------|--------|-------|
+          | Smoke Tests | ${{ needs.smoke-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} | Basic vulnerability validation |
+          | IDOR Exploitation | ${{ needs.idor-attack-test.result == 'success' && '✅ Passed' || '❌ Failed' }} | Insecure Direct Object Reference |
+          | JWT Manipulation | ${{ needs.jwt-attack-test.result == 'success' && '✅ Passed' || '❌ Failed' }} | Token manipulation attacks |
+          | Rate Limit Bypass | ${{ needs.rate-limit-test.result == 'success' && '✅ Passed' || '❌ Failed' }} | Distributed attack simulation |
+          | Incident Response | ${{ needs.incident-response-test.result == 'success' && '✅ Passed' || '❌ Failed' }} | Automated response validation |
+
+          ## Purpose
+
+          These tests validate that:
+          1. **Intentional vulnerabilities** still exist (educational lab)
+          2. **Security controls** are working (rate limits, MFA, etc.)
+          3. **Incident response** system functions correctly
+          4. **Monitoring** captures all attack attempts
+
+          ## Note
+
+          This is an **intentionally vulnerable** educational lab. Some "failures" (successful attacks) are expected and demonstrate the vulnerabilities being taught.
+
+          View detailed results in the [Artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) section.
+          EOF
+
+      - name: Comment PR if attacks reveal issues
+        if: github.event_name == 'pull_request' && (needs.smoke-tests.result == 'failure' || needs.incident-response-test.result == 'failure')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const smokeTests = '${{ needs.smoke-tests.result }}';
+            const incidentResponse = '${{ needs.incident-response-test.result }}';
+
+            let issues = [];
+            if (smokeTests === 'failure') {
+              issues.push('- ❌ Smoke tests failed - basic security controls may be broken');
+            }
+            if (incidentResponse === 'failure') {
+              issues.push('- ❌ Incident response system not functioning');
+            }
+
+            if (issues.length > 0) {
+              const comment = `## ⚠️ Attack Simulation Issues
+
+            ${issues.join('\n')}
+
+            ### Details
+
+            The attack simulation tests have detected potential issues with the security infrastructure:
+
+            ${smokeTests === 'failure' ? '**Smoke Tests**: Basic security controls are not functioning as expected.\n' : ''}
+            ${incidentResponse === 'failure' ? '**Incident Response**: The automated incident response system is not operational.\n' : ''}
+
+            Please review the test results before merging.
+
+            View detailed logs in the [Actions run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+            `;
+
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+
+  cleanup:
+    name: Cleanup Test Environment
+    runs-on: ubuntu-latest
+    needs: [attack-summary]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Stop Docker Compose
+        run: |
+          docker-compose down -v || true
+
+      - name: Clean up Docker resources
+        run: |
+          docker system prune -f || true

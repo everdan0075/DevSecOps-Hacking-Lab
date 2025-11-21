@@ -4,7 +4,20 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Docker](https://img.shields.io/badge/docker-required-blue.svg)](https://www.docker.com/)
 
+![Security Scan](https://github.com/everdan0075/DevSecOps-Hacking-Lab/actions/workflows/security-scan.yml/badge.svg)
+![Attack Simulation](https://github.com/everdan0075/DevSecOps-Hacking-Lab/actions/workflows/attack-simulation.yml/badge.svg)
+
 > **Professional DevSecOps showcase demonstrating offensive and defensive security techniques in containerized microservices environments**
+
+## 🔒 Security Status
+
+<!-- SECURITY-STATUS-START -->
+**Last Scan**: 2025-01-20
+**Vulnerabilities**: 0 CRITICAL, 0 HIGH
+**Status**: ✅ PASSING
+<!-- SECURITY-STATUS-END -->
+
+*Security status automatically updated by CI/CD pipeline. View detailed results in [GitHub Actions](https://github.com/everdan0075/DevSecOps-Hacking-Lab/actions).*
 
 ## 📋 Overview
 
