@@ -319,7 +319,7 @@ jobs:
 
       - name: Comment PR if attacks reveal issues
         if: github.event_name == 'pull_request' && (needs.smoke-tests.result == 'failure' || needs.incident-response-test.result == 'failure')
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const smokeTests = '${{ needs.smoke-tests.result }}';

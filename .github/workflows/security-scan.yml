@@ -97,7 +97,7 @@ jobs:
 
       - name: Comment PR with vulnerabilities
         if: github.event_name == 'pull_request' && env.CRITICAL_VULNS == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
@@ -360,7 +360,7 @@ jobs:
 
       - name: Comment PR with summary
         if: github.event_name == 'pull_request' && always()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const critical = ${{ steps.aggregate.outputs.critical || 0 }};
