@@ -1,5 +1,5 @@
 # HTTP Client
-httpx==0.25.2
+httpx==0.28.1
 
 # CLI and output formatting
 rich==13.7.0
