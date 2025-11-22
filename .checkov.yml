@@ -1,0 +1,32 @@
+# Checkov configuration for educational hacking lab
+# These checks are intentionally skipped as they represent educational vulnerabilities
+
+skip-check:
+  # Docker running as root (intentional for demos)
+  - CKV_DOCKER_2
+
+  # No HEALTHCHECK in Dockerfile (simplified for lab environment)
+  - CKV_DOCKER_3
+
+  # Docker user is not created (intentional vulnerability)
+  - CKV2_DOCKER_1
+
+  # No resource limits (intentional for unrestricted testing)
+  - CKV_DOCKER_4
+
+  # Outdated base images (may contain intentional vulnerabilities)
+  - CKV_DOCKER_7
+
+  # COPY instead of ADD (acceptable for educational purposes)
+  - CKV_DOCKER_9
+
+# Only scan specific directories (exclude intentionally vulnerable services)
+framework:
+  - dockerfile
+  - docker_compose
+
+# Paths to exclude
+excluded-paths:
+  - vulnerable-services/
+  - attacks/
+  - tests/

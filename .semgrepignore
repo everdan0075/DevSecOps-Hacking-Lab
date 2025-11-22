@@ -1,0 +1,13 @@
+# Intentionally vulnerable services (educational purposes)
+vulnerable-services/
+
+# Attack scripts (demonstrate vulnerabilities)
+attacks/
+
+# Test code
+tests/
+**/test_*.py
+**/conftest.py
+
+# Example configurations
+*.example
