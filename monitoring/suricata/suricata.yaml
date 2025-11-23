@@ -1,0 +1,247 @@
+# Suricata IDS Configuration - DevSecOps Hacking Lab (Lightweight)
+# Phase 2.5B: Network Intrusion Detection
+
+# ============================================================================
+# Variables
+# ============================================================================
+vars:
+  address-groups:
+    HOME_NET: "[172.28.0.0/16]"
+    EXTERNAL_NET: "!$HOME_NET"
+
+    HTTP_SERVERS: "$HOME_NET"
+    SMTP_SERVERS: "$HOME_NET"
+    SQL_SERVERS: "$HOME_NET"
+    DNS_SERVERS: "$HOME_NET"
+    TELNET_SERVERS: "$HOME_NET"
+    SSH_SERVERS: "$HOME_NET"
+
+  port-groups:
+    HTTP_PORTS: "[80,8000,8002,8080,8443]"
+    SHELLCODE_PORTS: "!80"
+    ORACLE_PORTS: 1521
+    SSH_PORTS: 22
+
+# ============================================================================
+# Logging (EVE JSON format)
+# ============================================================================
+outputs:
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      filename: /var/log/suricata/eve.json
+      types:
+        - alert:
+            payload: yes
+            payload-printable: yes
+            packet: yes
+            metadata: yes
+            http-body: yes
+            http-body-printable: yes
+
+        - http:
+            extended: yes
+
+        - dns:
+            enabled: no
+
+        - tls:
+            enabled: no
+
+        - files:
+            enabled: no
+
+        - flow:
+            enabled: no
+
+        - stats:
+            enabled: yes
+            totals: yes
+            threads: no
+            deltas: no
+
+  # Fast log (simple alert log)
+  - fast:
+      enabled: yes
+      filename: /var/log/suricata/fast.log
+      append: yes
+
+  # Stats log
+  - stats:
+      enabled: yes
+      filename: /var/log/suricata/stats.log
+      interval: 60
+
+# ============================================================================
+# Application Layer Parsers
+# ============================================================================
+app-layer:
+  protocols:
+    http:
+      enabled: yes
+      memcap: 64mb
+
+    tls:
+      enabled: no  # Disabled for performance
+
+    smtp:
+      enabled: no
+
+    dns:
+      enabled: no
+
+# ============================================================================
+# Detection Engine
+# ============================================================================
+detect:
+  profile: medium
+  custom-values:
+    toclient-groups: 3
+    toserver-groups: 25
+
+  sgh-mpm-context: auto
+  inspection-recursion-limit: 3000
+
+# ============================================================================
+# Rule Files
+# ============================================================================
+default-rule-path: /etc/suricata/rules
+rule-files:
+  - devsecops.rules
+
+# ============================================================================
+# Performance Tuning (Lightweight)
+# ============================================================================
+threading:
+  set-cpu-affinity: no
+  cpu-affinity:
+    - management-cpu-set:
+        cpu: [ "all" ]
+    - receive-cpu-set:
+        cpu: [ "all" ]
+    - worker-cpu-set:
+        cpu: [ "all" ]
+        mode: "exclusive"
+        prio:
+          low: [ 0 ]
+          medium: [ "1-2" ]
+          high: [ 3 ]
+          default: "medium"
+
+  detect-thread-ratio: 1.0
+
+# Runmode
+runmode: workers
+
+# Max pending packets
+max-pending-packets: 1024
+
+# Packet buffer size
+default-packet-size: 1514
+
+# Stream settings
+stream:
+  memcap: 32mb
+  checksum-validation: yes
+  inline: no
+  reassembly:
+    memcap: 64mb
+    depth: 1mb
+    toserver-chunk-size: 2560
+    toclient-chunk-size: 2560
+    randomize-chunk-size: yes
+
+# Host table
+host:
+  hash-size: 4096
+  prealloc: 1000
+  memcap: 32mb
+
+# IP Reputation
+reputation-categories-file: /etc/suricata/reputation/categories.txt
+default-reputation-path: /etc/suricata/reputation
+
+# ============================================================================
+# Capture (AF_PACKET)
+# ============================================================================
+af-packet:
+  - interface: eth0
+    cluster-id: 99
+    cluster-type: cluster_flow
+    defrag: yes
+    use-mmap: yes
+    tpacket-v3: yes
+    ring-size: 2048
+    block-size: 32768
+
+# ============================================================================
+# Logging
+# ============================================================================
+logging:
+  default-log-level: notice
+  default-output-filter:
+
+  outputs:
+  - console:
+      enabled: yes
+      type: json
+
+  - file:
+      enabled: yes
+      level: info
+      filename: /var/log/suricata/suricata.log
+
+  - syslog:
+      enabled: no
+
+# ============================================================================
+# Profiling
+# ============================================================================
+profiling:
+  rules:
+    enabled: no
+
+  keywords:
+    enabled: no
+
+  packets:
+    enabled: no
+
+# ============================================================================
+# Packet Acquisition
+# ============================================================================
+pcap:
+  - interface: default
+
+# ============================================================================
+# Performance Settings
+# ============================================================================
+engine-analysis:
+  rules-fast-pattern: no
+  rules: no
+
+# Decoder settings
+decoder:
+  teredo:
+    enabled: no
+
+  vxlan:
+    enabled: no
+
+# ============================================================================
+# Misc
+# ============================================================================
+legacy:
+  uricontent: enabled
+
+action-order:
+  - pass
+  - drop
+  - reject
+  - alert
+
+# Disable
+disable:
+  - file-sha1
+  - file-sha256
+  - file-md5

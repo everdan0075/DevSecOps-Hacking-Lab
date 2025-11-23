@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any, AsyncGenerator, Dict, List
 
 from fastapi import FastAPI, HTTPException, Request
@@ -99,7 +99,7 @@ async def health() -> HealthResponse:
 
     return HealthResponse(
         status="healthy",
-        timestamp=datetime.utcnow().isoformat(),
+        timestamp=datetime.now(timezone.utc).isoformat(),
         runbooks_loaded=len(runbook_loader.runbooks) if runbook_loader else 0,
         executions_count=len(executor.executions) if executor else 0,
     )
@@ -183,13 +183,13 @@ async def webhook(request: Request) -> JSONResponse:
                 ).inc()
 
                 # Execute with timing
-                start_time = datetime.utcnow()
+                start_time = datetime.now(timezone.utc)
                 execution = await executor.execute_runbook(
                     runbook, alert, context={"webhook": payload}
                 )
 
                 # Track metrics
-                duration = (datetime.utcnow() - start_time).total_seconds()
+                duration = (datetime.now(timezone.utc) - start_time).total_seconds()
                 metrics.runbook_execution_duration_seconds.labels(
                     runbook_name=runbook.name
                 ).observe(duration)
@@ -302,7 +302,7 @@ async def report_attack_event(event_data: Dict[str, Any]) -> JSONResponse:
         if timestamp_str:
             timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
         else:
-            timestamp = datetime.utcnow()
+            timestamp = datetime.now(timezone.utc)
 
         # Create attack event
         attack_event = AttackEvent(
@@ -417,7 +417,7 @@ async def get_realtime_attack_feed(
         events = correlation_engine.events
 
         # Filter by time window
-        cutoff_time = datetime.utcnow() - timedelta(minutes=last_minutes)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=last_minutes)
         events = [e for e in events if e.timestamp >= cutoff_time]
 
         # Apply filters
@@ -479,7 +479,7 @@ async def get_realtime_attack_feed(
                 "total_events": len(events_data),
                 "unique_ips": len(ip_summary),
                 "time_window_minutes": last_minutes,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             },
             "top_attackers": ip_summary_list[:10],  # Top 10
             "recent_events": events_data[:100],  # Last 100 events
@@ -496,6 +496,118 @@ async def get_realtime_attack_feed(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/correlate")
+async def correlate_ids_alert(event_data: Dict[str, Any]) -> JSONResponse:
+    """
+    Correlate IDS alert with existing attack patterns
+
+    Expected payload from IDS exporter:
+    {
+        "source": "ids",
+        "category": "sql_injection",
+        "severity": "critical",
+        "src_ip": "192.168.1.100",
+        "dest_ip": "172.28.0.3",
+        "dest_port": 8080,
+        "signature": "SQL Injection - UNION SELECT",
+        "timestamp": "2024-01-01T12:00:00Z",
+        "http_method": "GET",
+        "http_url": "/api/users?id=1' UNION SELECT...",
+        "http_user_agent": "Mozilla/5.0...",
+        "payload_printable": "..."
+    }
+    """
+    try:
+        # Map IDS categories to attack types
+        category_mapping = {
+            "sql_injection": "sql_injection",
+            "xss": "xss_attack",
+            "brute_force": "brute_force",
+            "scanner": "scanner_detection",
+            "honeypot": "honeypot_access",
+            "gateway_bypass": "gateway_bypass",
+            "idor": "idor_exploitation",
+            "command_injection": "command_injection",
+            "path_traversal": "path_traversal",
+            "rate_limit_abuse": "rate_limit_bypass"
+        }
+
+        category = event_data.get("category", "unknown")
+        attack_type = category_mapping.get(category, category)
+
+        # Extract target from HTTP URL or use dest_ip:dest_port
+        target = event_data.get("http_url",
+                                f"{event_data.get('dest_ip')}:{event_data.get('dest_port')}")
+
+        # Parse timestamp
+        timestamp_str = event_data.get("timestamp")
+        if timestamp_str:
+            timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+        else:
+            timestamp = datetime.now(timezone.utc)
+
+        # Create attack event for correlation
+        attack_event = AttackEvent(
+            timestamp=timestamp,
+            ip_address=event_data["src_ip"],
+            attack_type=attack_type,
+            severity=event_data.get("severity", "medium"),
+            target=target,
+            details={
+                "source": "ids",
+                "signature": event_data.get("signature"),
+                "dest_ip": event_data.get("dest_ip"),
+                "dest_port": event_data.get("dest_port"),
+                "http_method": event_data.get("http_method"),
+                "http_url": event_data.get("http_url"),
+                "payload": event_data.get("payload_printable", "")[:200]  # Truncate
+            },
+            user_agent=event_data.get("http_user_agent")
+        )
+
+        # Add to correlation engine
+        correlation_engine.add_event(attack_event)
+
+        # Check for attack patterns
+        patterns = correlation_engine.get_patterns(
+            min_confidence=0.5,
+            severity=None
+        )
+
+        # Find patterns involving this IP
+        relevant_patterns = [
+            p for p in patterns
+            if event_data["src_ip"] in p.attacker_ips
+        ]
+
+        logger.info(
+            f"IDS alert correlated: category={category}, "
+            f"ip={event_data['src_ip']}, signature={event_data.get('signature', 'N/A')}, "
+            f"patterns_found={len(relevant_patterns)}"
+        )
+
+        return JSONResponse({
+            "status": "correlated",
+            "event": {
+                "attack_type": attack_type,
+                "ip_address": attack_event.ip_address,
+                "severity": attack_event.severity,
+                "timestamp": attack_event.timestamp.isoformat()
+            },
+            "correlation": {
+                "total_patterns": len(patterns),
+                "relevant_patterns": len(relevant_patterns),
+                "pattern_ids": [p.pattern_id for p in relevant_patterns[:5]]  # Top 5
+            }
+        })
+
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=f"Missing required field: {e}")
+    except Exception as e:
+        logger.error(f"Error correlating IDS alert: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/correlation/statistics")
 async def get_correlation_statistics() -> JSONResponse:
     """
@@ -505,7 +617,7 @@ async def get_correlation_statistics() -> JSONResponse:
         stats = correlation_engine.get_statistics()
 
         # Add timestamp
-        stats["timestamp"] = datetime.utcnow().isoformat()
+        stats["timestamp"] = datetime.now(timezone.utc).isoformat()
 
         # Convert datetime objects to ISO strings
         if stats["oldest_event"]:
@@ -545,7 +657,7 @@ async def get_defense_metrics() -> JSONResponse:
             "high_confidence_patterns": len([p for p in patterns if p.confidence >= 0.7]),
             "active_patterns_last_hour": len([
                 p for p in patterns
-                if (datetime.utcnow() - p.last_seen).total_seconds() < 3600
+                if (datetime.now(timezone.utc) - p.last_seen).total_seconds() < 3600
             ])
         }
 
@@ -561,7 +673,7 @@ async def get_defense_metrics() -> JSONResponse:
         )[:10]
 
         return JSONResponse({
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "correlation": correlation_stats,
             "incidents": incident_stats,
             "patterns": patterns_summary,

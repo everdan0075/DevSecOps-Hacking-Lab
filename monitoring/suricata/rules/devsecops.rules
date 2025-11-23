@@ -1,0 +1,233 @@
+# DevSecOps Hacking Lab - Suricata IDS Rules
+# Phase 2.5B: Network-level attack detection
+#
+# Rule format: action protocol src_ip src_port -> dst_ip dst_port (rule_options)
+# Actions: alert, pass, drop, reject
+
+# ============================================================================
+# SQL Injection Detection
+# ============================================================================
+
+alert http any any -> any any (msg:"SQL Injection - UNION SELECT"; \
+    flow:established,to_server; \
+    content:"union"; nocase; \
+    content:"select"; nocase; distance:0; \
+    classtype:web-application-attack; \
+    sid:1000001; rev:1;)
+
+alert http any any -> any any (msg:"SQL Injection - OR 1=1"; \
+    flow:established,to_server; \
+    pcre:"/(or|and)\s+['\"]?\d+['\"]?\s*=\s*['\"]?\d+/i"; \
+    classtype:web-application-attack; \
+    sid:1000002; rev:1;)
+
+alert http any any -> any any (msg:"SQL Injection - DROP TABLE"; \
+    flow:established,to_server; \
+    content:"drop"; nocase; \
+    content:"table"; nocase; distance:0; \
+    classtype:web-application-attack; \
+    sid:1000003; rev:1;)
+
+alert http any any -> any any (msg:"SQL Injection - Comment Injection"; \
+    flow:established,to_server; \
+    pcre:"/('|\")\s*--/"; \
+    classtype:web-application-attack; \
+    sid:1000004; rev:1;)
+
+# ============================================================================
+# Cross-Site Scripting (XSS)
+# ============================================================================
+
+alert http any any -> any any (msg:"XSS - Script Tag Injection"; \
+    flow:established,to_server; \
+    content:"<script"; nocase; \
+    classtype:web-application-attack; \
+    sid:1000010; rev:1;)
+
+alert http any any -> any any (msg:"XSS - JavaScript Event Handler"; \
+    flow:established,to_server; \
+    pcre:"/(on(load|error|click|mouseover))\s*=/i"; \
+    classtype:web-application-attack; \
+    sid:1000011; rev:1;)
+
+alert http any any -> any any (msg:"XSS - JavaScript Protocol"; \
+    flow:established,to_server; \
+    content:"javascript:"; nocase; \
+    classtype:web-application-attack; \
+    sid:1000012; rev:1;)
+
+# ============================================================================
+# Command Injection
+# ============================================================================
+
+alert http any any -> any any (msg:"Command Injection - Shell Command"; \
+    flow:established,to_server; \
+    pcre:"/[;&|`]\s*(ls|cat|wget|curl|nc|bash|sh)/i"; \
+    classtype:web-application-attack; \
+    sid:1000020; rev:1;)
+
+alert http any any -> any any (msg:"Command Injection - Reverse Shell"; \
+    flow:established,to_server; \
+    content:"nc"; nocase; \
+    pcre:"/-.*e\s+\/bin\/(ba)?sh/i"; \
+    classtype:attempted-admin; \
+    sid:1000021; rev:1;)
+
+# ============================================================================
+# Path Traversal
+# ============================================================================
+
+alert http any any -> any any (msg:"Path Traversal - Directory Traversal"; \
+    flow:established,to_server; \
+    content:"../"; \
+    classtype:web-application-attack; \
+    sid:1000030; rev:1;)
+
+alert http any any -> any any (msg:"Path Traversal - System File Access"; \
+    flow:established,to_server; \
+    pcre:"/\/(etc\/(passwd|shadow)|windows\/system32)/i"; \
+    classtype:web-application-attack; \
+    sid:1000031; rev:1;)
+
+# ============================================================================
+# Brute Force Detection
+# ============================================================================
+
+alert http any any -> any any (msg:"Brute Force - High Login Attempt Rate"; \
+    flow:established,to_server; \
+    http.uri; content:"/auth/login"; \
+    http.method; content:"POST"; \
+    threshold: type both, track by_src, count 10, seconds 60; \
+    classtype:attempted-recon; \
+    sid:1000040; rev:1;)
+
+alert http any any -> any any (msg:"Brute Force - MFA Bypass Attempt"; \
+    flow:established,to_server; \
+    http.uri; content:"/auth/mfa/verify"; \
+    http.method; content:"POST"; \
+    threshold: type both, track by_src, count 15, seconds 60; \
+    classtype:attempted-recon; \
+    sid:1000041; rev:1;)
+
+# ============================================================================
+# Scanning & Reconnaissance
+# ============================================================================
+
+alert http any any -> any any (msg:"Scanner - SQLMap Detected"; \
+    flow:established,to_server; \
+    http.user_agent; content:"sqlmap"; nocase; \
+    classtype:web-application-attack; \
+    sid:1000050; rev:1;)
+
+alert http any any -> any any (msg:"Scanner - Nikto Detected"; \
+    flow:established,to_server; \
+    http.user_agent; content:"nikto"; nocase; \
+    classtype:attempted-recon; \
+    sid:1000051; rev:1;)
+
+alert http any any -> any any (msg:"Scanner - Nmap Detected"; \
+    flow:established,to_server; \
+    http.user_agent; content:"nmap"; nocase; \
+    classtype:attempted-recon; \
+    sid:1000052; rev:1;)
+
+alert http any any -> any any (msg:"Scanner - Metasploit Detected"; \
+    flow:established,to_server; \
+    http.user_agent; content:"metasploit"; nocase; \
+    classtype:attempted-admin; \
+    sid:1000053; rev:1;)
+
+alert http any any -> any any (msg:"Scanner - Burp Suite Detected"; \
+    flow:established,to_server; \
+    http.user_agent; content:"burp"; nocase; \
+    classtype:attempted-recon; \
+    sid:1000054; rev:1;)
+
+# ============================================================================
+# Honeypot Access
+# ============================================================================
+
+alert http any any -> any any (msg:"Honeypot - Admin Panel Access"; \
+    flow:established,to_server; \
+    http.uri; content:"/admin"; startswith; \
+    classtype:attempted-admin; \
+    sid:1000060; rev:1;)
+
+alert http any any -> any any (msg:"Honeypot - phpMyAdmin Access"; \
+    flow:established,to_server; \
+    http.uri; content:"/phpmyadmin"; \
+    classtype:attempted-admin; \
+    sid:1000061; rev:1;)
+
+alert http any any -> any any (msg:"Honeypot - WordPress Login Access"; \
+    flow:established,to_server; \
+    http.uri; content:"/wp-login.php"; \
+    classtype:attempted-recon; \
+    sid:1000062; rev:1;)
+
+alert http any any -> any any (msg:"Honeypot - .env File Access"; \
+    flow:established,to_server; \
+    http.uri; content:"/.env"; \
+    classtype:attempted-admin; \
+    sid:1000063; rev:1;)
+
+alert http any any -> any any (msg:"Honeypot - Git Config Access"; \
+    flow:established,to_server; \
+    http.uri; content:"/.git/"; \
+    classtype:attempted-recon; \
+    sid:1000064; rev:1;)
+
+# ============================================================================
+# IDOR & Authorization Bypass
+# ============================================================================
+
+alert http any any -> any any (msg:"IDOR - Sequential Profile Enumeration"; \
+    flow:established,to_server; \
+    http.uri; content:"/api/users/profile/"; \
+    threshold: type both, track by_src, count 5, seconds 10; \
+    classtype:web-application-attack; \
+    sid:1000070; rev:1;)
+
+# ============================================================================
+# Rate Limit Bypass Detection
+# ============================================================================
+
+alert http any any -> any 8002 (msg:"Gateway Bypass - Direct Service Access"; \
+    flow:established,to_server; \
+    http.host; content:"localhost:8002"; \
+    classtype:policy-violation; \
+    sid:1000080; rev:1;)
+
+# ============================================================================
+# Suspicious Patterns
+# ============================================================================
+
+alert http any any -> any any (msg:"Suspicious - Base64 Encoded Payload"; \
+    flow:established,to_server; \
+    pcre:"/[A-Za-z0-9+\/]{40,}={0,2}/"; \
+    classtype:misc-attack; \
+    sid:1000090; rev:1;)
+
+alert http any any -> any any (msg:"Suspicious - Unusual HTTP Method"; \
+    flow:established,to_server; \
+    http.method; content:!"GET"; \
+    http.method; content:!"POST"; \
+    http.method; content:!"PUT"; \
+    http.method; content:!"DELETE"; \
+    http.method; content:!"PATCH"; \
+    http.method; content:!"OPTIONS"; \
+    http.method; content:!"HEAD"; \
+    classtype:protocol-command-decode; \
+    sid:1000091; rev:1;)
+
+# ============================================================================
+# Data Exfiltration
+# ============================================================================
+
+alert http any any -> any any (msg:"Data Exfiltration - Large Response"; \
+    flow:established,to_client; \
+    http.stat_code; content:"200"; \
+    byte_extract:4,0,content_len,string,dec,relative; \
+    byte_test:4,>,1048576,content_len; \
+    classtype:policy-violation; \
+    sid:1000100; rev:1;)

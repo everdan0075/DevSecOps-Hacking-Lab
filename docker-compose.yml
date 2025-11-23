@@ -278,6 +278,56 @@ services:
       - user-service
       - redis
 
+  # ============================================================================
+  # Phase 2.5B: Suricata IDS (Intrusion Detection System)
+  # ============================================================================
+  suricata:
+    image: jasonish/suricata:latest
+    container_name: suricata-ids
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./monitoring/suricata/suricata.yaml:/etc/suricata/suricata.yaml:ro
+      - ./monitoring/suricata/rules:/etc/suricata/rules:ro
+      - suricata-logs:/var/log/suricata
+    command: ["-i", "eth0", "-v"]
+    restart: unless-stopped
+    labels:
+      - "com.devsecops.service=suricata-ids"
+      - "com.devsecops.phase=2.5B"
+      - "com.devsecops.description=Network Intrusion Detection System"
+
+  # IDS Log Processor & Metrics Exporter
+  ids-exporter:
+    build:
+      context: ./monitoring/ids-exporter
+      dockerfile: Dockerfile
+    container_name: ids-exporter
+    ports:
+      - "9200:9200"  # Prometheus metrics
+    environment:
+      - SURICATA_EVE_LOG=/var/log/suricata/eve.json
+      - INCIDENT_BOT_URL=http://incident-bot:5002
+      - LOG_LEVEL=INFO
+    volumes:
+      - suricata-logs:/var/log/suricata:ro
+      - ./monitoring/ids-exporter:/app
+    networks:
+      - devsecops-lab
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    labels:
+      - "com.devsecops.service=ids-exporter"
+      - "com.devsecops.phase=2.5B"
+      - "com.devsecops.description=IDS metrics exporter for Prometheus"
+
 volumes:
   login-api-logs:
     driver: local
@@ -288,6 +338,8 @@ volumes:
   alertmanager-data:
     driver: local
   incident-bot-reports:
+    driver: local
+  suricata-logs:
     driver: local
 
 networks:

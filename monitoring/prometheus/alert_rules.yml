@@ -451,3 +451,223 @@ groups:
           attack_stage: "Multi-stage (Reconnaissance → Exploitation)"
           recommended_actions: "ESCALATE: Alert security team, enable full packet capture, review all attacker activity"
 
+  # ============================================================================
+  # Phase 2.5B: IDS (Intrusion Detection System) Alerts
+  # ============================================================================
+  - name: devsecops-ids-alerts
+    interval: 10s  # More frequent evaluation for real-time IDS
+    rules:
+      # Critical IDS Alerts
+      - alert: IDSCriticalAlertDetected
+        expr: increase(ids_alerts_total{severity="critical"}[5m]) > 0
+        for: 10s
+        labels:
+          severity: critical
+          service: ids-exporter
+          category: ids
+        annotations:
+          summary: "Critical IDS alert detected"
+          description: "Suricata IDS detected critical-severity attack. Immediate investigation required."
+          recommended_actions: "Review IDS logs, correlate with WAF/honeypot data, ban attacker IP"
+
+      # SQL Injection Detection
+      - alert: IDSSQLInjectionDetected
+        expr: increase(ids_sql_injection_total[5m]) > 3
+        for: 30s
+        labels:
+          severity: critical
+          service: ids-exporter
+          category: ids-sql-injection
+        annotations:
+          summary: "IDS detected SQL injection attempts"
+          description: "More than 3 SQL injection patterns detected by IDS in 5 minutes."
+          owasp: "A03:2021 - Injection"
+          recommended_actions: "Ban attacker IP, review query logs, validate input sanitization"
+
+      # XSS Detection
+      - alert: IDSXSSDetected
+        expr: increase(ids_xss_total[5m]) > 3
+        for: 30s
+        labels:
+          severity: high
+          service: ids-exporter
+          category: ids-xss
+        annotations:
+          summary: "IDS detected XSS (Cross-Site Scripting) attempts"
+          description: "Multiple XSS attack patterns detected by IDS."
+          owasp: "A03:2021 - Injection"
+
+      # Brute Force Detection
+      - alert: IDSBruteForceDetected
+        expr: increase(ids_brute_force_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+          service: ids-exporter
+          category: ids-brute-force
+        annotations:
+          summary: "IDS detected brute force attack"
+          description: "High rate of login attempts detected by IDS (>10 in 5 minutes)."
+          recommended_actions: "Enable IP banning, implement account lockout"
+
+      # Scanner Detection
+      - alert: IDSScannerDetected
+        expr: increase(ids_scanner_detection_total[2m]) > 0
+        for: 30s
+        labels:
+          severity: high
+          service: ids-exporter
+          category: ids-scanner
+        annotations:
+          summary: "Security scanner detected by IDS"
+          description: "IDS identified security scanner traffic (SQLMap, Nikto, Nmap, etc.)."
+          attack_type: "Automated scanning"
+          recommended_actions: "Ban scanner IP, log User-Agent, monitor for exploitation attempts"
+
+      # Honeypot Access (IDS correlation)
+      - alert: IDSHoneypotAccessDetected
+        expr: increase(ids_honeypot_access_total[10m]) > 2
+        for: 1m
+        labels:
+          severity: high
+          service: ids-exporter
+          category: ids-honeypot
+        annotations:
+          summary: "IDS detected honeypot endpoint access"
+          description: "Attacker accessing honeypot endpoints detected at network level."
+          recommended_actions: "Correlate with WAF honeypot data, track attacker progression"
+
+      # Gateway Bypass Detection
+      - alert: IDSGatewayBypassDetected
+        expr: increase(ids_gateway_bypass_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          service: ids-exporter
+          category: ids-gateway-bypass
+        annotations:
+          summary: "IDS detected direct service access (Gateway bypass)"
+          description: "More than 5 direct backend service accesses detected. Attacker bypassing API Gateway."
+          recommended_actions: "Remove port exposure, implement mTLS, ban attacker IP"
+
+      # IDOR Detection
+      - alert: IDSIDORDetected
+        expr: increase(ids_idor_attempts_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: critical
+          service: ids-exporter
+          category: ids-idor
+        annotations:
+          summary: "IDS detected IDOR (Insecure Direct Object Reference) exploitation"
+          description: "High rate of IDOR attempts detected at network level."
+          owasp: "A01:2021 - Broken Access Control"
+          recommended_actions: "Add authorization checks, ban attacker IP"
+
+      # Command Injection Detection
+      - alert: IDSCommandInjectionDetected
+        expr: increase(ids_command_injection_total[5m]) > 0
+        for: 10s
+        labels:
+          severity: critical
+          service: ids-exporter
+          category: ids-command-injection
+        annotations:
+          summary: "IDS detected command injection attempt"
+          description: "Shell command injection pattern detected. RCE (Remote Code Execution) attempt."
+          owasp: "A03:2021 - Injection"
+          recommended_actions: "IMMEDIATE: Ban IP, review logs for successful exploitation, validate input sanitization"
+
+      # Path Traversal Detection
+      - alert: IDSPathTraversalDetected
+        expr: increase(ids_path_traversal_total[5m]) > 3
+        for: 30s
+        labels:
+          severity: high
+          service: ids-exporter
+          category: ids-path-traversal
+        annotations:
+          summary: "IDS detected path traversal attempts"
+          description: "Directory traversal patterns detected (../../../etc/passwd)."
+          owasp: "A01:2021 - Broken Access Control"
+
+      # Active Attackers Spike
+      - alert: IDSActiveAttackersSpike
+        expr: ids_active_attackers > 3
+        for: 2m
+        labels:
+          severity: warning
+          service: ids-exporter
+          category: ids-correlation
+        annotations:
+          summary: "Multiple active attackers detected by IDS"
+          description: "More than 3 unique source IPs with recent IDS alerts. Possible distributed attack."
+          recommended_actions: "Enable geo-blocking, review firewall rules, consider DDoS mitigation"
+
+      # Alert Rate Spike
+      - alert: IDSAlertRateSpike
+        expr: ids_alerts_last_minute > 50
+        for: 1m
+        labels:
+          severity: critical
+          service: ids-exporter
+          category: ids-correlation
+        annotations:
+          summary: "IDS alert rate spike"
+          description: "More than 50 IDS alerts in the last minute. Active attack in progress."
+          recommended_actions: "Enable emergency response mode, consider blocking all traffic from attacker IPs"
+
+      # IDS Exporter Health
+      - alert: IDSExporterDown
+        expr: up{job="ids-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: ids-exporter
+          category: availability
+        annotations:
+          summary: "IDS Exporter is down"
+          description: "IDS metrics exporter unreachable. Network-level attack detection disabled."
+
+      # Suricata Processing Issues
+      - alert: IDSLogParseErrors
+        expr: increase(ids_log_parse_errors_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+          service: ids-exporter
+          category: ids-health
+        annotations:
+          summary: "IDS log parsing errors"
+          description: "Multiple errors parsing Suricata Eve JSON logs. Check log format and IDS exporter health."
+
+      # Incident Bot Correlation Failures
+      - alert: IDSIncidentReportingFailed
+        expr: increase(ids_incident_reports_failed_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+          service: ids-exporter
+          category: correlation
+        annotations:
+          summary: "IDS to Incident Bot correlation failures"
+          description: "Multiple failures sending IDS alerts to incident bot. Correlation engine may be degraded."
+          recommended_actions: "Check incident-bot health, review network connectivity"
+
+      # Multi-source Attack Correlation (IDS + WAF + Honeypot)
+      - alert: MultiSourceAttackDetected
+        expr: |
+          (increase(ids_alerts_total[5m]) > 5)
+          and
+          (increase(gateway_waf_blocks_total[5m]) > 3)
+        for: 1m
+        labels:
+          severity: critical
+          service: correlation-engine
+          category: multi-source-attack
+        annotations:
+          summary: "Multi-source attack correlation: IDS + WAF"
+          description: "Attack detected by both IDS and WAF. High-confidence threat indicator."
+          attack_confidence: "High (multi-source correlation)"
+          recommended_actions: "ESCALATE: Ban attacker IP, enable enhanced monitoring, generate incident report"
+

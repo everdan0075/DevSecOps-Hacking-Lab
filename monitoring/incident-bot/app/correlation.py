@@ -101,7 +101,8 @@ class AttackCorrelationEngine:
 
     def _cleanup_old_events(self) -> None:
         """Remove events outside the time window"""
-        cutoff_time = datetime.utcnow() - self.time_window
+        from datetime import timezone
+        cutoff_time = datetime.now(timezone.utc) - self.time_window
 
         # Clean main events list
         self.events = [e for e in self.events if e.timestamp >= cutoff_time]

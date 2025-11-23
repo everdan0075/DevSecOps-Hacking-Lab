@@ -57,6 +57,18 @@ scrape_configs:
           component: "security-automation"
           env: "local"
 
+  - job_name: "ids-exporter"
+    honor_labels: true
+    metrics_path: "/metrics"
+    scrape_interval: 10s  # More frequent scraping for IDS alerts
+    static_configs:
+      - targets:
+          - "ids-exporter:9200"
+        labels:
+          service: "ids-exporter"
+          component: "network-security"
+          env: "local"
+
   # Placeholder for future exporters (node, attack scripts, etc.)
   - job_name: "prometheus"
     static_configs:
