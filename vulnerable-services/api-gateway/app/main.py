@@ -460,6 +460,38 @@ async def get_honeypot_statistics():
     return await honeypot_module.get_honeypot_stats()
 
 
+# WAF statistics endpoint
+@app.get("/api/defense/waf-stats")
+async def get_waf_statistics():
+    """
+    Get WAF statistics and configuration
+    Shows signature database stats, enabled features, etc.
+    """
+    from .waf_signatures import signature_db
+    from .waf_config import waf_config
+
+    return {
+        "signature_database": signature_db.get_stats(),
+        "features": {
+            "signature_detection": waf_config.enable_signature_detection,
+            "endpoint_rate_limiting": waf_config.enable_endpoint_rate_limiting,
+            "geo_blocking": waf_config.enable_geo_blocking,
+            "user_agent_filtering": waf_config.enable_user_agent_filtering,
+            "bot_detection": waf_config.enable_bot_detection
+        },
+        "endpoint_limits": [
+            {
+                "pattern": limit.endpoint_pattern,
+                "requests_per_minute": limit.requests_per_minute,
+                "burst_size": limit.burst_size,
+                "description": limit.description
+            }
+            for limit in waf_config.endpoint_rate_limits
+        ],
+        "version": "2.5A"
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

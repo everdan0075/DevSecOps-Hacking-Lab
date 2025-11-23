@@ -1,16 +1,20 @@
 """
 Middleware for API Gateway
-Rate limiting, request validation, security headers
+Rate limiting, request validation, security headers, enhanced WAF
 """
 import time
 import logging
-from typing import Dict, Tuple
+import re
+from typing import Dict, Tuple, Optional
 from collections import defaultdict
 from datetime import datetime, timedelta
 from fastapi import Request, HTTPException, status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response, JSONResponse
 from .security import extract_client_ip
+from .waf_signatures import signature_db
+from .waf_config import waf_config, EndpointRateLimit
+from . import metrics as metrics_module
 
 logger = logging.getLogger(__name__)
 
@@ -122,70 +126,299 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 class RequestValidationMiddleware(BaseHTTPMiddleware):
     """
-    Basic WAF-style request validation
-    Blocks suspicious patterns, oversized requests, etc.
+    Enhanced WAF-style request validation with:
+    - Signature-based attack detection
+    - User-Agent filtering
+    - Bot detection
+    - Geo-blocking (placeholder)
+    - Per-endpoint rate limiting
     """
-    
-    # Maximum request body size (10MB)
-    MAX_BODY_SIZE = 10 * 1024 * 1024
-    
-    # Suspicious patterns in URLs (basic SQL injection, path traversal)
-    SUSPICIOUS_PATTERNS = [
-        "../",
-        "..\\",
-        "<script",
-        "javascript:",
-        "onerror=",
-        "onclick=",
-        "' OR '1'='1",
-        "' OR 1=1--",
-        "; DROP TABLE",
-        "UNION SELECT",
-    ]
-    
-    async def dispatch(self, request: Request, call_next):
-        """Validate request before processing"""
-        
-        # 1. Check request path for suspicious patterns
-        path = request.url.path.lower()
-        for pattern in self.SUSPICIOUS_PATTERNS:
-            if pattern.lower() in path:
+
+    def __init__(self, app):
+        super().__init__(app)
+
+        # Compile endpoint rate limit patterns
+        self.compiled_endpoint_limits = []
+        for limit in waf_config.endpoint_rate_limits:
+            try:
+                pattern = re.compile(limit.endpoint_pattern)
+                self.compiled_endpoint_limits.append((pattern, limit))
+            except re.error:
+                logger.error(f"Invalid endpoint pattern: {limit.endpoint_pattern}")
+
+        # Compile User-Agent patterns
+        self.blocked_ua_patterns = []
+        for pattern in waf_config.blocked_user_agents:
+            try:
+                self.blocked_ua_patterns.append(re.compile(pattern, re.IGNORECASE))
+            except re.error:
+                logger.error(f"Invalid User-Agent pattern: {pattern}")
+
+        self.bot_patterns = []
+        for pattern in waf_config.bot_detection_patterns:
+            try:
+                self.bot_patterns.append(re.compile(pattern, re.IGNORECASE))
+            except re.error:
+                logger.error(f"Invalid bot pattern: {pattern}")
+
+        self.allowed_bot_patterns = []
+        for pattern in waf_config.allowed_bots:
+            try:
+                self.allowed_bot_patterns.append(re.compile(pattern, re.IGNORECASE))
+            except re.error:
+                logger.error(f"Invalid allowed bot pattern: {pattern}")
+
+        # Per-endpoint rate limiting storage
+        # {(ip, endpoint): (tokens, last_refill)}
+        self.endpoint_buckets: Dict[Tuple[str, str], Tuple[float, float]] = defaultdict(
+            lambda: (0, time.time())
+        )
+
+        logger.info("Enhanced WAF middleware initialized")
+
+    def _check_user_agent(self, request: Request) -> Optional[JSONResponse]:
+        """Check User-Agent header for suspicious patterns"""
+        if not waf_config.enable_user_agent_filtering:
+            return None
+
+        user_agent = request.headers.get("User-Agent", "")
+
+        # Require User-Agent header
+        if waf_config.require_user_agent and not user_agent:
+            logger.warning(f"Missing User-Agent from {extract_client_ip(request)}")
+            metrics_module.gateway_waf_blocks_total.labels(reason="missing_user_agent").inc()
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content={
+                    "error": "Forbidden",
+                    "message": "User-Agent header required",
+                    "blocked_by": "WAF"
+                }
+            )
+
+        # Check against blocked User-Agents
+        for pattern in self.blocked_ua_patterns:
+            if pattern.search(user_agent):
                 logger.warning(
-                    f"Suspicious pattern detected in path: {pattern} "
-                    f"from IP {extract_client_ip(request)}"
+                    f"Blocked User-Agent: {user_agent[:100]} from {extract_client_ip(request)}"
                 )
+                metrics_module.gateway_waf_blocks_total.labels(reason="malicious_user_agent").inc()
+                return JSONResponse(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    content={
+                        "error": "Forbidden",
+                        "message": "Malicious User-Agent detected",
+                        "blocked_by": "WAF"
+                    }
+                )
+
+        # Bot detection
+        if waf_config.enable_bot_detection:
+            # Check if it's an allowed bot first
+            is_allowed_bot = any(
+                pattern.search(user_agent)
+                for pattern in self.allowed_bot_patterns
+            )
+
+            if not is_allowed_bot:
+                # Check for bot patterns
+                for pattern in self.bot_patterns:
+                    if pattern.search(user_agent):
+                        logger.warning(
+                            f"Suspicious bot detected: {user_agent[:100]} from {extract_client_ip(request)}"
+                        )
+                        metrics_module.gateway_waf_blocks_total.labels(reason="suspicious_bot").inc()
+                        return JSONResponse(
+                            status_code=status.HTTP_403_FORBIDDEN,
+                            content={
+                                "error": "Forbidden",
+                                "message": "Automated bot traffic not allowed",
+                                "blocked_by": "WAF"
+                            }
+                        )
+
+        return None
+
+    def _check_signature_scan(self, request: Request, body: bytes = None) -> Optional[JSONResponse]:
+        """Scan request for attack signatures"""
+        if not waf_config.enable_signature_detection:
+            return None
+
+        scan_targets = []
+
+        # Scan query parameters
+        if waf_config.signature_scan_query:
+            query_string = str(request.url.query)
+            if query_string:
+                scan_targets.append(("query", query_string))
+
+        # Scan headers
+        if waf_config.signature_scan_headers:
+            for key, value in request.headers.items():
+                # Skip common headers
+                if key.lower() not in ["host", "user-agent", "accept", "connection"]:
+                    scan_targets.append((f"header:{key}", value))
+
+        # Scan body (if provided and enabled)
+        if waf_config.signature_scan_body and body:
+            if len(body) <= waf_config.max_scan_body_size:
+                try:
+                    body_str = body.decode("utf-8", errors="ignore")
+                    scan_targets.append(("body", body_str))
+                except Exception:
+                    pass
+
+        # Perform signature scanning
+        for target_type, target_value in scan_targets:
+            result = signature_db.scan_detailed(target_value)
+
+            if result["threat_detected"]:
+                client_ip = extract_client_ip(request)
+                highest_match = result["matches"][0]
+
+                logger.warning(
+                    f"Attack signature detected in {target_type}: "
+                    f"category={highest_match['category']}, "
+                    f"severity={highest_match['severity']}, "
+                    f"ip={client_ip}"
+                )
+
+                # Update metrics
+                metrics_module.gateway_waf_blocks_total.labels(
+                    reason=highest_match['category']
+                ).inc()
+
+                metrics_module.gateway_waf_suspicious_patterns.labels(
+                    pattern=highest_match['category'],
+                    client_ip=client_ip
+                ).inc()
+
                 return JSONResponse(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     content={
                         "error": "Bad Request",
-                        "message": "Request contains suspicious pattern",
-                        "blocked_by": "WAF"
+                        "message": f"Attack pattern detected: {highest_match['category']}",
+                        "blocked_by": "WAF",
+                        "severity": highest_match['severity']
                     }
                 )
-        
-        # 2. Check Content-Length header
+
+        return None
+
+    def _check_endpoint_rate_limit(self, request: Request) -> Optional[JSONResponse]:
+        """Check per-endpoint rate limiting"""
+        if not waf_config.enable_endpoint_rate_limiting:
+            return None
+
+        path = request.url.path
+        client_ip = extract_client_ip(request)
+
+        # Find matching endpoint limit
+        for pattern, limit in self.compiled_endpoint_limits:
+            if pattern.match(path):
+                # Get or create bucket for this IP+endpoint combo
+                bucket_key = (client_ip, limit.endpoint_pattern)
+                tokens, last_refill = self.endpoint_buckets[bucket_key]
+
+                # Initialize bucket if first request
+                if tokens == 0 and last_refill == self.endpoint_buckets.default_factory()[1]:
+                    tokens = limit.burst_size
+
+                # Refill tokens
+                now = time.time()
+                time_elapsed = now - last_refill
+                refill_rate = limit.requests_per_minute / 60.0
+                tokens_to_add = time_elapsed * refill_rate
+                tokens = min(limit.burst_size, tokens + tokens_to_add)
+
+                # Try to consume token
+                if tokens >= 1.0:
+                    self.endpoint_buckets[bucket_key] = (tokens - 1.0, now)
+                    return None  # Allow request
+                else:
+                    # Rate limited for this endpoint
+                    self.endpoint_buckets[bucket_key] = (tokens, now)
+                    logger.warning(
+                        f"Endpoint rate limit exceeded: {path} from {client_ip}"
+                    )
+
+                    metrics_module.gateway_rate_limit_blocks_total.labels(
+                        client_ip=client_ip
+                    ).inc()
+
+                    return JSONResponse(
+                        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                        content={
+                            "error": "Rate Limit Exceeded",
+                            "message": f"Too many requests to this endpoint. Limit: {limit.requests_per_minute} req/min",
+                            "endpoint": path,
+                            "retry_after": 60
+                        },
+                        headers={"Retry-After": "60"}
+                    )
+
+        return None
+
+    async def dispatch(self, request: Request, call_next):
+        """Enhanced WAF validation"""
+
+        # Skip WAF for health/metrics endpoints
+        if request.url.path in ["/health", "/metrics"]:
+            return await call_next(request)
+
+        # 1. Check User-Agent
+        ua_response = self._check_user_agent(request)
+        if ua_response:
+            return ua_response
+
+        # 2. Check request size limits
         content_length = request.headers.get("content-length")
         if content_length:
             try:
-                if int(content_length) > self.MAX_BODY_SIZE:
+                if int(content_length) > waf_config.max_request_body_size:
                     logger.warning(
                         f"Oversized request blocked: {content_length} bytes "
                         f"from IP {extract_client_ip(request)}"
                     )
+                    metrics_module.gateway_waf_blocks_total.labels(reason="oversized_request").inc()
                     return JSONResponse(
                         status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                         content={
                             "error": "Request Entity Too Large",
-                            "message": f"Request body exceeds maximum size of {self.MAX_BODY_SIZE} bytes",
+                            "message": f"Request body exceeds maximum size",
                             "blocked_by": "WAF"
                         }
                     )
             except ValueError:
                 pass
-        
-        # 3. Validate HTTP method
+
+        # 3. Check URL length
+        if len(str(request.url)) > waf_config.max_url_length:
+            logger.warning(f"Oversized URL blocked from {extract_client_ip(request)}")
+            metrics_module.gateway_waf_blocks_total.labels(reason="oversized_url").inc()
+            return JSONResponse(
+                status_code=status.HTTP_414_REQUEST_URI_TOO_LONG,
+                content={
+                    "error": "URI Too Long",
+                    "message": "URL exceeds maximum length",
+                    "blocked_by": "WAF"
+                }
+            )
+
+        # 4. Signature-based scanning (without body first)
+        sig_response = self._check_signature_scan(request)
+        if sig_response:
+            return sig_response
+
+        # 5. Per-endpoint rate limiting
+        endpoint_rate_response = self._check_endpoint_rate_limit(request)
+        if endpoint_rate_response:
+            return endpoint_rate_response
+
+        # 6. Validate HTTP method
         allowed_methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]
         if request.method not in allowed_methods:
+            metrics_module.gateway_waf_blocks_total.labels(reason="invalid_method").inc()
             return JSONResponse(
                 status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
                 content={
@@ -193,9 +426,15 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
                     "message": f"HTTP method {request.method} is not allowed"
                 }
             )
-        
-        # Request is valid, proceed
+
+        # Request passed all WAF checks
         response = await call_next(request)
+
+        # Add WAF headers (for debugging)
+        if waf_config.add_waf_headers:
+            response.headers["X-WAF-Status"] = "passed"
+            response.headers["X-WAF-Version"] = "2.5A"
+
         return response
 
 
