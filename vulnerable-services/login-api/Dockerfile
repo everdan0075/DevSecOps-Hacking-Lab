@@ -1,15 +1,21 @@
-FROM python:3.14-slim
+FROM python:3.13-slim
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including build tools
 RUN apt-get update && apt-get install -y \
     curl \
+    gcc \
+    g++ \
+    make \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
 COPY requirements.txt .
+
+# Upgrade pip and install build tools
+RUN pip install --upgrade pip setuptools wheel
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt

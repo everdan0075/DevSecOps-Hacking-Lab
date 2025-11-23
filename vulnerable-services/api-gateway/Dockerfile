@@ -1,17 +1,21 @@
 # API Gateway Dockerfile
-FROM python:3.14-slim
+FROM python:3.13-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including build tools
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     curl \
+    gcc \
+    g++ \
+    make \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app/ ./app/

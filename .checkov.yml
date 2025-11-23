@@ -1,0 +1,10 @@
+# Checkov configuration for educational hacking lab
+# These checks are intentionally skipped as they represent educational vulnerabilities
+
+skip-check:
+  - CKV_DOCKER_2
+  - CKV_DOCKER_3
+  - CKV2_DOCKER_1
+  - CKV_DOCKER_4
+  - CKV_DOCKER_7
+  - CKV_DOCKER_9

@@ -1,0 +1,6 @@
+vulnerable-services/**/config.py:SECRET_KEY
+.env
+.env.example
+**/test_*.py:SECRET_KEY
+**/conftest.py:SECRET_KEY
+monitoring/incident-bot/app/config.py:SECRET_KEY
