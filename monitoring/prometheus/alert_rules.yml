@@ -296,3 +296,158 @@ groups:
           summary: "Backend services responding slowly"
           description: "95th percentile backend response time >1.5 seconds. Investigate backend performance."
 
+  # ============================================================================
+  # Phase 2.4: Honeypot & Advanced Threat Detection Alerts
+  # ============================================================================
+  - name: devsecops-honeypot-alerts
+    interval: 15s
+    rules:
+      # Honeypot - Critical Severity (High-value targets)
+      - alert: HoneypotCriticalHit
+        expr: increase(gateway_honeypot_hits_total{severity="critical"}[5m]) > 0
+        for: 10s
+        labels:
+          severity: critical
+          service: api-gateway
+          category: honeypot
+        annotations:
+          summary: "Critical honeypot endpoint accessed"
+          description: "Attacker accessed critical honeypot (secrets, API keys, .env file). Immediate investigation required."
+          recommended_actions: "Ban IP, review logs, check for data exfiltration attempts"
+
+      # Honeypot - Reconnaissance Pattern
+      - alert: HoneypotReconnaissanceDetected
+        expr: count(increase(gateway_honeypot_hits_total[10m]) > 0) by (honeypot_type) >= 3
+        for: 1m
+        labels:
+          severity: high
+          service: api-gateway
+          category: honeypot
+        annotations:
+          summary: "Multiple honeypot types accessed (reconnaissance)"
+          description: "Attacker probing 3+ different honeypot endpoints. Active reconnaissance phase detected."
+          attack_stage: "Reconnaissance"
+          recommended_actions: "Monitor IP for further activity, prepare for exploitation attempts"
+
+      # Honeypot - Unique Attackers Spike
+      - alert: HoneypotUniqueAttackersSpike
+        expr: gateway_honeypot_unique_attackers > 5
+        for: 2m
+        labels:
+          severity: warning
+          service: api-gateway
+          category: honeypot
+        annotations:
+          summary: "Multiple unique IPs hitting honeypots"
+          description: "5+ different IPs accessing honeypot endpoints. Possible distributed attack or automated scanning."
+
+      # Honeypot - Admin Panel Attacks
+      - alert: HoneypotAdminPanelAttack
+        expr: increase(gateway_honeypot_hits_total{honeypot_type=~"admin_panel.*"}[10m]) > 3
+        for: 1m
+        labels:
+          severity: high
+          service: api-gateway
+          category: honeypot
+        annotations:
+          summary: "Admin panel honeypot targeted"
+          description: "Multiple attempts to access fake admin panel. Targeted attack on administrative interfaces."
+          attack_type: "Admin panel brute force"
+
+      # Honeypot - Database Admin Tools
+      - alert: HoneypotDatabaseToolsAttack
+        expr: increase(gateway_honeypot_hits_total{honeypot_type="phpmyadmin"}[10m]) > 2
+        for: 1m
+        labels:
+          severity: high
+          service: api-gateway
+          category: honeypot
+        annotations:
+          summary: "phpMyAdmin honeypot accessed"
+          description: "Attacker searching for phpMyAdmin. Database administration tool exploitation attempt."
+          attack_type: "Database admin panel attack"
+
+      # Honeypot - WordPress Scanning
+      - alert: HoneypotWordPressScan
+        expr: increase(gateway_honeypot_hits_total{honeypot_type="wordpress"}[10m]) > 5
+        for: 1m
+        labels:
+          severity: medium
+          service: api-gateway
+          category: honeypot
+        annotations:
+          summary: "WordPress honeypot triggered"
+          description: "Automated WordPress scanner detected. Common attack bot probing for CMS vulnerabilities."
+          attack_type: "CMS exploitation"
+
+      # Honeypot - Secret Files Access
+      - alert: HoneypotSecretFilesAccess
+        expr: increase(gateway_honeypot_hits_total{honeypot_type=~"secret_file_.*|api_.*"}[5m]) > 0
+        for: 10s
+        labels:
+          severity: critical
+          service: api-gateway
+          category: honeypot
+        annotations:
+          summary: "Attacker accessing secret files/API keys"
+          description: "Direct attempt to steal credentials via .env, API keys, or secret files. Critical threat."
+          attack_type: "Credential theft"
+          recommended_actions: "IMMEDIATE: Ban IP, alert security team, check for data breach"
+
+      # Honeypot - Git Exposure
+      - alert: HoneypotGitExposure
+        expr: increase(gateway_honeypot_hits_total{honeypot_type=~"git_.*"}[10m]) > 0
+        for: 30s
+        labels:
+          severity: high
+          service: api-gateway
+          category: honeypot
+        annotations:
+          summary: "Git repository exposure attempt"
+          description: "Attacker probing for exposed .git directory. Source code theft attempt."
+          attack_type: "Source code theft"
+          recommended_actions: "Ban IP, review repository security"
+
+      # Honeypot - Backup File Hunting
+      - alert: HoneypotBackupFileHunt
+        expr: increase(gateway_honeypot_hits_total{honeypot_type=~"backup_.*"}[10m]) > 0
+        for: 30s
+        labels:
+          severity: high
+          service: api-gateway
+          category: honeypot
+        annotations:
+          summary: "Backup file download attempt"
+          description: "Attacker searching for backup files (.sql, .zip). Data exfiltration attempt."
+          attack_type: "Data exfiltration"
+
+      # Honeypot - Sustained Attack
+      - alert: HoneypotSustainedAttack
+        expr: rate(gateway_honeypot_hits_total[10m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          service: api-gateway
+          category: honeypot
+        annotations:
+          summary: "Sustained honeypot attack pattern"
+          description: "Continuous honeypot hits over 5+ minutes. Persistent attacker or automated attack tool."
+          recommended_actions: "Enable enhanced monitoring, consider IP blocking at firewall level"
+
+      # Honeypot - Multi-stage Attack Indicator
+      - alert: HoneypotMultiStageAttack
+        expr: |
+          (count(increase(gateway_honeypot_hits_total{severity="critical"}[15m]) > 0) by (honeypot_type) >= 1)
+          and
+          (count(increase(gateway_honeypot_hits_total{severity=~"high|medium"}[15m]) > 0) by (honeypot_type) >= 2)
+        for: 1m
+        labels:
+          severity: critical
+          service: api-gateway
+          category: honeypot
+        annotations:
+          summary: "Multi-stage attack detected (honeypot correlation)"
+          description: "Attacker progressed from reconnaissance to critical target access. Advanced persistent threat indicator."
+          attack_stage: "Multi-stage (Reconnaissance → Exploitation)"
+          recommended_actions: "ESCALATE: Alert security team, enable full packet capture, review all attacker activity"
+

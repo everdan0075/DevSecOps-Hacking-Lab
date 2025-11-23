@@ -376,6 +376,90 @@ async def internal_error_handler(request: Request, exc):
     )
 
 
+# ============================================================================
+# Honeypot Endpoints - Trap endpoints to detect attackers
+# ============================================================================
+
+from . import honeypot as honeypot_module
+
+# Admin panel honeypot
+@app.get("/admin")
+@app.get("/admin/")
+@app.get("/admin/login")
+@app.post("/admin/login")
+async def honeypot_admin(request: Request):
+    """Fake admin panel - attracts admin interface attacks"""
+    return await honeypot_module.honeypot_admin_panel(request)
+
+
+# Secret files honeypots
+@app.get("/.env")
+async def honeypot_env(request: Request):
+    """Fake .env file - attracts credential theft"""
+    return await honeypot_module.honeypot_env_file(request)
+
+
+@app.get("/backup.zip")
+@app.get("/backup.sql")
+@app.get("/database.sql")
+async def honeypot_backup(request: Request):
+    """Fake backup files - attracts data exfiltration"""
+    return await honeypot_module.honeypot_backup_file(request)
+
+
+# Git exposure honeypot
+@app.get("/.git/config")
+@app.get("/.git/HEAD")
+async def honeypot_git(request: Request):
+    """Fake git config - attracts source code theft"""
+    return await honeypot_module.honeypot_git_config(request)
+
+
+# Config file honeypot
+@app.get("/config.json")
+@app.get("/config.yml")
+@app.get("/config.yaml")
+async def honeypot_config(request: Request):
+    """Fake config files - attracts config exposure attempts"""
+    return await honeypot_module.honeypot_config_json(request)
+
+
+# CMS-specific honeypots
+@app.get("/phpmyadmin")
+@app.get("/phpmyadmin/")
+@app.post("/phpmyadmin/")
+async def honeypot_pma(request: Request):
+    """Fake phpMyAdmin - attracts database panel attacks"""
+    return await honeypot_module.honeypot_phpmyadmin(request)
+
+
+@app.get("/wp-login.php")
+@app.post("/wp-login.php")
+@app.get("/wp-admin/")
+async def honeypot_wordpress(request: Request):
+    """Fake WordPress - attracts CMS-specific attacks"""
+    return await honeypot_module.honeypot_wordpress_login(request)
+
+
+# API credentials honeypot
+@app.get("/api/keys")
+@app.get("/api/secrets")
+@app.get("/api/tokens")
+async def honeypot_api_keys(request: Request):
+    """Fake API keys endpoint - attracts credential theft"""
+    return await honeypot_module.honeypot_api_keys(request)
+
+
+# Honeypot statistics endpoint (for defense dashboard)
+@app.get("/api/defense/honeypot-stats")
+async def get_honeypot_statistics():
+    """
+    Get honeypot statistics for monitoring dashboard
+    Shows attacker activity and patterns
+    """
+    return await honeypot_module.get_honeypot_stats()
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

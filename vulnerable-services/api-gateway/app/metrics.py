@@ -104,6 +104,21 @@ gateway_active_connections = Gauge(
     "Currently active connections to gateway"
 )
 
+# ============================================================================
+# Honeypot Metrics
+# ============================================================================
+
+honeypot_hits_total = Counter(
+    "gateway_honeypot_hits_total",
+    "Total honeypot endpoint hits (attacker detection)",
+    ["honeypot_type", "severity"]  # admin_panel, secret_file, etc. / low, medium, high, critical
+)
+
+honeypot_unique_attackers = Gauge(
+    "gateway_honeypot_unique_attackers",
+    "Number of unique IP addresses hitting honeypots"
+)
+
 
 def get_metrics() -> Response:
     """
