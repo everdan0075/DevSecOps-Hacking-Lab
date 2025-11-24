@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react'
-import { Activity, AlertCircle, BarChart3, Server } from 'lucide-react'
+import { Activity, AlertCircle, BarChart3, Server, Shield } from 'lucide-react'
 import { useBackendStatus } from '@/hooks/useBackendStatus'
 import { useMetrics } from '@/hooks/useMetrics'
 import { useIncidents } from '@/hooks/useIncidents'
@@ -15,6 +15,9 @@ import { IncidentTimeline } from '@/components/IncidentTimeline'
 import { IncidentStats } from '@/components/IncidentStats'
 import { GrafanaDashboardViewer } from '@/components/GrafanaDashboardViewer'
 import { ServiceHealthPanel } from '@/components/ServiceHealthPanel'
+import { IdsAlertsPanel } from '@/components/ids/IdsAlertsPanel'
+import { GatewayHealthPanel } from '@/components/gateway/GatewayHealthPanel'
+import { JwtValidationStats } from '@/components/gateway/JwtValidationStats'
 import { cn } from '@/utils/cn'
 
 type Tab = 'metrics' | 'incidents' | 'grafana' | 'health'
@@ -128,6 +131,26 @@ export function Monitoring() {
           <>
             <MetricsGrid metrics={metricsData.metrics} loading={metricsData.loading} />
             <MetricsChart />
+
+            {/* Gateway & Network Security Section */}
+            <section className="mt-8">
+              <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                <Shield className="w-6 h-6 text-cyber-primary" />
+                Gateway & Network Security
+              </h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Left: Gateway Health */}
+                <GatewayHealthPanel />
+
+                {/* Right: JWT Validation */}
+                <JwtValidationStats />
+              </div>
+
+              {/* Full-width: IDS Alerts */}
+              <div className="mt-6">
+                <IdsAlertsPanel />
+              </div>
+            </section>
           </>
         )}
 

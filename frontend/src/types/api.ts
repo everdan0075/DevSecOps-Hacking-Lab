@@ -265,6 +265,74 @@ export interface ApiError {
 }
 
 // ============================================================================
+// IDS Types (Phase 2.6B)
+// ============================================================================
+
+export interface IdsAlert {
+  timestamp: string
+  src_ip: string
+  dest_ip: string
+  signature: string
+  category: string
+  severity: 'low' | 'medium' | 'high' | 'critical'
+  protocol: 'TCP' | 'UDP' | 'ICMP' | 'HTTP'
+  src_port?: number
+  dest_port?: number
+  payload?: string
+}
+
+export interface IdsStatistics {
+  total_alerts: number
+  alerts_by_severity: Record<string, number>
+  alerts_by_category: Record<string, number>
+  alerts_by_protocol: Record<string, number>
+  top_source_ips: Array<{ ip: string; count: number }>
+  top_signatures: Array<{ signature: string; count: number }>
+  time_window_hours: number
+  timestamp: string
+}
+
+// ============================================================================
+// Gateway Health Types (Phase 2.6B)
+// ============================================================================
+
+export interface GatewayHealth {
+  status: 'healthy' | 'degraded' | 'down'
+  uptime_seconds: number
+  total_requests: number
+  error_rate: number // 0.0-1.0
+  avg_response_time_ms: number
+  connection_pool: {
+    active: number
+    idle: number
+    max: number
+    utilization: number // 0.0-1.0
+  }
+  circuit_breaker: {
+    state: 'closed' | 'open' | 'half_open'
+    failure_count: number
+    last_failure_time?: string
+  }
+  timestamp: string
+}
+
+export interface JwtValidationStats {
+  total_validations: number
+  successful_validations: number
+  failed_validations: number
+  success_rate: number // 0.0-1.0
+  failure_reasons: {
+    expired: number
+    invalid_signature: number
+    malformed: number
+    revoked: number
+    other: number
+  }
+  avg_validation_time_ms: number
+  timestamp: string
+}
+
+// ============================================================================
 // Common Response Wrappers
 // ============================================================================
 
