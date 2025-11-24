@@ -691,6 +691,282 @@ async def get_defense_metrics() -> JSONResponse:
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ============================================================================
+# Phase 2.5C: Enhanced SIEM-like Correlation & Threat Scoring
+# ============================================================================
+
+@app.get("/api/siem/threat-scores")
+async def get_threat_scores(
+    min_score: float = 0.0,
+    time_window_minutes: int = 60,
+    limit: int = 50
+) -> JSONResponse:
+    """
+    Get threat scores for all active IPs
+
+    Query params:
+    - min_score: Minimum threat score (0-100)
+    - time_window_minutes: Time window for scoring
+    - limit: Maximum results to return
+    """
+    try:
+        from app.threat_scoring import ThreatScoringEngine
+
+        scoring_engine = ThreatScoringEngine()
+        threat_scores = []
+
+        # Score each IP
+        for ip, events in correlation_engine.ip_activity.items():
+            if not events:
+                continue
+
+            score = scoring_engine.score_ip_activity(ip, events, time_window_minutes)
+
+            if score.score >= min_score:
+                threat_scores.append({
+                    "ip_address": ip,
+                    "threat_score": round(score.score, 2),
+                    "threat_level": score.level,
+                    "confidence": round(score.confidence, 2),
+                    "factors": {k: round(v, 2) for k, v in score.factors.items()},
+                    "recommendation": score.recommendation,
+                    "event_count": len(events),
+                    "attack_types": list(set(e.attack_type for e in events))
+                })
+
+        # Sort by threat score (highest first)
+        threat_scores.sort(key=lambda x: x["threat_score"], reverse=True)
+
+        return JSONResponse({
+            "count": len(threat_scores[:limit]),
+            "time_window_minutes": time_window_minutes,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "threat_scores": threat_scores[:limit]
+        })
+
+    except Exception as e:
+        logger.error(f"Error calculating threat scores: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/siem/pattern-scores")
+async def get_pattern_scores(min_score: float = 0.0) -> JSONResponse:
+    """
+    Get threat scores for all detected patterns
+
+    Query params:
+    - min_score: Minimum threat score (0-100)
+    """
+    try:
+        from app.threat_scoring import ThreatScoringEngine
+
+        scoring_engine = ThreatScoringEngine()
+        pattern_scores = []
+
+        # Get all patterns
+        patterns = correlation_engine.get_patterns()
+
+        for pattern in patterns:
+            score = scoring_engine.score_pattern(pattern)
+
+            if score.score >= min_score:
+                pattern_scores.append({
+                    "pattern_id": pattern.pattern_id,
+                    "pattern_type": pattern.pattern_type,
+                    "threat_score": round(score.score, 2),
+                    "threat_level": score.level,
+                    "confidence": round(score.confidence, 2),
+                    "factors": {k: round(v, 2) for k, v in score.factors.items()},
+                    "recommendation": score.recommendation,
+                    "attacker_ips": list(pattern.attacker_ips),
+                    "event_count": len(pattern.events),
+                    "first_seen": pattern.first_seen.isoformat(),
+                    "last_seen": pattern.last_seen.isoformat()
+                })
+
+        # Sort by threat score (highest first)
+        pattern_scores.sort(key=lambda x: x["threat_score"], reverse=True)
+
+        return JSONResponse({
+            "count": len(pattern_scores),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "pattern_scores": pattern_scores
+        })
+
+    except Exception as e:
+        logger.error(f"Error calculating pattern scores: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/siem/risk-assessment")
+async def get_risk_assessment(time_window_hours: int = 24) -> JSONResponse:
+    """
+    Get overall risk assessment for the environment
+
+    Query params:
+    - time_window_hours: Time window for risk calculation (default 24h)
+    """
+    try:
+        from app.threat_scoring import ThreatScoringEngine
+
+        scoring_engine = ThreatScoringEngine()
+
+        # Calculate metrics for risk assessment
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=time_window_hours)
+        recent_events = [e for e in correlation_engine.events if e.timestamp >= cutoff_time]
+
+        total_events = len(recent_events)
+        patterns = correlation_engine.get_patterns()
+        total_patterns = len(patterns)
+
+        # Count high severity events
+        high_severity_events = len([
+            e for e in recent_events
+            if e.severity in ["high", "critical"]
+        ])
+
+        # Count critical IPs (threat score >= 75)
+        critical_ips = 0
+        for ip, events in correlation_engine.ip_activity.items():
+            score = scoring_engine.score_ip_activity(ip, events, time_window_hours * 60)
+            if score.score >= 75:
+                critical_ips += 1
+
+        # Calculate risk assessment
+        risk_assessment = scoring_engine.calculate_risk_assessment(
+            total_events=total_events,
+            total_patterns=total_patterns,
+            critical_ips=critical_ips,
+            high_severity_events=high_severity_events,
+            time_window_hours=time_window_hours
+        )
+
+        # Add timestamp
+        risk_assessment["timestamp"] = datetime.now(timezone.utc).isoformat()
+
+        return JSONResponse(risk_assessment)
+
+    except Exception as e:
+        logger.error(f"Error calculating risk assessment: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/siem/dashboard")
+async def get_siem_dashboard() -> JSONResponse:
+    """
+    Get comprehensive SIEM dashboard data
+
+    Includes:
+    - Overall risk assessment
+    - Top threat IPs
+    - Recent high-risk patterns
+    - Attack timeline
+    - Defense effectiveness metrics
+    """
+    try:
+        from app.threat_scoring import ThreatScoringEngine
+
+        scoring_engine = ThreatScoringEngine()
+
+        # Get risk assessment (last 24h)
+        cutoff_24h = datetime.now(timezone.utc) - timedelta(hours=24)
+        recent_events = [e for e in correlation_engine.events if e.timestamp >= cutoff_24h]
+
+        total_events = len(recent_events)
+        patterns = correlation_engine.get_patterns()
+        high_severity_events = len([e for e in recent_events if e.severity in ["high", "critical"]])
+
+        # Count critical IPs
+        critical_ips = 0
+        top_threats = []
+        for ip, events in correlation_engine.ip_activity.items():
+            score = scoring_engine.score_ip_activity(ip, events, 24 * 60)
+            if score.score >= 75:
+                critical_ips += 1
+            if score.score >= 25:  # Medium or higher
+                top_threats.append({
+                    "ip": ip,
+                    "score": round(score.score, 2),
+                    "level": score.level,
+                    "event_count": len(events)
+                })
+
+        # Sort top threats
+        top_threats.sort(key=lambda x: x["score"], reverse=True)
+
+        # Risk assessment
+        risk = scoring_engine.calculate_risk_assessment(
+            total_events=total_events,
+            total_patterns=len(patterns),
+            critical_ips=critical_ips,
+            high_severity_events=high_severity_events,
+            time_window_hours=24
+        )
+
+        # Top attack types
+        attack_type_counts = {}
+        for event in recent_events:
+            attack_type_counts[event.attack_type] = attack_type_counts.get(event.attack_type, 0) + 1
+
+        top_attack_types = sorted(
+            [{"type": k, "count": v} for k, v in attack_type_counts.items()],
+            key=lambda x: x["count"],
+            reverse=True
+        )[:10]
+
+        # Pattern summary
+        pattern_summary = {
+            "total": len(patterns),
+            "by_type": {},
+            "by_severity": {"low": 0, "medium": 0, "high": 0, "critical": 0}
+        }
+
+        for pattern in patterns:
+            pattern_summary["by_type"][pattern.pattern_type] = \
+                pattern_summary["by_type"].get(pattern.pattern_type, 0) + 1
+            pattern_summary["by_severity"][pattern.severity] += 1
+
+        # Attack timeline (last 24 hours, grouped by hour)
+        timeline = {}
+        for event in recent_events:
+            hour_key = event.timestamp.strftime("%Y-%m-%d %H:00")
+            if hour_key not in timeline:
+                timeline[hour_key] = {"total": 0, "critical": 0, "high": 0}
+            timeline[hour_key]["total"] += 1
+            if event.severity == "critical":
+                timeline[hour_key]["critical"] += 1
+            elif event.severity == "high":
+                timeline[hour_key]["high"] += 1
+
+        # Defense effectiveness
+        incident_stats = executor.get_execution_stats() if executor else {}
+
+        return JSONResponse({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "risk_assessment": risk,
+            "top_threats": top_threats[:10],
+            "attack_summary": {
+                "total_events_24h": total_events,
+                "high_severity_events": high_severity_events,
+                "unique_attackers": len(correlation_engine.ip_activity),
+                "critical_ips": critical_ips,
+                "patterns_detected": len(patterns)
+            },
+            "top_attack_types": top_attack_types,
+            "pattern_summary": pattern_summary,
+            "attack_timeline": timeline,
+            "defense_effectiveness": {
+                "automated_responses": incident_stats.get("total_executions", 0),
+                "response_success_rate": incident_stats.get("success_rate", 0.0),
+                "avg_response_time": incident_stats.get("avg_duration", 0.0)
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error generating SIEM dashboard: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     import uvicorn
 
