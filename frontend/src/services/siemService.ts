@@ -1,4 +1,4 @@
-import apiClient from './apiClient';
+import { apiClient } from './apiClient';
 
 // ============================================================================
 // SIEM Service - Phase 2.5C Integration
@@ -111,14 +111,14 @@ class SiemService {
     timeWindowMinutes: number = 60,
     limit: number = 50
   ): Promise<{ threat_scores: ThreatScore[]; count: number; timestamp: string }> {
-    const response = await apiClient.get(`${this.baseUrl}/threat-scores`, {
+    const response = await apiClient.get<{ threat_scores: ThreatScore[]; count: number; timestamp: string }>(`${this.baseUrl}/threat-scores`, {
       params: {
         min_score: minScore,
         time_window_minutes: timeWindowMinutes,
         limit,
       },
     });
-    return response.data;
+    return response;
   }
 
   /**
@@ -128,33 +128,33 @@ class SiemService {
     minScore: number = 0,
     minConfidence: number = 0.5
   ): Promise<{ pattern_scores: PatternScore[]; count: number; timestamp: string }> {
-    const response = await apiClient.get(`${this.baseUrl}/pattern-scores`, {
+    const response = await apiClient.get<{ pattern_scores: PatternScore[]; count: number; timestamp: string }>(`${this.baseUrl}/pattern-scores`, {
       params: {
         min_score: minScore,
         min_confidence: minConfidence,
       },
     });
-    return response.data;
+    return response;
   }
 
   /**
    * Get overall risk assessment for the environment
    */
   async getRiskAssessment(timeWindowHours: number = 24): Promise<RiskAssessment> {
-    const response = await apiClient.get(`${this.baseUrl}/risk-assessment`, {
+    const response = await apiClient.get<RiskAssessment>(`${this.baseUrl}/risk-assessment`, {
       params: {
         time_window_hours: timeWindowHours,
       },
     });
-    return response.data;
+    return response;
   }
 
   /**
    * Get comprehensive SIEM dashboard with all security metrics
    */
   async getSiemDashboard(): Promise<SiemDashboard> {
-    const response = await apiClient.get(`${this.baseUrl}/dashboard`);
-    return response.data;
+    const response = await apiClient.get<SiemDashboard>(`${this.baseUrl}/dashboard`);
+    return response;
   }
 
   /**

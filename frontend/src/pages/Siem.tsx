@@ -6,7 +6,6 @@
  */
 
 import { Shield, Activity } from 'lucide-react'
-import { Layout } from '@/components/Layout'
 import { RiskAssessmentGauge } from '@/components/siem/RiskAssessmentGauge'
 import { ThreatScoreGrid } from '@/components/siem/ThreatScoreGrid'
 import { DefenseEffectivenessDashboard } from '@/components/siem/DefenseEffectivenessDashboard'

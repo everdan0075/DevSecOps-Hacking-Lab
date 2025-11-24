@@ -1,4 +1,4 @@
-import apiClient from './apiClient';
+import { apiClient } from './apiClient';
 
 // ============================================================================
 // Correlation Service - Attack Pattern Analysis
@@ -107,22 +107,22 @@ class CorrelationService {
     severityFilter?: string;
     patternType?: string;
   }): Promise<{ patterns: AttackPattern[]; count: number; timestamp: string }> {
-    const response = await apiClient.get(`${this.baseUrl}/attack-patterns`, {
+    const response = await apiClient.get<{ patterns: AttackPattern[]; count: number; timestamp: string }>(`${this.baseUrl}/attack-patterns`, {
       params: filters,
     });
-    return response.data;
+    return response;
   }
 
   /**
    * Get real-time attack feed (last N minutes)
    */
   async getRealTimeAttackFeed(lastMinutes: number = 60): Promise<AttackFeed> {
-    const response = await apiClient.get(`${this.baseUrl}/attack-feed/realtime`, {
+    const response = await apiClient.get<AttackFeed>(`${this.baseUrl}/attack-feed/realtime`, {
       params: {
         last_minutes: lastMinutes,
       },
     });
-    return response.data;
+    return response;
   }
 
   /**
@@ -133,28 +133,28 @@ class CorrelationService {
     patterns_matched: string[];
     confidence: number;
   }> {
-    const response = await apiClient.post(`${this.baseUrl}/correlate`, alert);
-    return response.data;
+    const response = await apiClient.post<{ correlated: boolean; patterns_matched: string[]; confidence: number }>(`${this.baseUrl}/correlate`, alert);
+    return response;
   }
 
   /**
    * Get correlation engine statistics
    */
   async getCorrelationStatistics(): Promise<CorrelationStatistics> {
-    const response = await apiClient.get(`${this.baseUrl}/correlation/statistics`);
-    return response.data;
+    const response = await apiClient.get<CorrelationStatistics>(`${this.baseUrl}/correlation/statistics`);
+    return response;
   }
 
   /**
    * Get defense effectiveness metrics
    */
   async getDefenseMetrics(timeWindowHours: number = 24): Promise<DefenseMetrics> {
-    const response = await apiClient.get(`${this.baseUrl}/defense/metrics`, {
+    const response = await apiClient.get<DefenseMetrics>(`${this.baseUrl}/defense/metrics`, {
       params: {
         time_window_hours: timeWindowHours,
       },
     });
-    return response.data;
+    return response;
   }
 
   /**

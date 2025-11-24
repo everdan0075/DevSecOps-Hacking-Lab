@@ -1,4 +1,4 @@
-import apiClient from './apiClient';
+import { apiClient } from './apiClient';
 
 // ============================================================================
 // Honeypot Service - Attacker Detection & Profiling
@@ -303,13 +303,13 @@ class HoneypotService {
     top_paths: Array<{ path: string; count: number }>;
   }> {
     try {
-      const response = await apiClient.get('http://localhost:9090/api/v1/query', {
+      const response = await apiClient.get<any>('http://localhost:9090/api/v1/query', {
         params: {
           query: 'gateway_honeypot_hits_total',
         },
       });
 
-      const data = response.data;
+      const data = response;
       // Process Prometheus response
       return {
         total_hits: data?.data?.result?.length || 0,
