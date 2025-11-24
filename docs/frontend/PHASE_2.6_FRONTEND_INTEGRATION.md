@@ -1,20 +1,23 @@
 # Phase 2.6: Frontend Integration - SIEM Dashboard & Honeypot Attacks
 
-**Status**: ✅ COMPLETE
+**Status**: ✅ COMPLETE (Extended by Phase 2.6B)
 **Date**: 2025-11-24
 **Category**: Frontend Development
 **Dependencies**: Phase 2.5A (Enhanced WAF), Phase 2.5B (IDS Integration), Phase 2.5C (SIEM Correlation)
+**Follow-up**: Phase 2.6B (WAF Analytics, IDS UI, Incident Management)
 
 ## Overview
 
 Phase 2.6 brings the backend security enhancements from Phases 2.5A-C to life with comprehensive frontend integration. This phase adds a professional SIEM Dashboard, 8 new honeypot attack scenarios, and completes the frontend catch-up with all backend capabilities.
+
+**Phase 2.6B Extension**: After audit, Phase 2.6B was created to close remaining gaps (WAF signatures, IDS alerts, incident management). See [PHASE_2.6B_WAF_IDS_INCIDENTS.md](PHASE_2.6B_WAF_IDS_INCIDENTS.md) for details.
 
 ### Key Achievements
 
 1. **SIEM Dashboard Page** - Real-time security intelligence and threat scoring visualization
 2. **Honeypot Attack Scenarios** - 8 new reconnaissance attacks demonstrating attacker profiling
 3. **Service Layer Expansion** - 3 new TypeScript services for backend API integration
-4. **Complete Feature Parity** - Frontend now covers 95%+ of backend capabilities
+4. **Initial Coverage** - Frontend covers 75% of backend capabilities (extended to 95%+ in Phase 2.6B)
 
 ## What Was Built
 
