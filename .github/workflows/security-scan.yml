@@ -32,7 +32,7 @@ jobs:
 
       - name: Upload GitLeaks results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: gitleaks-results
           path: results.sarif
@@ -73,7 +73,7 @@ jobs:
 
       - name: Upload Trivy results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: trivy-${{ matrix.image }}-results
           path: trivy-${{ matrix.image }}.sarif
@@ -164,7 +164,7 @@ jobs:
 
       - name: Upload Semgrep results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: semgrep-results
           path: semgrep.sarif
@@ -183,7 +183,7 @@ jobs:
 
       - name: Upload Bandit results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: bandit-results
           path: bandit-results.sarif
@@ -209,7 +209,7 @@ jobs:
 
       - name: Upload Dependency-Check results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: dependency-check-results
           path: reports/
@@ -236,7 +236,7 @@ jobs:
 
       - name: Upload Checkov results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: checkov-results
           path: checkov-results.sarif
@@ -269,7 +269,7 @@ jobs:
 
       - name: Upload license results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: license-scan-results
           path: '**/licenses.json'
