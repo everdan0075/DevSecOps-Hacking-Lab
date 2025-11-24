@@ -102,7 +102,7 @@ jobs:
       uses: docker/setup-buildx-action@v3
     
     - name: Build login-api image
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: ./vulnerable-services/login-api
         file: ./vulnerable-services/login-api/Dockerfile
