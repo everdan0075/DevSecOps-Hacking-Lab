@@ -15,6 +15,7 @@ import { LoadingSkeleton } from './components/LoadingSkeleton'
 const Home = lazy(() => import('./pages/Home').then(m => ({ default: m.Home })))
 const Attacks = lazy(() => import('./pages/Attacks').then(m => ({ default: m.Attacks })))
 const Monitoring = lazy(() => import('./pages/Monitoring').then(m => ({ default: m.Monitoring })))
+const Siem = lazy(() => import('./pages/Siem').then(m => ({ default: m.Siem })))
 const Docs = lazy(() => import('./pages/Docs').then(m => ({ default: m.Docs })))
 const Architecture = lazy(() => import('./pages/Architecture').then(m => ({ default: m.Architecture })))
 
@@ -38,6 +39,11 @@ function AnimatedRoutes() {
           <Route path="monitoring" element={
             <Suspense fallback={<LoadingSkeleton variant="page" />}>
               <Monitoring />
+            </Suspense>
+          } />
+          <Route path="siem" element={
+            <Suspense fallback={<LoadingSkeleton variant="page" />}>
+              <Siem />
             </Suspense>
           } />
           <Route path="architecture" element={

@@ -110,12 +110,14 @@ export function Attacks() {
       {/* OWASP Reference */}
       <div className="bg-cyber-surface border border-cyber-border rounded-lg p-6">
         <h3 className="text-lg font-semibold text-white mb-3">OWASP Top 10 Coverage</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
           <div>
             <div className="font-mono text-cyber-primary mb-1">A01:2021 - Broken Access Control</div>
             <div className="text-gray-400 text-xs ml-4">
               • IDOR Exploitation
               <br />• Gateway Bypass
+              <br />• Secrets Enumeration
+              <br />• Directory Traversal
             </div>
           </div>
           <div>
@@ -127,11 +129,22 @@ export function Attacks() {
               <br />• MFA Bypass
               <br />• Token Replay
               <br />• Credential Stuffing
+              <br />• Database Admin Brute Force
             </div>
           </div>
           <div>
             <div className="font-mono text-cyber-primary mb-1">A04:2021 - Insecure Design</div>
             <div className="text-gray-400 text-xs ml-4">• Rate Limit Bypass</div>
+          </div>
+          <div>
+            <div className="font-mono text-cyber-primary mb-1">A05:2021 - Security Misconfiguration</div>
+            <div className="text-gray-400 text-xs ml-4">
+              • Admin Panel Reconnaissance
+              <br />• Git Exposure Scan
+              <br />• Config File Scanner
+              <br />• WordPress Attack
+              <br />• API Documentation Scan
+            </div>
           </div>
         </div>
       </div>

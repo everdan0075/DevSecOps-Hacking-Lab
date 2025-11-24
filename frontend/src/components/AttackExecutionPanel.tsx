@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react'
 import { X, Play, Loader2, Copy, Check } from 'lucide-react'
 import type { AttackScenario, AttackLog } from '@/types/api'
 import { attackService, COMMON_PASSWORDS, LEAKED_CREDENTIALS } from '@/services/attackService'
+import honeypotService from '@/services/honeypotService'
 import { AttackLogger } from './AttackLogger'
 import { AttackResults } from './AttackResults'
 import { cn } from '@/utils/cn'
@@ -210,6 +211,143 @@ export function AttackExecutionPanel({ scenario, onClose }: AttackExecutionPanel
             handleLogUpdate
           )
           break
+
+        // Honeypot Attack Scenarios
+        case 'honeypot-admin': {
+          const honeypotResult = await honeypotService.scanAdminPanels()
+          attackResult = {
+            success: honeypotResult.success,
+            summary: `Admin Panel Scan: ${honeypotResult.targets_probed} targets probed, ${honeypotResult.honeypots_triggered} honeypots triggered`,
+            dataExtracted: {
+              targets_found: honeypotResult.targets_found,
+              honeypots_triggered: honeypotResult.honeypots_triggered,
+              attack_detected: honeypotResult.attack_detected,
+              metrics: honeypotResult.metrics,
+            },
+            metricsTriggered: ['gateway_honeypot_hits_total{path="/admin"}'],
+          }
+          setLogs(honeypotResult.logs)
+          break
+        }
+
+        case 'honeypot-secrets': {
+          const honeypotResult = await honeypotService.scanSecretFiles()
+          attackResult = {
+            success: honeypotResult.success,
+            summary: `Secrets Scan: ${honeypotResult.targets_probed} targets probed, ${honeypotResult.honeypots_triggered} honeypots triggered`,
+            dataExtracted: {
+              targets_found: honeypotResult.targets_found,
+              honeypots_triggered: honeypotResult.honeypots_triggered,
+              attack_detected: honeypotResult.attack_detected,
+              metrics: honeypotResult.metrics,
+            },
+            metricsTriggered: ['gateway_honeypot_hits_total{path="/.env"}'],
+          }
+          setLogs(honeypotResult.logs)
+          break
+        }
+
+        case 'honeypot-git': {
+          const honeypotResult = await honeypotService.scanGitExposure()
+          attackResult = {
+            success: honeypotResult.success,
+            summary: `Git Exposure Scan: ${honeypotResult.targets_probed} targets probed, ${honeypotResult.honeypots_triggered} honeypots triggered`,
+            dataExtracted: {
+              targets_found: honeypotResult.targets_found,
+              honeypots_triggered: honeypotResult.honeypots_triggered,
+              attack_detected: honeypotResult.attack_detected,
+              metrics: honeypotResult.metrics,
+            },
+            metricsTriggered: ['gateway_honeypot_hits_total{path="/.git/config"}'],
+          }
+          setLogs(honeypotResult.logs)
+          break
+        }
+
+        case 'honeypot-config': {
+          const honeypotResult = await honeypotService.scanConfigFiles()
+          attackResult = {
+            success: honeypotResult.success,
+            summary: `Config File Scan: ${honeypotResult.targets_probed} targets probed, ${honeypotResult.honeypots_triggered} honeypots triggered`,
+            dataExtracted: {
+              targets_found: honeypotResult.targets_found,
+              honeypots_triggered: honeypotResult.honeypots_triggered,
+              attack_detected: honeypotResult.attack_detected,
+              metrics: honeypotResult.metrics,
+            },
+            metricsTriggered: ['gateway_honeypot_hits_total{path="/config.json"}'],
+          }
+          setLogs(honeypotResult.logs)
+          break
+        }
+
+        case 'honeypot-dbadmin': {
+          const honeypotResult = await honeypotService.scanDatabaseAdmin()
+          attackResult = {
+            success: honeypotResult.success,
+            summary: `Database Admin Scan: ${honeypotResult.targets_probed} targets probed, ${honeypotResult.honeypots_triggered} honeypots triggered`,
+            dataExtracted: {
+              targets_found: honeypotResult.targets_found,
+              honeypots_triggered: honeypotResult.honeypots_triggered,
+              attack_detected: honeypotResult.attack_detected,
+              metrics: honeypotResult.metrics,
+            },
+            metricsTriggered: ['gateway_honeypot_hits_total{path="/phpmyadmin"}'],
+          }
+          setLogs(honeypotResult.logs)
+          break
+        }
+
+        case 'honeypot-wordpress': {
+          const honeypotResult = await honeypotService.scanWordPress()
+          attackResult = {
+            success: honeypotResult.success,
+            summary: `WordPress Scan: ${honeypotResult.targets_probed} targets probed, ${honeypotResult.honeypots_triggered} honeypots triggered`,
+            dataExtracted: {
+              targets_found: honeypotResult.targets_found,
+              honeypots_triggered: honeypotResult.honeypots_triggered,
+              attack_detected: honeypotResult.attack_detected,
+              metrics: honeypotResult.metrics,
+            },
+            metricsTriggered: ['gateway_honeypot_hits_total{path="/wp-admin"}'],
+          }
+          setLogs(honeypotResult.logs)
+          break
+        }
+
+        case 'honeypot-apidocs': {
+          const honeypotResult = await honeypotService.scanApiDocs()
+          attackResult = {
+            success: honeypotResult.success,
+            summary: `API Documentation Scan: ${honeypotResult.targets_probed} targets probed, ${honeypotResult.honeypots_triggered} honeypots triggered`,
+            dataExtracted: {
+              targets_found: honeypotResult.targets_found,
+              honeypots_triggered: honeypotResult.honeypots_triggered,
+              attack_detected: honeypotResult.attack_detected,
+              metrics: honeypotResult.metrics,
+            },
+            metricsTriggered: ['gateway_honeypot_hits_total{path="/swagger.json"}'],
+          }
+          setLogs(honeypotResult.logs)
+          break
+        }
+
+        case 'honeypot-dirtraversal': {
+          const honeypotResult = await honeypotService.scanSensitivePaths()
+          attackResult = {
+            success: honeypotResult.success,
+            summary: `Directory Traversal Scan: ${honeypotResult.targets_probed} targets probed, ${honeypotResult.honeypots_triggered} honeypots triggered`,
+            dataExtracted: {
+              targets_found: honeypotResult.targets_found,
+              honeypots_triggered: honeypotResult.honeypots_triggered,
+              attack_detected: honeypotResult.attack_detected,
+              metrics: honeypotResult.metrics,
+            },
+            metricsTriggered: ['gateway_honeypot_hits_total'],
+          }
+          setLogs(honeypotResult.logs)
+          break
+        }
 
         default:
           attackResult = {
@@ -515,6 +653,28 @@ function renderParameters(scenarioId: string, props: ParameterProps) {
       return (
         <div className="text-xs text-gray-400">
           This attack requires no additional parameters. Click "Execute Attack" to begin.
+        </div>
+      )
+
+    case 'honeypot-admin':
+    case 'honeypot-secrets':
+    case 'honeypot-git':
+    case 'honeypot-config':
+    case 'honeypot-dbadmin':
+    case 'honeypot-wordpress':
+    case 'honeypot-apidocs':
+    case 'honeypot-dirtraversal':
+      return (
+        <div className="space-y-2">
+          <div className="text-xs text-gray-400">
+            This reconnaissance attack scans for common attacker targets. No parameters required.
+          </div>
+          <div className="p-3 bg-cyber-warning/10 border border-cyber-warning/30 rounded-lg">
+            <div className="text-xs font-semibold text-cyber-warning mb-1">Honeypot Detection</div>
+            <div className="text-xs text-gray-400">
+              This attack will trigger honeypots and log your activity. Perfect for testing intrusion detection systems.
+            </div>
+          </div>
         </div>
       )
 

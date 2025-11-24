@@ -194,7 +194,7 @@ export interface IncidentStatsResponse {
 export interface AttackScenario {
   id: string
   name: string
-  category: 'auth' | 'gateway-bypass' | 'idor' | 'injection'
+  category: 'auth' | 'gateway-bypass' | 'idor' | 'injection' | 'reconnaissance' | 'credential-theft' | 'source-code-theft' | 'configuration-theft' | 'database-attacks' | 'cms-attacks' | 'api-enumeration' | 'path-traversal'
   difficulty: 'easy' | 'medium' | 'hard'
   description: string
   owasp_category: string
