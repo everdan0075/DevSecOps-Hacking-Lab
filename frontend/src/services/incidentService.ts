@@ -5,7 +5,14 @@
  */
 
 import { ENDPOINTS, TIMEOUTS } from '@/utils/constants'
-import type { Incident, IncidentStatsResponse } from '@/types/api'
+import type {
+  Incident,
+  IncidentStatsResponse,
+  IncidentReport,
+  ActiveBan,
+  Runbook,
+  RunbookCatalogEntry,
+} from '@/types/api'
 
 class IncidentService {
   /**
@@ -204,6 +211,162 @@ class IncidentService {
     )
 
     return category || 'N/A'
+  }
+
+  /**
+   * Get available incident reports
+   */
+  async getIncidentReports(): Promise<{ reports: IncidentReport[]; count: number }> {
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.API_REQUEST)
+
+      const baseUrl = ENDPOINTS.INCIDENTS.LIST.replace('/incidents', '')
+      const response = await fetch(`${baseUrl}/api/incidents/reports`, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          Accept: 'application/json',
+        },
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        console.warn(`Incident reports fetch failed: ${response.status}`)
+        return { reports: [], count: 0 }
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.debug('Incident reports fetch failed:', error)
+      return { reports: [], count: 0 }
+    }
+  }
+
+  /**
+   * Download incident report
+   */
+  async downloadIncidentReport(
+    incidentId: string,
+    format: 'json' | 'markdown' = 'json'
+  ): Promise<Blob> {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.API_REQUEST)
+
+    const baseUrl = ENDPOINTS.INCIDENTS.LIST.replace('/incidents', '')
+    const response = await fetch(
+      `${baseUrl}/api/incidents/${incidentId}/report?format=${format}`,
+      {
+        method: 'GET',
+        signal: controller.signal,
+      }
+    )
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      throw new Error(`Failed to download report: ${response.status}`)
+    }
+
+    return await response.blob()
+  }
+
+  /**
+   * Get active IP bans
+   */
+  async getActiveBans(): Promise<{ bans: ActiveBan[]; count: number; timestamp: string }> {
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.API_REQUEST)
+
+      const baseUrl = ENDPOINTS.INCIDENTS.LIST.replace('/incidents', '')
+      const response = await fetch(`${baseUrl}/api/bans/active`, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          Accept: 'application/json',
+        },
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        console.warn(`Active bans fetch failed: ${response.status}`)
+        return { bans: [], count: 0, timestamp: new Date().toISOString() }
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.debug('Active bans fetch failed:', error)
+      return { bans: [], count: 0, timestamp: new Date().toISOString() }
+    }
+  }
+
+  /**
+   * Get runbook catalog
+   */
+  async getRunbookCatalog(): Promise<{ runbooks: RunbookCatalogEntry[]; count: number }> {
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.API_REQUEST)
+
+      const baseUrl = ENDPOINTS.INCIDENTS.LIST.replace('/incidents', '')
+      const response = await fetch(`${baseUrl}/api/runbooks`, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          Accept: 'application/json',
+        },
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        console.warn(`Runbook catalog fetch failed: ${response.status}`)
+        return { runbooks: [], count: 0 }
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.debug('Runbook catalog fetch failed:', error)
+      return { runbooks: [], count: 0 }
+    }
+  }
+
+  /**
+   * Get specific runbook details
+   */
+  async getRunbookDetails(runbookName: string): Promise<Runbook | null> {
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.API_REQUEST)
+
+      const baseUrl = ENDPOINTS.INCIDENTS.LIST.replace('/incidents', '')
+      const response = await fetch(`${baseUrl}/api/runbooks/${runbookName}`, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          Accept: 'application/json',
+        },
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        console.warn(`Runbook details fetch failed: ${response.status}`)
+        return null
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.debug('Runbook details fetch failed:', error)
+      return null
+    }
   }
 }
 

@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react'
-import { Activity, AlertCircle, BarChart3, Server, Shield } from 'lucide-react'
+import { Activity, AlertCircle, AlertTriangle, BarChart3, Server, Shield } from 'lucide-react'
 import { useBackendStatus } from '@/hooks/useBackendStatus'
 import { useMetrics } from '@/hooks/useMetrics'
 import { useIncidents } from '@/hooks/useIncidents'
@@ -18,6 +18,10 @@ import { ServiceHealthPanel } from '@/components/ServiceHealthPanel'
 import { IdsAlertsPanel } from '@/components/ids/IdsAlertsPanel'
 import { GatewayHealthPanel } from '@/components/gateway/GatewayHealthPanel'
 import { JwtValidationStats } from '@/components/gateway/JwtValidationStats'
+import { IncidentReportViewer } from '@/components/incidents/IncidentReportViewer'
+import { ActiveBansPanel } from '@/components/incidents/ActiveBansPanel'
+import { RunbookCatalog } from '@/components/incidents/RunbookCatalog'
+import { CorrelationStatsPanel } from '@/components/siem/CorrelationStatsPanel'
 import { cn } from '@/utils/cn'
 
 type Tab = 'metrics' | 'incidents' | 'grafana' | 'health'
@@ -149,6 +153,30 @@ export function Monitoring() {
               {/* Full-width: IDS Alerts */}
               <div className="mt-6">
                 <IdsAlertsPanel />
+              </div>
+            </section>
+
+            {/* Incident Management & Response Section */}
+            <section className="mt-8">
+              <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                <AlertTriangle className="w-6 h-6 text-cyber-primary" />
+                Incident Management & Response
+              </h2>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Left: Incident Reports */}
+                <IncidentReportViewer />
+
+                {/* Right: Active Bans */}
+                <ActiveBansPanel />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left: Runbook Catalog */}
+                <RunbookCatalog />
+
+                {/* Right: Correlation Stats */}
+                <CorrelationStatsPanel />
               </div>
             </section>
           </>

@@ -333,6 +333,55 @@ export interface JwtValidationStats {
 }
 
 // ============================================================================
+// Incident Management Types (Phase 2.6B Commit 3)
+// ============================================================================
+
+export interface IncidentReport {
+  incident_id: string
+  format: 'json' | 'markdown'
+  filename: string
+  size_bytes: number
+  created_at: string
+  url: string
+}
+
+export interface ActiveBan {
+  ip_address: string
+  reason: string
+  ban_type: 'temporary' | 'permanent'
+  banned_at: string
+  expires_at?: string
+  incident_id?: string
+  duration_seconds?: number
+  remaining_seconds?: number
+}
+
+export interface Runbook {
+  name: string
+  description: string
+  trigger: {
+    alertname: string
+    severity: string
+    category: string
+  }
+  priority: number
+  actions: Array<{
+    type: 'notify' | 'ban_ip' | 'report' | 'remediate' | 'escalate'
+    params: Record<string, any>
+  }>
+  estimated_duration_seconds: number
+}
+
+export interface RunbookCatalogEntry {
+  name: string
+  description: string
+  category: string
+  priority: number
+  actions_count: number
+  estimated_duration: string
+}
+
+// ============================================================================
 // Common Response Wrappers
 // ============================================================================
 
