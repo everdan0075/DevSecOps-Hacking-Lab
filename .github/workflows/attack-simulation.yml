@@ -37,7 +37,7 @@ jobs:
 
       - name: Upload logs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: infrastructure-logs
           path: docker-logs.txt
@@ -72,7 +72,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: smoke-test-results
           path: pytest-report.xml
@@ -127,7 +127,7 @@ jobs:
 
       - name: Upload attack results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: idor-attack-results
           path: attacks/idor-exploit/results/
@@ -178,7 +178,7 @@ jobs:
 
       - name: Upload attack results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: jwt-attack-results
           path: attacks/token-replay/results/
@@ -231,7 +231,7 @@ jobs:
 
       - name: Upload attack results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: rate-limit-test-results
           path: attacks/rate-limit-bypass/results/
