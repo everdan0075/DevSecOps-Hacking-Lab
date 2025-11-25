@@ -3,859 +3,502 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Docker](https://img.shields.io/badge/docker-required-blue.svg)](https://www.docker.com/)
+[![React](https://img.shields.io/badge/react-18.3-blue.svg)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/typescript-5.6-blue.svg)](https://www.typescriptlang.org/)
 
 ![Security Scan](https://github.com/everdan0075/DevSecOps-Hacking-Lab/actions/workflows/security-scan.yml/badge.svg)
 ![Attack Simulation](https://github.com/everdan0075/DevSecOps-Hacking-Lab/actions/workflows/attack-simulation.yml/badge.svg)
+![Frontend Deploy](https://github.com/everdan0075/DevSecOps-Hacking-Lab/actions/workflows/deploy-frontend.yml/badge.svg)
 
-> **Professional DevSecOps showcase demonstrating offensive and defensive security techniques in containerized microservices environments**
+> **Professional DevSecOps showcase demonstrating offensive and defensive security techniques in containerized microservices with real-time monitoring and automated incident response**
+
+**🌐 Live Demo**: [https://everdan0075.github.io/DevSecOps-Hacking-Lab](https://everdan0075.github.io/DevSecOps-Hacking-Lab)
 
 ## 🔒 Security Status
 
 <!-- SECURITY-STATUS-START -->
 **Last Scan**: 2025-11-24
-**Vulnerabilities**: 0 CRITICAL, 3 HIGH
-**Status**: PASSING
+**Vulnerabilities**: 0 CRITICAL, 3 HIGH (Intentional)
+**Status**: PASSING ✅
 <!-- SECURITY-STATUS-END -->
 
 *Security status automatically updated by CI/CD pipeline. View detailed results in [GitHub Actions](https://github.com/everdan0075/DevSecOps-Hacking-Lab/actions).*
 
 ## 📋 Overview
 
-DevSecOps Hacking Lab is an educational, ethical testing environment designed to simulate real-world attacks on microservices and demonstrate defense mechanisms. This project serves as a portfolio showcase for DevOps/DevSecOps professionals and security enthusiasts.
+DevSecOps Hacking Lab is a **production-grade educational platform** demonstrating offensive and defensive security techniques in microservices architecture. Features include:
+
+- ✅ **8 Attack Scenarios** with UI execution (SQL injection, IDOR, brute force, etc.)
+- ✅ **SIEM Dashboard** with real-time threat intelligence and risk assessment
+- ✅ **Automated Incident Response** with runbook-based playbooks
+- ✅ **WAF Analytics** exposing 28 attack signatures across 8 categories
+- ✅ **IDS Integration** with Suricata for network-layer detection
+- ✅ **Professional Frontend** (React + TypeScript) deployed on GitHub Pages
+- ✅ **Full Observability** with Prometheus, Grafana, and Alertmanager
 
 ### ⚠️ Legal Disclaimer
 
-**READ THIS FIRST**: This project is for educational purposes only. All attacks must be performed exclusively in controlled, local environments. See [DISCLAIMER.md](./DISCLAIMER.md) for full ethical usage guidelines.
+**READ THIS FIRST**: This project is for **educational purposes only**. All attacks must be performed **exclusively in controlled, local environments**. Unauthorized access to systems you don't own is illegal. See [DISCLAIMER.md](./DISCLAIMER.md) for full ethical usage guidelines.
 
-## 🎯 Current Features
+## 🎯 Key Features
 
-### Phase 2.1: Secure Authentication & MFA ✅
+### 🖥️ Frontend Dashboard (NEW - Phase 2.6B)
 
-**Vulnerable Services**:
-- **login-api**: JWT-based authentication with MFA
-  - Multi-factor authentication (TOTP)
-  - JWT access/refresh tokens
-  - Token revocation & session management
+**Live Demo**: [https://everdan0075.github.io/DevSecOps-Hacking-Lab](https://everdan0075.github.io/DevSecOps-Hacking-Lab)
 
-**Attack Scenarios**:
-- Brute-Force Attack
-- MFA Bypass Attempts
-- Token Replay
+Professional React + TypeScript UI with 7 pages:
 
-**Defenses**:
-- Rate Limiting (Token Bucket)
-- IP-based Blocking
-- Redis-backed session storage
+- **Home**: Overview, architecture diagram, tech stack
+- **Attacks**: 8 attack scenarios with real-time execution
+- **Monitoring**: Service health, incident timeline, metrics
+- **WAF Analytics**: 28 attack signatures, rate limits, User-Agent filtering
+- **SIEM**: Threat scoring, risk assessment, attack patterns, defense metrics
+- **Architecture**: Interactive service diagram with data flow visualization
+- **Docs**: Comprehensive documentation viewer
 
-### Phase 2.2: API Gateway & Microservices ✅
+**Frontend Tech Stack**:
+- React 18.3 + TypeScript 5.6
+- Vite (build tool)
+- Tailwind CSS (styling)
+- Framer Motion (animations)
+- Recharts (visualizations)
+- Lucide React (icons)
 
-**Architecture**:
-- **API Gateway**: Central entry point with security controls (port 8080)
-- **Auth Service**: JWT-based authentication (port 8000)
-- **User Service**: User management with intentional vulnerabilities (port 8002)
+### 🔐 Backend Security Platform (Phases 2.1-2.5)
 
-### Phase 2.3: Incident Response Automation 🚀 NEWEST!
+**Microservices Architecture** (Docker Compose):
 
-**Automated Security Response**:
-- **Incident Bot**: Automated incident response system (port 5002)
-- **Runbook Engine**: JSON-based playbooks for different attack scenarios
-- **Action Handlers**: IP banning, notifications, report generation
-- **Integration**: Prometheus → Alertmanager → Incident Bot → Actions
+| Service | Port | Description | Key Features |
+|---------|------|-------------|--------------|
+| **API Gateway** | 8080 | Central routing + security | JWT validation, WAF (28 signatures), rate limiting, honeypots |
+| **Auth Service** | 8000 | Authentication | JWT + MFA (TOTP), token management, Redis sessions |
+| **User Service** | 8002 | User management | CRUD + **intentional IDOR vulnerability** |
+| **Incident Bot** | 5002 | Automated response | Runbook engine, IP banning, report generation, correlation |
+| **Prometheus** | 9090 | Metrics collection | 74 alert rules, 50+ metrics |
+| **Grafana** | 3000 | Visualization | 4 pre-built dashboards |
+| **Alertmanager** | 9093 | Alert routing | Webhook integration |
+| **Redis** | 6379 | Session store | Rate limits, IP bans, MFA challenges |
 
-**Features**:
-- ✅ Automated IP banning in Redis for detected attacks
-- ✅ Instant notifications (console/Slack) for security incidents
-- ✅ Automated incident report generation (JSON/Markdown)
-- ✅ 8 prebuilt runbooks for common attack patterns
-- ✅ Grafana dashboard for incident visualization
-- ✅ Metrics tracking (incidents handled, actions executed, success rate)
+### 🎯 Attack Scenarios (Phase 2.2 + 2.6)
 
-**Incident Response Flow**:
-1. **Detection**: Prometheus detects anomaly → fires alert
-2. **Routing**: Alertmanager routes to incident-bot based on severity/category
-3. **Matching**: Bot finds appropriate runbook (playbook)
-4. **Execution**: Automated actions (IP ban, notify, report, remediate)
-5. **Documentation**: Full incident timeline and reports generated
+All scenarios executable via **Web UI** or **Python scripts**:
 
-**Supported Scenarios**:
-- 🔥 Brute Force Response (IP ban 1h + notify)
-- 🔥 MFA Bypass Attempts (IP ban 2h + analysis)
-- 🔥 Token Abuse Response (IP ban + token revocation guidance)
-- 🔥 Gateway Bypass Detection (IP ban 24h + critical alert)
-- 🔥 IDOR Exploitation (IP ban 12h + remediation steps)
-- 🔥 SQL Injection Attack (IP ban 24h + full forensics)
-- 🔥 Multiple IP Bans (Distributed attack analysis)
-- 🔥 Credential Leak Chain (Advanced: leak detection + chain prevention)
+1. **Brute Force** - Credential guessing with rate limit bypass techniques
+2. **MFA Bypass** - Multi-factor authentication exploitation
+3. **IDOR** - Insecure Direct Object Reference (access any user's profile)
+4. **Direct Access** - Gateway bypass attack (backend port exposure)
+5. **Rate Limit Bypass** - Distributed request attacks
+6. **Token Replay** - JWT token reuse exploitation
+7. **Credential Stuffing** - Bulk credential testing
+8. **Honeypot Scan** - 8 reconnaissance attacks (admin panels, secrets, git exposure, etc.)
 
-**Security Features**:
-- ✅ JWT verification middleware
-- ✅ Rate limiting (60 req/min, burst 10)
-- ✅ WAF rules (SQL injection, XSS, path traversal detection)
-- ✅ Security headers (X-Frame-Options, CSP, etc.)
-- ✅ Request size validation (max 10MB)
-- ✅ Prometheus metrics & monitoring
+### 🛡️ Defense Mechanisms (Phase 2.5A-C + 2.6B)
 
-**Intentional Vulnerabilities** (Educational):
-- 🚨 **IDOR** (Insecure Direct Object Reference) - Access any user's profile
-- 🚨 **Auth Bypass** - Settings endpoint without JWT validation
-- 🚨 **Direct Service Access** - Backend services exposed on public ports
-- 🚨 **Rate Limit Bypass** - Unlimited requests via direct access
+**WAF (Web Application Firewall)** - 28 Attack Signatures:
+- SQL Injection (8 patterns)
+- Cross-Site Scripting (7 patterns)
+- Command Injection (4 patterns)
+- Path Traversal (3 patterns)
+- XXE (XML External Entity) (2 patterns)
+- SSRF (Server-Side Request Forgery) (2 patterns)
+- LDAP Injection (1 pattern)
+- Template Injection (1 pattern)
 
-**Attack Demonstrations**:
-- `attacks/direct-access/` - Gateway bypass exploitation
-- `attacks/idor-exploit/` - Unauthorized data access
-- `attacks/rate-limit-bypass/` - Rate limiting evasion
+**Rate Limiting** - Per-Endpoint Configuration:
+- `/auth/login`: 10 req/min (burst: 3)
+- `/auth/mfa/verify`: 15 req/min (burst: 5)
+- `/auth/token/refresh`: 20 req/min (burst: 10)
+- `/api/users/profile/*`: 30 req/min (burst: 15)
+- `/api/users/settings`: 20 req/min (burst: 10)
+- `/admin*`: 5 req/min (burst: 2) - Honeypot
+- `/.env`: 1 req/min (burst: 1) - Honeypot
 
-**Certificate Infrastructure** (Ready for mTLS):
-- Self-signed CA for service-to-service authentication
-- Certificates for gateway, auth-service, user-service
-- Implementation plan documented (`infrastructure/certs/MTLS_IMPLEMENTATION_PLAN.md`)
+**User-Agent Filtering**:
+- Blocked: 20 agents (scanners: nikto, nmap, sqlmap; scrapers: scrapy; bots: semrush)
+- Whitelisted: 8 good bots (googlebot, bingbot, duckduckbot, etc.)
 
-**Monitoring & Observability**:
-- Grafana dashboards for attack visibility
-- Metrics tracking IDOR attempts, direct access, rate limit violations
-- Prometheus alert rules for security events
+**IDS Integration** (Phase 2.5B):
+- Suricata for network intrusion detection (Linux only)
+- Alert correlation with SIEM
+- Real-time alert feed in frontend
 
-## 🏗️ Architecture
+**SIEM & Threat Intelligence** (Phase 2.5C):
+- IP-based threat scoring (0-100 scale)
+- Attack pattern detection (reconnaissance, multi-stage, distributed, credential stuffing, APT)
+- Environment risk assessment (event volume, pattern complexity, severity)
+- Defense effectiveness metrics
 
+### 🤖 Automated Incident Response (Phase 2.3)
+
+**Runbook Engine** - 8 Pre-built Scenarios:
+1. Brute Force Response (IP ban 1h + notify)
+2. MFA Bypass (IP ban 2h + analysis)
+3. Token Abuse (IP ban + revocation guidance)
+4. Gateway Bypass (IP ban 24h + critical alert)
+5. IDOR Exploitation (IP ban 12h + remediation)
+6. SQL Injection (IP ban 24h + forensics)
+7. Multiple IP Bans (Distributed attack analysis)
+8. Credential Leak Chain (Advanced multi-step response)
+
+**Action Handlers**:
+- `notify` - Slack/console notifications
+- `ban_ip` - Redis-based IP banning with TTL
+- `report` - JSON/Markdown incident reports
+- `remediate` - Automated remediation steps
+- `escalate` - Critical incident escalation
+
+**Workflow**:
 ```
-DevSecOps Hacking Lab
-├── vulnerable-services/        # Intentionally vulnerable microservices
-│   ├── api-gateway/           # API Gateway with security controls (Phase 2.2)
-│   ├── login-api/             # Authentication service with JWT & MFA (Phase 2.1)
-│   └── user-service/          # User management with IDOR vulnerability (Phase 2.2)
-├── attacks/                   # Ethical attack demonstrations
-│   ├── brute-force/          # Password attacks (Phase 2.1)
-│   ├── credential-stuffing/  # Credential reuse attacks (Phase 2.1)
-│   ├── mfa-bruteforce/       # MFA bypass attempts (Phase 2.1)
-│   ├── token-replay/         # JWT token replay (Phase 2.1)
-│   ├── direct-access/        # Gateway bypass (Phase 2.2) ✨ NEW
-│   ├── idor-exploit/         # IDOR exploitation (Phase 2.2) ✨ NEW
-│   └── rate-limit-bypass/    # Rate limiting evasion (Phase 2.2) ✨ NEW
-├── monitoring/                # Observability & alerting
-│   ├── prometheus/           # Metrics collection & alert rules
-│   ├── grafana/              # Visualization dashboards
-│   ├── alertmanager/         # Alert routing
-│   ├── incident-bot/         # Automated incident response (Phase 2.3) 🚀 NEW
-│   └── tests/                # Monitoring smoke tests
-├── infrastructure/            # Infrastructure as Code
-│   ├── certs/                # mTLS certificates (Phase 2.2) ✨ NEW
-│   └── README.md             # Infrastructure documentation
-├── docs/                      # Architecture documentation
-│   ├── auth/                 # Authentication system docs
-│   ├── gateway/              # API Gateway architecture (Phase 2.2)
-│   ├── incident-response/    # Incident automation docs (Phase 2.3) 🚀 NEW
-│   └── monitoring/           # Observability documentation
-├── defenses/                  # Security hardening examples
-├── reverse-proxy/             # Traefik configuration
-└── docker-compose.yml         # Full stack orchestration
+Attack → Prometheus Alert → Alertmanager → Incident Bot → Runbook → Actions → Report
 ```
-
-### Request Flow Diagram
-
-```
-Client
-  │
-  ↓
-API Gateway (:8080)
-  │
-  ├─ Security Layer
-  │   ├─ Rate Limiting (60 req/min)
-  │   ├─ WAF (SQL injection, XSS detection)
-  │   ├─ JWT Verification
-  │   └─ Security Headers
-  │
-  ├─→ Auth Service (:8000)
-  │    └─ Login, MFA, Token Management
-  │
-  └─→ User Service (:8002)
-       └─ Profile, Settings (VULNERABLE!)
-```
-
-**See detailed architecture**: [`docs/gateway/README.md`](docs/gateway/README.md)
-
-## 🖥️ Frontend Web Interface
-
-**NEW**: Interactive React + TypeScript web UI for exploring attack scenarios, monitoring security events, and visualizing the system architecture.
-
-### Features
-
-- **Attack Playground**: Execute 7 real-world attack scenarios with live feedback and results visualization
-- **Real-time Monitoring**: Embedded Grafana dashboards showing authentication metrics, security events, and incident response
-- **Architecture Visualization**: Interactive service diagram, port mapping table, and data flow animations
-- **Documentation Browser**: Built-in markdown viewer with syntax highlighting and navigation
-- **Cyberpunk Theme**: Matrix-inspired dark UI with green glow effects and terminal aesthetics
-- **Backend Detection**: Auto-detects local Docker stack for hybrid mode (live data vs. demo mode)
-
-### Live Demo
-
-Visit the deployed frontend: **[GitHub Pages Demo](https://[your-username].github.io/DevSecOps-Hacking-Lab/)**
-
-> Note: The live demo runs in demonstration mode. For full functionality (real attacks, live metrics), run the frontend locally with the Docker backend.
-
-### Quick Start (Frontend + Backend)
-
-```bash
-# Start backend services (Terminal 1)
-docker-compose up -d
-
-# In another terminal, start frontend (Terminal 2)
-cd frontend
-npm install
-npm run dev
-
-# Open browser to http://localhost:5173
-```
-
-### Frontend Only (Development)
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-The UI will work without the backend, but attack execution and live monitoring will be unavailable.
-
-### Available Pages
-
-- **Home** (`/`) - Landing page with project overview and quick start
-- **Attacks** (`/attacks`) - Interactive execution of 7 attack scenarios
-- **Monitoring** (`/monitoring`) - Real-time metrics and Grafana dashboard embeds
-- **Architecture** (`/architecture`) - System visualization and service health checks
-- **Docs** (`/docs`) - Documentation browser with markdown rendering
-
-### Deployment
-
-Deploy to GitHub Pages:
-
-```bash
-cd frontend
-npm run deploy
-```
-
-For detailed frontend documentation, see [`frontend/README.md`](frontend/README.md).
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Docker 24.0+
-- Docker Compose 2.0+
-- Python 3.11+ (for local development)
+- Docker & Docker Compose
+- Python 3.11+ (for attack scripts)
+- Node.js 18+ (for frontend development)
 - Git
 
-### Installation
+### 1. Clone Repository
 
-1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/DevSecOps-Hacking-Lab.git
+git clone https://github.com/everdan0075/DevSecOps-Hacking-Lab.git
 cd DevSecOps-Hacking-Lab
 ```
 
-2. **Start the environment**
+### 2. Start Backend Services
+
 ```bash
 docker-compose up -d
 ```
 
-3. **Verify services are running**
+**Wait ~30 seconds** for all services to initialize.
+
+### 3. Verify Services
+
 ```bash
+# Check all services are running
 docker-compose ps
+
+# View logs
+docker-compose logs -f api-gateway
 ```
 
-Expected output:
+**Service Health Endpoints**:
+- API Gateway: http://localhost:8080/health
+- Auth Service: http://localhost:8000/health
+- User Service: http://localhost:8002/health
+- Incident Bot: http://localhost:5002/health
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000 (admin/admin)
+
+### 4. Access Frontend
+
+**Option A: Live Demo** (GitHub Pages)
 ```
-NAME                COMMAND                  SERVICE       STATUS
-login-api           "uvicorn app.main:ap…"   login-api     Up
-prometheus          "/bin/prometheus --c…"   prometheus    Up
+https://everdan0075.github.io/DevSecOps-Hacking-Lab
 ```
 
-### Testing the Environment
-
-#### Manual Login Test (Password Step)
+**Option B: Local Development**
 ```bash
-curl -X POST http://localhost:8000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}'
+cd frontend
+npm install
+npm run dev
+# Access http://localhost:5173
 ```
 
-The response includes a `challenge_id`. The one-time MFA code is logged for demo purposes:
-
+**Option C: Production Build**
 ```bash
-docker-compose logs login-api | grep mfa_code
+cd frontend
+npm run build
+npm run preview
+# Access http://localhost:4173
 ```
 
-#### Complete MFA Verification
+### 5. Run Attack Scenarios
+
+**Via Web UI** (Recommended):
+1. Open http://localhost:5173/attacks
+2. Click "Execute Attack" on any scenario
+3. View real-time logs and results
+4. Check monitoring metrics at http://localhost:5173/monitoring
+
+**Via Python Scripts**:
 ```bash
-curl -X POST http://localhost:8000/auth/mfa/verify \
-  -H "Content-Type: application/json" \
-  -d '{"challenge_id":"<value from previous step>","code":"<mfa-code>"}'
-```
-
-Response includes JWT tokens:
-```json
-{
-  "success": true,
-  "access_token": "eyJhbGci...",
-  "refresh_token": "AbCd1234...",
-  "expires_in": 300,
-  "refresh_expires_in": 3600
-}
-```
-
-#### Refresh Access Token
-```bash
-curl -X POST http://localhost:8000/auth/token/refresh \
-  -H "Content-Type: application/json" \
-  -d '{"refresh_token":"<refresh_token from previous step>"}'
-```
-
-#### Logout (Revoke Token)
-```bash
-# Revoke single session
-curl -X POST http://localhost:8000/auth/logout \
-  -H "Content-Type: application/json" \
-  -d '{"refresh_token":"<refresh_token>","all_sessions":false}'
-
-# Revoke all sessions for user
-curl -X POST http://localhost:8000/auth/logout \
-  -H "Content-Type: application/json" \
-  -d '{"refresh_token":"<refresh_token>","all_sessions":true}'
-```
-
-#### Secure Endpoint (HTTPS via reverse proxy)
-```bash
-# macOS / Linux (curl)
-curl -k https://localhost:8443/health
-
-# Windows PowerShell
-curl.exe -k https://localhost:8443/health
-```
-> The `-k` flag skips certificate verification because Traefik uses a self-signed development cert. Import the certificate into your trust store for production-like testing.
->
-> HTTP on port 8081 automatically redirects to HTTPS. Use it only for debugging (`curl -I http://localhost:8081/health`).
-
-#### Run Attack Scripts (Ethical Testing)
-
-**Phase 2.1 Attacks**:
-```bash
-# Brute-force attack
+# Brute Force Attack
 cd attacks/brute-force
 python brute_force.py --target http://localhost:8000/auth/login --username admin
-```
 
-**Phase 2.2 Attacks** ✨ NEW:
-```bash
-# IDOR exploitation
-cd attacks/idor-exploit
-pip install -r requirements.txt
-python idor_attack.py
-
-# Direct service access (gateway bypass)
-cd attacks/direct-access
-python direct_access_attack.py
-
-# Rate limit bypass
-cd attacks/rate-limit-bypass
-python rate_limit_bypass.py
-```
-
-## 🧪 Attack Scenarios
-
-### Scenario 1: Brute-Force Attack
-
-**Objective**: Demonstrate vulnerability to password guessing attacks
-
-**Usage**:
-```bash
-cd attacks/brute-force
-python brute_force.py \
-  --target http://localhost:8000/auth/login \
-  --username admin
-```
-
-**Expected Outcome**: 
-- Initial requests succeed
-- Rate limiter blocks excessive requests (429 status)
-- IP gets temporarily banned after threshold
-
-### Scenario 2: Credential Stuffing
-
-**Objective**: Test leaked credential pairs from data breaches
-
-**Usage**:
-```bash
-cd attacks/credential-stuffing
-python credential_stuffing.py \
-  --target http://localhost:8000/auth/login \
-  --credentials wordlists/leaked-credentials.txt
-```
-
-**Expected Outcome**:
-- Valid credentials identified
-- MFA required for successful logins
-- Rate limiting and IP banning trigger on sustained attacks
-
-### Scenario 3: MFA Brute-Force
-
-**Objective**: Attempt to guess 6-digit TOTP codes
-
-**Usage**:
-```bash
-cd attacks/mfa-bruteforce
-python mfa_bruteforce.py \
-  --target http://localhost:8000 \
-  --username admin \
-  --password admin123 \
-  --code-count 100
-```
-
-**Expected Outcome**:
-- Max attempts limit enforced (5 attempts)
-- Challenge expires after TTL (5 minutes)
-- Attack is impractical due to defenses
-
-### Scenario 4: Token Replay
-
-**Objective**: Test JWT security (expiration, revocation, tampering)
-
-**Usage**:
-```bash
-# Get current MFA code
-MFA_CODE=$(docker exec login-api python -c "import pyotp; print(pyotp.TOTP('DEVSECOPSTWENTYFOURHACKINGLAB', interval=30).now())")
-
-cd attacks/token-replay
-python token_replay.py \
-  --target http://localhost:8000 \
-  --username admin \
-  --password admin123 \
-  --mfa-code $MFA_CODE
-```
-
-**Expected Outcome**:
-- Expired tokens rejected
-- Revoked tokens cannot be reused
-- Token rotation prevents replay attacks
-- Tampered JWTs fail signature verification
-
-### Scenario 5: IDOR Exploitation (Phase 2.2) ✨ NEW
-
-**Vulnerability**: `/profile/{user_id}` lacks authorization checks
-
-**Objective**: Access other users' profiles including sensitive data (SSN, credit cards)
-
-**Usage**:
-```bash
-cd attacks/idor-exploit
-pip install -r requirements.txt
-python idor_attack.py
-```
-
-**Attack Flow**:
-1. Login as `admin` user
-2. Get JWT access token
-3. Enumerate user IDs (1-5)
-4. Access ALL user profiles (IDOR vulnerability)
-5. Exfiltrate SSNs, credit cards, personal data
-
-**Expected Outcome**:
-- ✅ Attack succeeds (demonstrates vulnerability)
-- 🔍 IDOR attempts tracked in metrics: `user_service_idor_attempts_total`
-- 📝 Logs show: `"🚨 IDOR EXPLOIT: User 'admin' accessed profile of 'user1'"`
-- 📊 JSON report generated with stolen data
-
-**OWASP**: A01:2021 - Broken Access Control
-
-### Scenario 6: Direct Service Access (Gateway Bypass) ✨ NEW
-
-**Vulnerability**: Backend services exposed on public ports
-
-**Objective**: Bypass API Gateway security controls (JWT, WAF, rate limiting)
-
-**Usage**:
-```bash
-cd attacks/direct-access
-pip install -r requirements.txt
-python direct_access_attack.py
-```
-
-**Attack Flow**:
-1. Discover exposed services (port scanning)
-2. Access user-service directly on port 8002
-3. Retrieve data without authentication
-4. Compare: Gateway (protected) vs Direct (unprotected)
-
-**Expected Outcome**:
-- ✅ Complete bypass of Gateway security
-- 🔓 No JWT validation, no rate limiting, no WAF
-- 🔍 Tracked in metrics: `user_service_direct_access_total`
-- 📝 Logs show: `"⚠️ Direct access detected (bypassing gateway)"`
-
-**Remediation**: Remove port exposure, implement mTLS
-
-### Scenario 7: Rate Limit Bypass ✨ NEW
-
-**Vulnerability**: Rate limiting only at Gateway level, not on backend services
-
-**Objective**: Evade rate limiting through various techniques
-
-**Usage**:
-```bash
-cd attacks/rate-limit-bypass
-pip install -r requirements.txt
-python rate_limit_bypass.py
-```
-
-**Techniques Tested**:
-1. **User-Agent rotation** (ineffective - IP-based limiting)
-2. **Direct service access** (effective - bypasses Gateway)
-3. **Distributed attack simulation** (effective - multiple IPs)
-
-**Expected Outcome**:
-- ⚠️ Gateway rate limit works (60 req/min enforced)
-- ✅ Direct access bypasses rate limit (unlimited requests)
-- 🔍 Tracked in metrics: `gateway_rate_limit_blocks_total`
-- 📊 Report shows successful bypass techniques
-
-**Attack Impact**: Enables brute force, DoS, unlimited data scraping
-
-## 🛡️ Defense Mechanisms
-
-### Rate Limiting
-- **Algorithm**: Token Bucket
-- **Default**: 5 requests per minute per IP
-- **Configuration**: `vulnerable-services/login-api/app/config.py`
-
-### IP Banning
-- **Trigger**: 10 failed login attempts within 5 minutes
-- **Duration**: 15 minutes temporary ban
-- **Storage**: In-memory (Redis in production)
-
-## 📊 Monitoring & Observability
-
-### Metrics Collection
-- **Prometheus** (http://localhost:9090) - Time-series metrics database
-- **Grafana** (http://localhost:3000) - Visualization dashboards (admin/admin)
-- **Alertmanager** (http://localhost:9093) - Alert routing & notifications
-
-### Dashboards
-
-**Phase 2.1 - Auth Security** (`auth-security.json`):
-- Login success/failure rates
-- MFA verification metrics
-- JWT token validation
-- Failed authentication attempts
-- Rate limiting effectiveness
-
-**Phase 2.2 - Attack Visibility** (`devsecops-attack-visibility.json`) ✨:
-- IDOR exploitation attempts (`user_service_idor_attempts_total`)
-- Direct service access bypasses (`user_service_direct_access_total`)
-- Gateway rate limit blocks (`gateway_rate_limit_blocks_total`)
-- WAF blocks by attack type (`gateway_waf_blocks_total`)
-- Backend service health & latency
-
-**Phase 2.2 - Service Mesh Security** (`service-mesh-security.json`) ✨ NEW:
-- Real-time service request rates (Gateway, User Service, Auth Service)
-- Security gauges: IDOR attempts, Direct access bypasses
-- JWT validation success/failure with reason breakdown
-- Gateway security controls (Rate limiting, WAF blocks)
-- Service health status (UP/DOWN indicators)
-- Performance metrics (latency histograms)
-
-### Key Metrics
-
-```promql
-# Phase 2.2 Security Metrics
-gateway_requests_total{method, path, status_code}
-gateway_jwt_validation_failures_total{reason}
-gateway_rate_limit_blocks_total
-gateway_waf_blocks_total{attack_type}
-user_service_idor_attempts_total{authenticated_user, target_user}
-user_service_direct_access_total{endpoint, source_ip}
-user_service_unauthorized_settings_access_total
-```
-
-### Alerts
-
-**Phase 2.1 - Authentication Alerts** (`devsecops-login-alerts`):
-- `LoginFailureSpike` - High rate of failed login attempts (brute-force detection)
-- `RateLimiterBlocking` - Rate limiter blocking sustained traffic
-- `MFABypassAttempts` - Failed MFA verification attempts spike
-- `RefreshTokenAbuse` - Invalid refresh token attempts (token replay)
-- `IPBanThresholdReached` - Multiple IPs banned in short period
-- `TokenRevocationSpike` - Unusual token revocation activity
-- `AuthenticationFlowStalled` - Users completing password but not MFA
-
-**Phase 2.2 - Gateway & Microservices Alerts** (`devsecops-gateway-alerts`) ✨ NEW:
-
-*Critical Security Alerts*:
-- `DirectServiceAccessDetected` - Backend services accessed directly (Gateway bypass)
-- `IDORExploitationAttempt` - Users accessing unauthorized profiles (OWASP A01:2021)
-- `UnauthorizedSettingsAccess` - Auth bypass on `/settings` endpoint
-- `WAFSQLInjectionAttempt` - SQL injection attacks detected
-
-*Warning Alerts*:
-- `GatewayRateLimitExceeded` - High rate of blocked requests (possible DoS)
-- `GatewayRateLimitBypass` - Rate limiting bypassed via direct access
-- `WAFBlockSpike` - Active attack detected (SQLi, XSS, Path Traversal)
-- `GatewayJWTValidationFailureSpike` - Token tampering or replay attempts
-- `IDOREnumerationPattern` - Sequential profile enumeration attack
-
-*Availability & Performance*:
-- `APIGatewayDown` - Gateway metrics endpoint unreachable
-- `UserServiceDown` - User Service unavailable
-- `BackendServiceError` - Backend returning errors to Gateway
-- `GatewayHighLatency` - 95th percentile >2s
-- `BackendHighLatency` - Backend 95th percentile >1.5s
-
-**Alert Infrastructure**:
-- Alert webhook receiver (http://localhost:5001)
-- Automated smoke test (`python monitoring/tests/monitoring_smoke_test.py`)
-- Full alert rules: `monitoring/prometheus/alert_rules.yml`
-
-### Documentation
-- **Phase 2.1 Implementation**: [`docs/auth/PHASE_2.1_IMPLEMENTATION.md`](docs/auth/PHASE_2.1_IMPLEMENTATION.md)
-- **Monitoring Guide**: [`docs/monitoring/README.md`](docs/monitoring/README.md)
-- **Incident Response**: [`docs/incident-response/README.md`](docs/incident-response/README.md) 🚀 NEW
-- **Secure Login API (Original Plan)**: [`docs/auth/SECURE_LOGIN_API.md`](docs/auth/SECURE_LOGIN_API.md)
-
-### Monitoring Quick Start
-
-```bash
-# Start services
-docker-compose up -d login-api prometheus grafana alertmanager alert-receiver
-
-# Check Prometheus targets
-open http://localhost:9090/targets    # Windows: start http://localhost:9090/targets
-
-# Open Grafana dashboard
-open http://localhost:3000/d/devsecops/attack-visibility
-
-# Check active alerts
-open http://localhost:9093/#/alerts
-
-# View webhook payloads
-open http://localhost:5001/alerts
-
-# Query login attempts
-curl "http://localhost:9090/api/v1/query?query=login_attempts_total"
-```
-
-### Phase 2.3: Incident Response Quick Start 🚀 NEW
-
-```bash
-# Start full environment including incident-bot
-docker-compose up -d
-
-# Verify incident-bot is running
-curl http://localhost:5002/health
-
-# Check loaded runbooks
-curl http://localhost:5002/stats | jq
-
-# Simulate security incidents (automated attack chain)
-cd monitoring/incident-bot
-python simulate_incident.py --attack all
-
-# Watch incident bot logs
-docker logs -f incident-bot
-
-# View Incident Response dashboard
-open http://localhost:3000/d/incident-response
-
-# Check automated incident reports
-docker exec incident-bot ls -la /app/reports/
-
-# Run advanced credential leak demo
-python demo_credential_leak.py
-
-# Check incident history
-curl http://localhost:5002/incidents | jq
-```
-
-**Test Individual Runbooks**:
-```bash
-# Trigger brute force (should execute: notify + IP ban + report)
-cd attacks/brute-force
-python brute_force.py --target http://localhost:8000/login
-
-# Trigger IDOR (should execute: IP ban 12h + remediation)
+# IDOR Exploitation
 cd attacks/idor-exploit
 python idor_attack.py
 
-# Trigger gateway bypass (should execute: IP ban 24h + critical alert)
-cd attacks/direct-access
-python direct_access_attack.py
+# Honeypot Reconnaissance
+cd attacks/honeypot
+python admin_panel_scan.py
 ```
 
-**Monitor Automated Response**:
-- **Incident Timeline**: http://localhost:3000/d/incident-response
-- **Alertmanager**: http://localhost:9093/#/alerts
-- **Incident Bot Metrics**: http://localhost:5002/metrics
-- **Generated Reports**: `docker exec incident-bot ls /app/reports/`
+### 6. View Monitoring Dashboards
+
+**Frontend Dashboards** (http://localhost:5173):
+- `/monitoring` - Service health, incidents, metrics
+- `/waf` - WAF analytics, signatures, rate limits
+- `/siem` - Threat intelligence, risk assessment
+
+**Grafana Dashboards** (http://localhost:3000):
+- Auth Security
+- Attack Visibility
+- Service Mesh Security
+- Incident Response
+
+**Prometheus** (http://localhost:9090):
+- Query metrics directly
+- View active alerts
+- Explore target health
+
+## 📚 Documentation
+
+**Main Documentation**:
+- [DISCLAIMER.md](./DISCLAIMER.md) - Legal & ethical usage
+- [docs/auth/](./docs/auth/) - Authentication system (Phase 2.1)
+- [docs/gateway/](./docs/gateway/) - API Gateway architecture (Phase 2.2)
+- [docs/incident-response/](./docs/incident-response/) - Incident automation (Phase 2.3)
+- [docs/frontend/](./docs/frontend/) - Frontend integration (Phase 2.6/2.6B)
+
+**Service READMEs**:
+- [vulnerable-services/login-api/README.md](./vulnerable-services/login-api/README.md)
+- [vulnerable-services/api-gateway/README.md](./vulnerable-services/api-gateway/README.md)
+- [vulnerable-services/user-service/README.md](./vulnerable-services/user-service/README.md)
+- [monitoring/incident-bot/README.md](./monitoring/incident-bot/README.md)
+
+**Attack Documentation**:
+- [attacks/brute-force/README.md](./attacks/brute-force/README.md)
+- [attacks/mfa-bruteforce/README.md](./attacks/mfa-bruteforce/README.md)
+- [attacks/idor-exploit/README.md](./attacks/idor-exploit/README.md)
+
+**In-App Documentation**:
+- Access comprehensive guides at http://localhost:5173/docs
+- 20+ documentation pages covering all features
+
+## 🧪 Testing
+
+### Smoke Tests (Fast - ~1-2 min)
+
+```bash
+# Test core functionality
+pytest tests/smoke/ -v
+
+# Test specific service
+pytest tests/smoke/test_gateway.py -v
+```
+
+### Integration Tests (E2E - ~3-5 min)
+
+```bash
+# Full end-to-end flows
+pytest tests/integration/ -v
+
+# Specific flow
+pytest tests/integration/test_auth_flow.py -v
+```
+
+### Service-Specific Tests
+
+```bash
+# Auth Service
+cd vulnerable-services/login-api
+pytest -v --cov=app
+
+# API Gateway
+cd vulnerable-services/api-gateway
+pytest -v --cov=app
+
+# User Service
+cd vulnerable-services/user-service
+pytest -v --cov=app
+```
+
+### Frontend Tests
+
+```bash
+cd frontend
+npm run build  # TypeScript compilation + production build
+npm run preview  # Test production build
+```
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Frontend (React)                      │
+│  Home │ Attacks │ Monitoring │ WAF │ SIEM │ Docs        │
+└────────────────────┬────────────────────────────────────┘
+                     │ HTTP/REST
+┌────────────────────▼────────────────────────────────────┐
+│              API Gateway (:8080)                         │
+│  JWT │ WAF │ Rate Limit │ Security Headers │ Honeypots  │
+└─────┬──────────────────────────────────────────────┬────┘
+      │                                               │
+      ├──────────┬─────────────┬───────────────┬────┘
+      │          │             │               │
+┌─────▼────┐ ┌──▼──────┐ ┌────▼──────┐ ┌─────▼────────┐
+│Auth Svc  │ │User Svc │ │ Redis     │ │ Incident Bot │
+│  :8000   │ │  :8002  │ │  :6379    │ │   :5002      │
+└──────────┘ └─────────┘ └───────────┘ └──────┬───────┘
+                                               │
+┌──────────────────────────────────────────────┼─────────┐
+│              Monitoring Stack                │         │
+│  Prometheus (:9090) ──> Alertmanager (:9093)─┘         │
+│  Grafana (:3000) <──── Prometheus                      │
+└────────────────────────────────────────────────────────┘
+```
+
+**Data Flow**:
+1. User → Frontend (React)
+2. Frontend → API Gateway (JWT token)
+3. Gateway → Validates JWT, applies WAF/rate limiting
+4. Gateway → Routes to Auth/User services
+5. Services → Store data in Redis
+6. Services → Export metrics to Prometheus
+7. Prometheus → Fires alerts to Alertmanager
+8. Alertmanager → Sends webhooks to Incident Bot
+9. Incident Bot → Executes runbooks (ban IP, notify, report)
+10. Grafana → Visualizes metrics from Prometheus
 
 ## 🔧 Configuration
 
 ### Environment Variables
 
-Create a `.env` file:
-
+**Auth Service** (vulnerable-services/login-api/.env):
 ```env
-# Login API Configuration
-LOGIN_API_PORT=8000
-LOGIN_API_DEBUG=false
-
-# Rate Limiting
-RATE_LIMIT_REQUESTS=5
-RATE_LIMIT_WINDOW=60
-
-# Security
+SECRET_KEY=dev-secret-key-change-in-production
+ACCESS_TOKEN_EXPIRE_MINUTES=5
+REFRESH_TOKEN_EXPIRE_MINUTES=60
+MFA_ENABLED=true
 ENABLE_RATE_LIMITING=true
-ENABLE_IP_BANNING=true
 BAN_THRESHOLD=10
 BAN_DURATION=900
 ```
 
-## 🧰 Development
-
-### Local Development Setup
-
-```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r vulnerable-services/login-api/requirements.txt
-
-# Run service locally
-cd vulnerable-services/login-api
-uvicorn app.main:app --reload
+**API Gateway** (vulnerable-services/api-gateway/.env):
+```env
+RATE_LIMIT_REQUESTS_PER_MINUTE=60
+RATE_LIMIT_BURST_SIZE=10
+WAF_ENABLED=true
+AUTH_SERVICE_URL=http://login-api:8000
+USER_SERVICE_URL=http://user-service:8000
 ```
 
-### Running Tests
-
-```bash
-# Run Login API tests (comprehensive suite)
-cd vulnerable-services/login-api
-
-# Linux/macOS
-./run_tests.sh
-
-# Windows PowerShell
-.\run_tests.ps1
-
-# Or run pytest directly
-pytest -v --cov=app
-
-# Run specific test file
-pytest tests/test_security.py -v
-pytest tests/test_api.py -v
-
-# Run with coverage report
-pytest --cov=app --cov-report=html
-# Open htmlcov/index.html
-
-# Run monitoring smoke test
-cd ../..
-python monitoring/tests/monitoring_smoke_test.py
+**Incident Bot** (monitoring/incident-bot/.env):
+```env
+RUNBOOK_DIR=/app/runbooks
+REDIS_HOST=redis
+REPORT_OUTPUT_DIR=/app/reports
+SLACK_WEBHOOK_URL=  # Optional
 ```
 
-## 📈 Roadmap
+### Port Reference
 
-### Phase 1: MVP (Current)
-- [x] Basic login-api service
-- [x] Brute-force attack script
-- [x] Rate limiting defense
-- [x] Docker containerization
+| Port | Service | URL |
+|------|---------|-----|
+| 5173 | Frontend (Dev) | http://localhost:5173 |
+| 8000 | Auth Service | http://localhost:8000 |
+| 8002 | User Service | http://localhost:8002 |
+| 8080 | API Gateway | http://localhost:8080 |
+| 8443 | Traefik (HTTPS) | https://localhost:8443 |
+| 9090 | Prometheus | http://localhost:9090 |
+| 3000 | Grafana | http://localhost:3000 |
+| 9093 | Alertmanager | http://localhost:9093 |
+| 5002 | Incident Bot | http://localhost:5002 |
+| 6379 | Redis | localhost:6379 |
 
-### Phase 2.1: Secure Login API 2.0 ✅ COMPLETED
-- [x] JWT access tokens with 5-minute expiry
-- [x] Refresh tokens with rotation
-- [x] Multi-Factor Authentication (TOTP)
-- [x] Redis-based session management
-- [x] Credential stuffing attack script
-- [x] MFA brute-force attack script
-- [x] Token replay attack script
-- [x] Enhanced monitoring (MFA, JWT metrics)
-- [x] New Prometheus alerts
-- [x] Auth Security dashboard
-- [x] Complete documentation
+## 🎓 Educational Use Cases
 
-### Phase 2.2: API Gateway + User Service ✅ COMPLETED
-- [x] FastAPI API Gateway with security middleware
-- [x] User microservice (CRUD + profiles)
-- [x] WAF rules on gateway (SQL injection, XSS, path traversal)
-- [x] JWT validation middleware
-- [x] Rate limiting (60 req/min, burst 10)
-- [x] Security metrics & monitoring
-- [x] Attack demos (IDOR, direct access, rate limit bypass)
-- [x] Grafana dashboards (Attack Visibility, Service Mesh Security)
-- [x] mTLS certificates generated (ready for implementation)
+### For DevSecOps Engineers
+- **Attack Simulation**: Practice defending against common attacks
+- **Monitoring Setup**: Learn Prometheus, Grafana, Alertmanager integration
+- **Incident Response**: Understand automated response workflows
+- **Security Controls**: Implement WAF, rate limiting, JWT validation
 
-### Phase 2.3: Incident Response Automation ✅ COMPLETED
-- [x] Incident Bot service with runbook engine
-- [x] 8 prebuilt runbooks for common attack patterns  
-- [x] Automated action handlers (IP ban, notify, report)
-- [x] Integration with Prometheus/Alertmanager
-- [x] Grafana dashboard for incident visualization
-- [x] Attack simulation scripts (chain attacks)
-- [x] Advanced credential leak + chain demo
-- [x] Comprehensive incident response documentation
-- [x] Smoke tests for incident automation
+### For Security Analysts
+- **Threat Intelligence**: Analyze attack patterns and threat scores
+- **SIEM Configuration**: Work with real-time security event management
+- **Forensics**: Investigate incident reports and attack chains
+- **Risk Assessment**: Calculate environment-wide risk metrics
 
-### Phase 3: Observability
-- [x] Prometheus metrics
-- [x] Grafana dashboards (2x)
-- [x] Alertmanager integration
-- [ ] ELK Stack integration
-- [ ] Security event correlation
-- [ ] Log aggregation
+### For Developers
+- **Secure Coding**: Learn common vulnerabilities (IDOR, SQL injection, auth bypass)
+- **API Security**: Implement JWT, MFA, rate limiting
+- **Observability**: Add metrics, logs, and traces to microservices
+- **Frontend Security**: Build secure React applications with proper error handling
 
-### Phase 4: Cloud Deployment
-- [ ] Terraform AWS infrastructure
-- [ ] Kubernetes manifests
-- [ ] Multi-region setup
-- [ ] Automated security scanning
+### For Students
+- **Hands-on Learning**: Real attack scenarios in safe environment
+- **Best Practices**: Industry-standard tools (Docker, Prometheus, React)
+- **Portfolio Project**: Showcase DevSecOps skills to employers
+- **Documentation**: Comprehensive guides for self-learning
 
-### Phase 5: AI/ML Integration
-- [ ] Anomaly detection
-- [ ] Predictive threat analysis
-- [ ] Automated response systems
+## 🚨 Intentional Vulnerabilities
+
+**These vulnerabilities are INTENTIONAL for educational purposes. DO NOT FIX.**
+
+1. **IDOR (user-service)**: `/profile/{user_id}` - No authorization checks, any user can access any profile
+2. **Auth Bypass (user-service)**: `/settings` endpoint lacks JWT validation
+3. **Direct Service Access**: Backend services exposed on public ports (8000, 8002) allowing gateway bypass
+4. **Rate Limit Bypass**: Rate limiting only at gateway level, not on backend services
+
+**Metrics Track Exploitation**:
+- `user_service_idor_attempts_total` - IDOR exploitation
+- `user_service_direct_access_total` - Gateway bypass
+- `user_service_unauthorized_settings_access_total` - Auth bypass
+- `gateway_rate_limit_blocks_total` - Rate limit violations
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+This project is part of a portfolio showcase, but suggestions and feedback are welcome!
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
+
+**Contribution Guidelines**:
+- Code: English (docs, comments, variable names)
+- Commits: Conventional Commits format (`feat:`, `fix:`, `docs:`, etc.)
+- No AI attribution in code/docs/commits
+- Preserve intentional vulnerabilities
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🔗 Links
-
-- **Documentation**: [Wiki](https://github.com/yourusername/DevSecOps-Hacking-Lab/wiki)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/DevSecOps-Hacking-Lab/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/DevSecOps-Hacking-Lab/discussions)
-
-## 👨‍💻 Author
-
-Created as a professional portfolio showcase for DevSecOps capabilities.
+This project is licensed under the MIT License - see [LICENSE](./LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- OWASP for security best practices
-- FastAPI community
-- Docker and container security community
+**Technologies**:
+- FastAPI (Python web framework)
+- React + TypeScript (Frontend)
+- Prometheus + Grafana (Monitoring)
+- Docker + Docker Compose (Containerization)
+- Redis (Session storage)
+- Suricata (IDS)
+
+**Inspiration**:
+- OWASP Top 10
+- MITRE ATT&CK Framework
+- Real-world DevSecOps practices
+
+## 📧 Contact
+
+**Author**: Łukasz Everdan
+**GitHub**: [@everdan0075](https://github.com/everdan0075)
+**Project Link**: [https://github.com/everdan0075/DevSecOps-Hacking-Lab](https://github.com/everdan0075/DevSecOps-Hacking-Lab)
+**Live Demo**: [https://everdan0075.github.io/DevSecOps-Hacking-Lab](https://everdan0075.github.io/DevSecOps-Hacking-Lab)
 
 ---
 
-**Remember**: This is an ethical hacking lab. All activities must be performed in controlled environments. Never attack systems you don't own or have explicit permission to test.
+**⭐ If this project helped you learn DevSecOps, please give it a star!**
 
-
-
+**🔒 Remember**: Use this knowledge responsibly and only in authorized, controlled environments.
