@@ -19,6 +19,7 @@ const WafAnalytics = lazy(() => import('./pages/WafAnalytics').then(m => ({ defa
 const Siem = lazy(() => import('./pages/Siem').then(m => ({ default: m.Siem })))
 const Docs = lazy(() => import('./pages/Docs').then(m => ({ default: m.Docs })))
 const Architecture = lazy(() => import('./pages/Architecture').then(m => ({ default: m.Architecture })))
+const BattleArena = lazy(() => import('./pages/BattleArena').then(m => ({ default: m.BattleArena })))
 
 function AnimatedRoutes() {
   const location = useLocation()
@@ -55,6 +56,11 @@ function AnimatedRoutes() {
           <Route path="architecture" element={
             <Suspense fallback={<LoadingSkeleton variant="page" />}>
               <Architecture />
+            </Suspense>
+          } />
+          <Route path="battle" element={
+            <Suspense fallback={<LoadingSkeleton variant="page" />}>
+              <BattleArena />
             </Suspense>
           } />
           <Route path="docs" element={

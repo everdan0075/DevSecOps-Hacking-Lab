@@ -6,7 +6,7 @@
 
 import { useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
-import { Shield, Target, Activity, BookOpen, Github, Server, Menu, X, Database, ShieldCheck } from 'lucide-react'
+import { Shield, Target, Activity, BookOpen, Github, Server, Menu, X, Database, ShieldCheck, Swords } from 'lucide-react'
 import { BackendStatusIndicator } from './BackendStatusIndicator'
 import { SecurityToggle } from './SecurityToggle'
 import { cn } from '@/utils/cn'
@@ -42,6 +42,7 @@ export function Layout() {
             <nav className="hidden md:flex items-center gap-6">
               <NavLink to="/" icon={Shield}>Home</NavLink>
               <NavLink to="/attacks" icon={Target}>Attacks</NavLink>
+              <NavLink to="/battle" icon={Swords}>Battle</NavLink>
               <NavLink to="/monitoring" icon={Activity}>Monitoring</NavLink>
               <NavLink to="/waf" icon={ShieldCheck}>WAF</NavLink>
               <NavLink to="/siem" icon={Database}>SIEM</NavLink>
@@ -89,6 +90,7 @@ export function Layout() {
                 <nav className="flex flex-col gap-2">
                   <MobileNavLink to="/" icon={Shield} onClick={handleNavClick}>Home</MobileNavLink>
                   <MobileNavLink to="/attacks" icon={Target} onClick={handleNavClick}>Attacks</MobileNavLink>
+                  <MobileNavLink to="/battle" icon={Swords} onClick={handleNavClick}>Battle</MobileNavLink>
                   <MobileNavLink to="/monitoring" icon={Activity} onClick={handleNavClick}>Monitoring</MobileNavLink>
                   <MobileNavLink to="/waf" icon={ShieldCheck} onClick={handleNavClick}>WAF</MobileNavLink>
                   <MobileNavLink to="/siem" icon={Database} onClick={handleNavClick}>SIEM</MobileNavLink>
