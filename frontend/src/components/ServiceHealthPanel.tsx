@@ -4,6 +4,7 @@
  * Displays health status of all backend services
  */
 
+import { useState, useEffect } from 'react'
 import { Server, CheckCircle, XCircle, ExternalLink, RefreshCw } from 'lucide-react'
 import { useBackendStatus } from '@/hooks/useBackendStatus'
 import { cn } from '@/utils/cn'
@@ -67,8 +68,17 @@ const SERVICES: ServiceInfo[] = [
 
 export function ServiceHealthPanel({ className }: ServiceHealthPanelProps) {
   const { services, latency, lastCheck, isChecking, checkStatus } = useBackendStatus()
+  const [currentTime, setCurrentTime] = useState(Date.now())
 
-  const timeSinceCheck = Math.floor((Date.now() - lastCheck) / 1000)
+  // Update current time every second for accurate "time since check" display
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now())
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const timeSinceCheck = Math.floor((currentTime - lastCheck) / 1000)
   const onlineCount = Object.values(services).filter(Boolean).length
   const totalCount = Object.keys(services).length
 

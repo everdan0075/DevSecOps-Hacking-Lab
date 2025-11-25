@@ -33,9 +33,9 @@ export function UnbanButton() {
 
       // Clear message after 3 seconds
       setTimeout(() => setMessage(null), 3000)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Unban failed:', error)
-      setMessage(error.message || 'Failed to unban')
+      setMessage(error instanceof Error ? error.message : 'Failed to unban')
       setTimeout(() => setMessage(null), 3000)
     } finally {
       setIsUnbanning(false)

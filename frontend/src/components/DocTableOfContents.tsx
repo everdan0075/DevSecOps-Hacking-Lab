@@ -4,7 +4,7 @@
  * Extracts and displays headings for quick navigation
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { List } from 'lucide-react'
 import type { DocGuide } from '@/content/docs'
 
@@ -20,19 +20,16 @@ interface TocItem {
 
 export function DocTableOfContents({ guide }: DocTableOfContentsProps) {
   const [activeId, setActiveId] = useState<string>('')
-  const [tocItems, setTocItems] = useState<TocItem[]>([])
 
-  // Extract headings from guide content
-  useEffect(() => {
-    const items: TocItem[] = guide.content
+  // Extract headings from guide content using useMemo to avoid cascading renders
+  const tocItems = useMemo<TocItem[]>(() => {
+    return guide.content
       .filter((content) => content.type === 'heading')
       .map((content) => ({
         id: slugify(content.content as string),
         title: content.content as string,
         level: (content.level || 2) as number,
       }))
-
-    setTocItems(items)
   }, [guide])
 
   // Track active section on scroll

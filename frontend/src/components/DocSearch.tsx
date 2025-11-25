@@ -76,6 +76,14 @@ export function DocSearch({ onResultSelect }: DocSearchProps) {
     return () => clearTimeout(timer)
   }, [query, fuse])
 
+  const clearSearch = useCallback(() => {
+    setQuery('')
+    setResults([])
+    setShowResults(false)
+    setSelectedIndex(0)
+    inputRef.current?.blur()
+  }, [])
+
   const handleSelectGuide = useCallback((guide: DocGuide) => {
     navigate(`/docs/${guide.slug}`)
     setQuery('')
@@ -124,15 +132,7 @@ export function DocSearch({ onResultSelect }: DocSearchProps) {
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [showResults, results, selectedIndex, handleSelectGuide])
-
-  const clearSearch = () => {
-    setQuery('')
-    setResults([])
-    setShowResults(false)
-    setSelectedIndex(0)
-    inputRef.current?.blur()
-  }
+  }, [showResults, results, selectedIndex, handleSelectGuide, clearSearch])
 
 
   return (

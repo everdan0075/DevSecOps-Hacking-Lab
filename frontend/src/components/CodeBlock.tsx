@@ -30,7 +30,7 @@ export function CodeBlock({ code, language = 'text' }: CodeBlockProps) {
     if (lang === 'bash' || lang === 'sh') {
       return code
         .replace(/(#.*$)/gm, '<span class="text-gray-500">$1</span>')
-        .replace(/^(\$|\>)/gm, '<span class="text-cyber-warning">$1</span>')
+        .replace(/^(\$|>)/gm, '<span class="text-cyber-warning">$1</span>')
         .replace(/(".*?")/g, '<span class="text-cyber-success">$1</span>')
         .replace(/('.*?')/g, '<span class="text-cyber-success">$1</span>')
     }

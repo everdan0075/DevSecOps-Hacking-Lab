@@ -4,7 +4,7 @@
  * Displays connection status to backend services with visual feedback
  */
 
-import { useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useBackendStatus } from '@/hooks/useBackendStatus'
 import { Activity, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react'
 import { cn } from '@/utils/cn'
@@ -17,6 +17,7 @@ interface BackendStatusIndicatorProps {
 
 export function BackendStatusIndicator({ variant = 'compact', className }: BackendStatusIndicatorProps) {
   const { isConnected, isChecking, checkStatus, services, latency, lastCheck } = useBackendStatus()
+  const [currentTime, setCurrentTime] = useState(Date.now())
 
   const statusIcon = isConnected ? (
     <CheckCircle className="w-4 h-4" />
@@ -27,7 +28,15 @@ export function BackendStatusIndicator({ variant = 'compact', className }: Backe
   const statusText = isConnected ? 'Connected' : 'Disconnected'
   const statusColor = isConnected ? 'text-cyber-success' : 'text-cyber-danger'
 
-  const timeSinceCheck = useMemo(() => Math.floor((Date.now() - lastCheck) / 1000), [lastCheck])
+  // Update current time every second for accurate "time since check" display
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now())
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const timeSinceCheck = Math.floor((currentTime - lastCheck) / 1000)
 
   if (variant === 'compact') {
     return (
