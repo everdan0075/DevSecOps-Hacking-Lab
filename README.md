@@ -17,9 +17,9 @@
 ## 🔒 Security Status
 
 <!-- SECURITY-STATUS-START -->
-**Last Scan**: 2025-11-24
-**Vulnerabilities**: 0 CRITICAL, 3 HIGH (Intentional)
-**Status**: PASSING ✅
+**Last Scan**: 2025-11-25
+**Vulnerabilities**: 0 CRITICAL, 3 HIGH
+**Status**: PASSING
 <!-- SECURITY-STATUS-END -->
 
 *Security status automatically updated by CI/CD pipeline. View detailed results in [GitHub Actions](https://github.com/everdan0075/DevSecOps-Hacking-Lab/actions).*
