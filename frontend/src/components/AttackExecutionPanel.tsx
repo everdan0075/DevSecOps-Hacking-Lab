@@ -73,39 +73,18 @@ export function AttackExecutionPanel({ scenario, onClose }: AttackExecutionPanel
       const isDev = import.meta.env.DEV
       const loginUrl = isDev ? '/auth/login' : 'http://localhost:8080/auth/login'
 
-      // IMPORTANT: Use WRONG password to ensure we get challenge_id
-      // (correct password might skip to MFA directly)
+      // Try with correct password - backend returns challenge_id for MFA
       const response = await fetch(loginUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'admin', password: 'WRONG_PASSWORD_TO_GET_CHALLENGE' }),
+        body: JSON.stringify({ username: 'admin', password: 'admin123' }),
       })
 
-      const data = await response.json()
-
-      // If wrong password, backend should return challenge_id for retry
-      // Let's try with correct password if first attempt didn't work
-      if (!data.challenge_id) {
-        const retryResponse = await fetch(loginUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: 'admin', password: 'admin123' }),
-        })
-        const retryData = await retryResponse.json()
-
-        if (retryData.challenge_id) {
-          setMfaChallengeId(retryData.challenge_id)
-          setLogs((prev) => [
-            ...prev,
-            {
-              timestamp: new Date().toISOString(),
-              level: 'success',
-              message: `Challenge ID obtained: ${retryData.challenge_id}`,
-            },
-          ])
-          return
-        }
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
+
+      const data = await response.json()
 
       if (data.challenge_id) {
         setMfaChallengeId(data.challenge_id)
@@ -116,9 +95,24 @@ export function AttackExecutionPanel({ scenario, onClose }: AttackExecutionPanel
             level: 'success',
             message: `Challenge ID obtained: ${data.challenge_id}`,
           },
+          {
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            message: `You can now execute the MFA brute force attack.`,
+          },
+        ])
+      } else if (data.access_token) {
+        // Already logged in, no MFA required
+        setLogs((prev) => [
+          ...prev,
+          {
+            timestamp: new Date().toISOString(),
+            level: 'warning',
+            message: `Login succeeded without MFA - this user may not have MFA enabled.`,
+          },
         ])
       } else {
-        throw new Error('Backend did not return challenge_id. Check backend logs.')
+        throw new Error('Backend did not return challenge_id or access_token. Response: ' + JSON.stringify(data))
       }
     } catch (error) {
       setLogs((prev) => [
@@ -375,11 +369,16 @@ export function AttackExecutionPanel({ scenario, onClose }: AttackExecutionPanel
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
       <div className="w-full max-w-5xl max-h-[90vh] bg-cyber-surface border border-cyber-border rounded-lg shadow-2xl overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-cyber-border bg-cyber-bg/50">
-          <div>
-            <h2 className="text-xl font-bold text-white">{scenario.name}</h2>
-            <p className="text-sm text-gray-400 mt-1">{scenario.description}</p>
+        {/* Header - Attack Name */}
+        <div className="flex items-center justify-between p-4 border-b border-cyber-border bg-gradient-to-r from-cyber-bg via-cyber-surface to-cyber-bg">
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <div className="w-1 h-8 bg-cyber-primary rounded-full"></div>
+              <div>
+                <h2 className="text-2xl font-bold text-white tracking-wide">{scenario.name}</h2>
+                <p className="text-sm text-gray-400 mt-1">{scenario.description}</p>
+              </div>
+            </div>
           </div>
           <button
             onClick={onClose}

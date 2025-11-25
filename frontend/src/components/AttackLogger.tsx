@@ -4,7 +4,7 @@
  * Terminal-style log output for attack execution
  */
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Terminal, CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react'
 import type { AttackLog } from '@/types/api'
 import { cn } from '@/utils/cn'
@@ -31,11 +31,26 @@ const LEVEL_COLORS = {
 
 export function AttackLogger({ logs, isRunning, className }: AttackLoggerProps) {
   const logEndRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [autoScroll, setAutoScroll] = useState(true)
 
-  // Auto-scroll to bottom when new logs arrive
+  // Auto-scroll to bottom when new logs arrive (only if auto-scroll is enabled)
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [logs])
+    if (autoScroll) {
+      logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [logs, autoScroll])
+
+  // Detect manual scroll up (disable auto-scroll)
+  const handleScroll = () => {
+    if (!containerRef.current) return
+
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current
+    const isAtBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 10
+
+    // Re-enable auto-scroll when user scrolls back to bottom
+    setAutoScroll(isAtBottom)
+  }
 
   return (
     <div
@@ -57,7 +72,11 @@ export function AttackLogger({ logs, isRunning, className }: AttackLoggerProps) 
       </div>
 
       {/* Log Content */}
-      <div className="h-96 overflow-y-auto p-4 space-y-2 font-mono text-xs">
+      <div
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="max-h-80 overflow-y-auto p-4 space-y-2 font-mono text-xs"
+      >
         {logs.length === 0 ? (
           <div className="text-gray-500 text-center py-8">
             No logs yet. Start an attack to see execution output.

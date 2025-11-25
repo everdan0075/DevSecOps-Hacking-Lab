@@ -29,6 +29,23 @@ export interface HoneypotAttackResult {
 
 class HoneypotService {
   private gatewayUrl = 'http://localhost:8080';
+  private securityEnabled: boolean = true;
+
+  /**
+   * Set security mode (called by SecurityContext)
+   * @param enabled - true = use gateway (security ON), false = direct access (security OFF)
+   */
+  setSecurityMode(enabled: boolean): void {
+    console.log(`[HoneypotService] Security mode changed: ${enabled ? 'ON (gateway)' : 'OFF (direct access)'}`)
+    this.securityEnabled = enabled;
+  }
+
+  /**
+   * Get current security mode
+   */
+  getSecurityMode(): boolean {
+    return this.securityEnabled;
+  }
 
   /**
    * Admin Panel Reconnaissance
@@ -37,11 +54,8 @@ class HoneypotService {
   async scanAdminPanels(): Promise<HoneypotAttackResult> {
     const targets: HoneypotTarget[] = [
       { path: '/admin', method: 'GET', description: 'Admin panel root' },
-      { path: '/admin/', method: 'GET', description: 'Admin panel with trailing slash' },
       { path: '/admin/login', method: 'GET', description: 'Admin login page' },
-      { path: '/admin/login', method: 'POST', description: 'Admin login attempt' },
       { path: '/administrator', method: 'GET', description: 'Alternative admin path' },
-      { path: '/admin-console', method: 'GET', description: 'Admin console' },
     ];
 
     return this.executeHoneypotScan('Admin Panel Reconnaissance', targets);
@@ -55,10 +69,7 @@ class HoneypotService {
     const targets: HoneypotTarget[] = [
       { path: '/.env', method: 'GET', description: 'Environment variables file' },
       { path: '/backup.zip', method: 'GET', description: 'Backup archive' },
-      { path: '/backup.sql', method: 'GET', description: 'Database backup' },
       { path: '/database.sql', method: 'GET', description: 'Database dump' },
-      { path: '/.htpasswd', method: 'GET', description: 'Apache password file' },
-      { path: '/credentials.txt', method: 'GET', description: 'Credentials file' },
     ];
 
     return this.executeHoneypotScan('Secrets Enumeration', targets);
@@ -72,8 +83,6 @@ class HoneypotService {
     const targets: HoneypotTarget[] = [
       { path: '/.git/config', method: 'GET', description: 'Git config file' },
       { path: '/.git/HEAD', method: 'GET', description: 'Git HEAD file' },
-      { path: '/.git/index', method: 'GET', description: 'Git index file' },
-      { path: '/.git/logs/HEAD', method: 'GET', description: 'Git log file' },
       { path: '/.gitignore', method: 'GET', description: 'Git ignore file' },
     ];
 
@@ -88,10 +97,7 @@ class HoneypotService {
     const targets: HoneypotTarget[] = [
       { path: '/config.json', method: 'GET', description: 'JSON config file' },
       { path: '/config.yml', method: 'GET', description: 'YAML config file' },
-      { path: '/config.yaml', method: 'GET', description: 'YAML config file (alt)' },
       { path: '/settings.json', method: 'GET', description: 'Settings file' },
-      { path: '/app.config', method: 'GET', description: 'App config file' },
-      { path: '/web.config', method: 'GET', description: 'Web config file' },
     ];
 
     return this.executeHoneypotScan('Config File Scanner', targets);
@@ -104,10 +110,7 @@ class HoneypotService {
   async scanDatabaseAdmin(): Promise<HoneypotAttackResult> {
     const targets: HoneypotTarget[] = [
       { path: '/phpmyadmin', method: 'GET', description: 'PHPMyAdmin root' },
-      { path: '/phpmyadmin/', method: 'GET', description: 'PHPMyAdmin with trailing slash' },
-      { path: '/phpmyadmin/index.php', method: 'GET', description: 'PHPMyAdmin index' },
       { path: '/pma', method: 'GET', description: 'PHPMyAdmin short path' },
-      { path: '/mysql', method: 'GET', description: 'MySQL admin' },
       { path: '/adminer', method: 'GET', description: 'Adminer tool' },
     ];
 
@@ -122,9 +125,6 @@ class HoneypotService {
     const targets: HoneypotTarget[] = [
       { path: '/wp-admin/', method: 'GET', description: 'WordPress admin panel' },
       { path: '/wp-login.php', method: 'GET', description: 'WordPress login page' },
-      { path: '/wp-admin/admin-ajax.php', method: 'GET', description: 'WordPress AJAX endpoint' },
-      { path: '/wp-content/', method: 'GET', description: 'WordPress content directory' },
-      { path: '/wp-includes/', method: 'GET', description: 'WordPress includes directory' },
       { path: '/xmlrpc.php', method: 'POST', description: 'WordPress XML-RPC' },
     ];
 
@@ -137,11 +137,8 @@ class HoneypotService {
    */
   async scanApiDocs(): Promise<HoneypotAttackResult> {
     const targets: HoneypotTarget[] = [
-      { path: '/api/v1/docs', method: 'GET', description: 'API v1 documentation' },
       { path: '/api/docs', method: 'GET', description: 'API documentation' },
       { path: '/swagger.json', method: 'GET', description: 'Swagger JSON' },
-      { path: '/swagger-ui', method: 'GET', description: 'Swagger UI' },
-      { path: '/api.json', method: 'GET', description: 'API JSON schema' },
       { path: '/openapi.json', method: 'GET', description: 'OpenAPI schema' },
     ];
 
@@ -157,9 +154,6 @@ class HoneypotService {
       { path: '/private/', method: 'GET', description: 'Private directory' },
       { path: '/internal/', method: 'GET', description: 'Internal directory' },
       { path: '/admin-backup/', method: 'GET', description: 'Admin backup directory' },
-      { path: '/uploads/', method: 'GET', description: 'Uploads directory' },
-      { path: '/files/', method: 'GET', description: 'Files directory' },
-      { path: '/temp/', method: 'GET', description: 'Temporary files directory' },
     ];
 
     return this.executeHoneypotScan('Sensitive Paths Scan', targets);
@@ -185,6 +179,12 @@ class HoneypotService {
       message: `Starting ${scanName}...`,
     });
 
+    logs.push({
+      timestamp: new Date().toISOString(),
+      level: 'info',
+      message: `Security mode: ${this.securityEnabled ? 'ON (via Gateway)' : 'OFF (Direct Access)'}`,
+    });
+
     for (const target of targets) {
       const startTime = Date.now();
 
@@ -195,7 +195,11 @@ class HoneypotService {
           message: `Probing ${target.method} ${target.path} - ${target.description}`,
         });
 
-        const response = await fetch(`${this.gatewayUrl}${target.path}`, {
+        // Use Vite proxy in development, direct URL in production
+        const isDev = import.meta.env.DEV;
+        const url = isDev ? target.path : `${this.gatewayUrl}${target.path}`;
+
+        const response = await fetch(url, {
           method: target.method,
           headers: {
             'Content-Type': 'application/json',
@@ -216,6 +220,13 @@ class HoneypotService {
             level: 'info',
             message: `  └─ Not found (404) - ${responseTime}ms`,
           });
+        } else if (statusCode === 429) {
+          // Rate limit hit
+          logs.push({
+            timestamp: new Date().toISOString(),
+            level: 'warning',
+            message: `  └─ Rate limit exceeded (429) - Gateway protection active - ${responseTime}ms`,
+          });
         } else if (statusCode === 200) {
           targets_found++;
           honeypots_triggered++;
@@ -233,8 +244,12 @@ class HoneypotService {
           });
         }
 
-        // Small delay to avoid overwhelming the server
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Delay to avoid rate limiting
+        // Honeypot endpoints have aggressive rate limiting: 5 req/min, burst 2
+        // Security ON: 13 seconds between requests (60s / 5 requests + buffer)
+        // Security OFF: 1 second (no rate limiting on direct access)
+        const delay = this.securityEnabled ? 13000 : 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
       } catch (error) {
         logs.push({
           timestamp: new Date().toISOString(),

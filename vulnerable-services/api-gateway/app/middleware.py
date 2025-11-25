@@ -255,8 +255,8 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
         # Scan headers
         if waf_config.signature_scan_headers:
             for key, value in request.headers.items():
-                # Skip common headers
-                if key.lower() not in ["host", "user-agent", "accept", "connection"]:
+                # Skip common headers (including origin/referer which contain localhost in dev)
+                if key.lower() not in ["host", "user-agent", "accept", "connection", "origin", "referer", "referrer"]:
                     scan_targets.append((f"header:{key}", value))
 
         # Scan body (if provided and enabled)

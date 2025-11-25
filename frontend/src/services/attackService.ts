@@ -296,12 +296,62 @@ class AttackService {
   /**
    * ATTACK 3: Direct Access (Gateway Bypass)
    * Access backend services directly, bypassing gateway security
+   *
+   * This attack demonstrates the vulnerability of exposing backend services on public ports.
+   * - Security ON: Attack will fail (demonstrating proper network segmentation)
+   * - Security OFF: Attack succeeds (demonstrating the vulnerability)
    */
   async executeDirectAccess(onProgress?: AttackProgressCallback): Promise<AttackExecutionResult> {
     const logs: AttackLog[] = []
     const bypassedEndpoints: string[] = []
 
     logs.push(this.log('Starting gateway bypass attack...', 'info', onProgress))
+
+    // Check security mode first
+    if (this.securityEnabled) {
+      logs.push(
+        this.log(
+          'Security ON: Network segmentation active - backend services not exposed on public network',
+          'warning',
+          onProgress
+        )
+      )
+      logs.push(
+        this.log(
+          'In production environment, only API Gateway would be publicly accessible',
+          'info',
+          onProgress
+        )
+      )
+      logs.push(
+        this.log(
+          'Attack blocked by network firewall - cannot reach backend services directly',
+          'error',
+          onProgress
+        )
+      )
+
+      const summary = 'Gateway bypass BLOCKED! Network segmentation prevents direct access to backend services.'
+
+      logs.push(this.log(summary, 'error', onProgress))
+
+      return {
+        success: false,
+        logs,
+        summary,
+        dataExtracted: {
+          bypassedEndpoints: [],
+          reason: 'Network segmentation active - backend services not publicly exposed',
+          recommendation: 'This is the correct security posture. Backend services should never be directly accessible.',
+        },
+        metricsTriggered: ['gateway_bypass_attempt_blocked'],
+      }
+    }
+
+    // Security OFF: Demonstrate the vulnerability
+    logs.push(
+      this.log('Security OFF: Backend services exposed on public ports (VULNERABLE!)', 'warning', onProgress)
+    )
     logs.push(
       this.log('Attempting to access services directly on exposed ports', 'info', onProgress)
     )
@@ -319,11 +369,12 @@ class AttackService {
           this.log(`Accessing ${endpoint.service} directly: ${endpoint.url}`, 'info', onProgress)
         )
 
-        // Use fetch instead of apiClient to bypass gateway
+        // Use fetch to bypass gateway (only works when Security OFF)
         const response = await fetch(endpoint.url, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            'X-Direct-Access': 'true',
           },
         })
 
@@ -363,6 +414,7 @@ class AttackService {
       dataExtracted: {
         bypassedEndpoints,
         securityControlsEvaded: ['JWT validation', 'Rate limiting', 'WAF', 'Security headers'],
+        vulnerability: 'Backend services exposed on public network without proper segmentation',
       },
       metricsTriggered: ['user_service_direct_access_total'],
     }

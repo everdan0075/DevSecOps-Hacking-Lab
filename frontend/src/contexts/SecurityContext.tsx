@@ -6,6 +6,8 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { attackService } from '@/services/attackService'
+import { authService } from '@/services/authService'
+import honeypotService from '@/services/honeypotService'
 
 interface SecurityContextType {
   securityEnabled: boolean
@@ -21,9 +23,11 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
     setSecurityEnabled((prev) => !prev)
   }
 
-  // Sync security mode with attackService whenever it changes
+  // Sync security mode with attackService, authService, and honeypotService whenever it changes
   useEffect(() => {
     attackService.setSecurityMode(securityEnabled)
+    authService.setSecurityMode(securityEnabled)
+    honeypotService.setSecurityMode(securityEnabled)
   }, [securityEnabled])
 
   return (
