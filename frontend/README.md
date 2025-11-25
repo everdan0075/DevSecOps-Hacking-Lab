@@ -384,6 +384,14 @@ When contributing to the frontend:
 5. Test on multiple screen sizes
 6. Update this README if adding major features
 
+## Recent Updates
+
+### Phase 2.7 (November 2025)
+- **Backend Integration Complete**: All 9 missing backend endpoints implemented in incident-bot
+- **Full Coverage**: Frontend now has 95%+ backend data access
+- **New Endpoints**: Incident reports, active bans, runbooks catalog, gateway health, JWT stats, IDS alerts
+- **Production Ready**: All components tested and functional
+
 ## License
 
 MIT License - see [LICENSE](../LICENSE) file for details.
