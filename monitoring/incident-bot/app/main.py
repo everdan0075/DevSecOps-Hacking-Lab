@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, List
 
 from fastapi import FastAPI, HTTPException, Request
@@ -964,6 +965,518 @@ async def get_siem_dashboard() -> JSONResponse:
 
     except Exception as e:
         logger.error(f"Error generating SIEM dashboard: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# Phase 2.7: Incident Management & Infrastructure Monitoring Endpoints
+# ============================================================================
+
+
+@app.get("/api/incidents/reports")
+async def list_incident_reports() -> JSONResponse:
+    """
+    List all generated incident reports
+
+    Returns:
+        JSON with list of reports (filename, format, size, timestamp)
+    """
+    try:
+        report_dir = Path(settings.report_output_dir)
+        if not report_dir.exists():
+            return JSONResponse({
+                "count": 0,
+                "reports": [],
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+
+        reports = []
+        for file_path in report_dir.iterdir():
+            if file_path.is_file() and file_path.suffix in [".json", ".md"]:
+                stat = file_path.stat()
+                reports.append({
+                    "filename": file_path.name,
+                    "format": "json" if file_path.suffix == ".json" else "markdown",
+                    "size_bytes": stat.st_size,
+                    "created_at": datetime.fromtimestamp(stat.st_ctime, tz=timezone.utc).isoformat(),
+                    "modified_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat()
+                })
+
+        # Sort by created date (newest first)
+        reports.sort(key=lambda x: x["created_at"], reverse=True)
+
+        return JSONResponse({
+            "count": len(reports),
+            "reports": reports,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+
+    except Exception as e:
+        logger.error(f"Error listing incident reports: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/incidents/{filename}/report")
+async def download_incident_report(filename: str) -> PlainTextResponse:
+    """
+    Download specific incident report
+
+    Args:
+        filename: Report filename
+
+    Returns:
+        File content with appropriate media type
+    """
+    try:
+        report_dir = Path(settings.report_output_dir)
+        file_path = report_dir / filename
+
+        # Security check - prevent directory traversal
+        if not file_path.resolve().is_relative_to(report_dir.resolve()):
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        if not file_path.exists() or not file_path.is_file():
+            raise HTTPException(status_code=404, detail="Report not found")
+
+        # Read file content
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Determine media type
+        media_type = "application/json" if file_path.suffix == ".json" else "text/markdown"
+
+        return PlainTextResponse(
+            content=content,
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error downloading report {filename}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/bans/active")
+async def list_active_bans() -> JSONResponse:
+    """
+    List all active IP bans from Redis
+
+    Returns:
+        JSON with list of banned IPs and ban details
+    """
+    try:
+        import redis.asyncio as redis
+
+        r = redis.Redis(
+            host=settings.redis_host,
+            port=settings.redis_port,
+            db=settings.redis_db,
+            decode_responses=True,
+        )
+
+        try:
+            # Get all ban keys
+            ban_keys = await r.keys("ip_ban:*")
+
+            bans = []
+            for ban_key in ban_keys:
+                # Extract IP from key
+                ip_address = ban_key.replace("ip_ban:", "")
+
+                # Get ban data
+                ban_data = await r.hgetall(ban_key)
+
+                # Get TTL
+                ttl = await r.ttl(ban_key)
+
+                if ttl > 0:  # Only include active bans
+                    bans.append({
+                        "ip_address": ip_address,
+                        "reason": ban_data.get("reason", "unknown"),
+                        "alert": ban_data.get("alert", "unknown"),
+                        "severity": ban_data.get("severity", "unknown"),
+                        "banned_at": ban_data.get("banned_at", "unknown"),
+                        "expires_in_seconds": ttl,
+                        "ban_type": "permanent" if ttl == -1 else "temporary"
+                    })
+
+            # Sort by TTL (expiring soonest first)
+            bans.sort(key=lambda x: x["expires_in_seconds"])
+
+            return JSONResponse({
+                "count": len(bans),
+                "bans": bans,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+
+        finally:
+            await r.close()
+
+    except Exception as e:
+        logger.error(f"Error listing active bans: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/runbooks")
+async def list_runbooks() -> JSONResponse:
+    """
+    List all available runbooks
+
+    Returns:
+        JSON with runbook catalog (name, priority, category, trigger info)
+    """
+    if not runbook_loader:
+        raise HTTPException(status_code=503, detail="Service not ready")
+
+    try:
+        runbooks_data = []
+
+        for runbook in runbook_loader.runbooks:
+            runbooks_data.append({
+                "name": runbook.name,
+                "description": runbook.description,
+                "priority": runbook.priority,
+                "category": runbook.trigger.category,  # category is in trigger, not in runbook
+                "trigger": {
+                    "alertname": runbook.trigger.alertname,
+                    "severity": runbook.trigger.severity,
+                    "category": runbook.trigger.category
+                },
+                "action_count": len(runbook.actions),
+                "action_types": list(set(action.type for action in runbook.actions))
+            })
+
+        # Sort by priority (highest first)
+        runbooks_data.sort(key=lambda x: x["priority"], reverse=True)
+
+        return JSONResponse({
+            "count": len(runbooks_data),
+            "runbooks": runbooks_data,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+
+    except Exception as e:
+        logger.error(f"Error listing runbooks: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/runbooks/{runbook_name}")
+async def get_runbook_details(runbook_name: str) -> JSONResponse:
+    """
+    Get detailed information about a specific runbook
+
+    Args:
+        runbook_name: Name of the runbook
+
+    Returns:
+        JSON with full runbook details including all actions
+    """
+    if not runbook_loader:
+        raise HTTPException(status_code=503, detail="Service not ready")
+
+    try:
+        # Find runbook by name
+        runbook = next((r for r in runbook_loader.runbooks if r.name == runbook_name), None)
+
+        if not runbook:
+            raise HTTPException(status_code=404, detail=f"Runbook '{runbook_name}' not found")
+
+        # Serialize runbook
+        runbook_data = {
+            "name": runbook.name,
+            "description": runbook.description,
+            "priority": runbook.priority,
+            "category": runbook.trigger.category,  # category is in trigger, not in runbook
+            "trigger": {
+                "alertname": runbook.trigger.alertname,
+                "severity": runbook.trigger.severity,
+                "category": runbook.trigger.category
+            },
+            "actions": [
+                {
+                    "type": action.type,
+                    "description": action.description,
+                    "params": action.params,
+                    "retry_count": action.retry_count,
+                    "retry_delay": action.retry_delay
+                }
+                for action in runbook.actions
+            ],
+            "estimated_duration_seconds": len(runbook.actions) * 2  # Rough estimate
+        }
+
+        return JSONResponse({
+            "runbook": runbook_data,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting runbook details: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/gateway/health")
+async def get_gateway_health() -> JSONResponse:
+    """
+    Get API Gateway health metrics
+
+    Proxies health data from the API Gateway service or returns mock data
+
+    Returns:
+        JSON with gateway health metrics (uptime, error_rate, connections, circuit_breaker)
+    """
+    try:
+        import httpx
+
+        # Try to fetch real data from API Gateway
+        gateway_url = "http://localhost:8080"  # Default gateway port
+
+        try:
+            async with httpx.AsyncClient(timeout=2.0) as client:
+                # Try to fetch gateway health
+                response = await client.get(f"{gateway_url}/health")
+
+                if response.status_code == 200:
+                    # Return real data
+                    health_data = response.json()
+                    return JSONResponse({
+                        "status": "healthy",
+                        "source": "live",
+                        "gateway_url": gateway_url,
+                        "uptime_seconds": health_data.get("uptime_seconds", 0),
+                        "error_rate": health_data.get("error_rate", 0.0),
+                        "active_connections": health_data.get("active_connections", 0),
+                        "circuit_breaker_status": health_data.get("circuit_breaker_status", "closed"),
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    })
+        except (httpx.ConnectError, httpx.TimeoutException):
+            pass  # Fall through to mock data
+
+        # Return mock data if gateway is unavailable
+        import random
+        return JSONResponse({
+            "status": "healthy",
+            "source": "mock",
+            "gateway_url": gateway_url,
+            "uptime_seconds": 86400 + random.randint(0, 3600),  # ~1 day
+            "error_rate": round(random.uniform(0.0, 0.05), 4),  # 0-5%
+            "active_connections": random.randint(10, 50),
+            "circuit_breaker_status": "closed",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "note": "Gateway unavailable - showing mock data"
+        })
+
+    except Exception as e:
+        logger.error(f"Error fetching gateway health: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/jwt/validation-stats")
+async def get_jwt_validation_stats() -> JSONResponse:
+    """
+    Get JWT validation statistics
+
+    Returns mock JWT validation metrics
+
+    Returns:
+        JSON with validation success rate and failure reasons
+    """
+    try:
+        import random
+
+        # Generate mock JWT validation stats
+        total_validations = random.randint(500, 2000)
+        failures = random.randint(10, 50)
+        success_count = total_validations - failures
+
+        # Distribute failures across reasons
+        expired = random.randint(5, failures // 2)
+        invalid_signature = random.randint(2, failures // 4)
+        malformed = random.randint(1, failures // 4)
+        revoked = failures - expired - invalid_signature - malformed
+
+        return JSONResponse({
+            "source": "mock",
+            "total_validations": total_validations,
+            "successful_validations": success_count,
+            "failed_validations": failures,
+            "success_rate": round(success_count / total_validations * 100, 2),
+            "failure_reasons": {
+                "expired": expired,
+                "invalid_signature": invalid_signature,
+                "malformed": malformed,
+                "revoked": max(0, revoked)
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "note": "Mock data - real JWT stats require auth service integration"
+        })
+
+    except Exception as e:
+        logger.error(f"Error generating JWT stats: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/ids/alerts")
+async def get_ids_alerts(
+    severity: str | None = None,
+    limit: int = 50
+) -> JSONResponse:
+    """
+    Get IDS alerts from Suricata (or mock data on Windows)
+
+    Query params:
+    - severity: Filter by severity (low, medium, high, critical)
+    - limit: Maximum alerts to return
+
+    Returns:
+        JSON with IDS alerts
+    """
+    try:
+        import platform
+        import random
+
+        # Platform detection
+        is_linux = platform.system() == "Linux"
+
+        if not is_linux:
+            # Return mock data on Windows
+            mock_alerts = []
+
+            alert_templates = [
+                {
+                    "category": "sql_injection",
+                    "severity": "critical",
+                    "signature": "SQL Injection - UNION SELECT",
+                    "src_ip": f"192.168.{random.randint(1, 255)}.{random.randint(1, 255)}",
+                    "dest_port": 8080,
+                    "http_method": "GET",
+                    "http_url": "/api/users?id=1' UNION SELECT..."
+                },
+                {
+                    "category": "xss",
+                    "severity": "high",
+                    "signature": "XSS Attempt - Script Tag",
+                    "src_ip": f"10.0.{random.randint(0, 255)}.{random.randint(1, 255)}",
+                    "dest_port": 8080,
+                    "http_method": "POST",
+                    "http_url": "/api/comments"
+                },
+                {
+                    "category": "scanner",
+                    "severity": "medium",
+                    "signature": "Port Scan Detected",
+                    "src_ip": f"172.16.{random.randint(0, 255)}.{random.randint(1, 255)}",
+                    "dest_port": 22,
+                    "http_method": "N/A",
+                    "http_url": "N/A"
+                },
+                {
+                    "category": "brute_force",
+                    "severity": "high",
+                    "signature": "Brute Force Login Attempt",
+                    "src_ip": f"203.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(1, 255)}",
+                    "dest_port": 8000,
+                    "http_method": "POST",
+                    "http_url": "/auth/login"
+                }
+            ]
+
+            # Generate mock alerts
+            for _ in range(min(limit, 20)):
+                template = random.choice(alert_templates)
+                alert = template.copy()
+                alert["timestamp"] = (
+                    datetime.now(timezone.utc) - timedelta(minutes=random.randint(0, 60))
+                ).isoformat()
+                alert["alert_id"] = f"ids-{random.randint(10000, 99999)}"
+
+                # Apply severity filter
+                if severity is None or alert["severity"] == severity:
+                    mock_alerts.append(alert)
+
+            return JSONResponse({
+                "source": "mock",
+                "platform": "Windows",
+                "count": len(mock_alerts[:limit]),
+                "alerts": mock_alerts[:limit],
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "note": "Mock data - Suricata IDS requires Linux"
+            })
+        else:
+            # TODO: Implement real Suricata integration on Linux
+            return JSONResponse({
+                "source": "unavailable",
+                "platform": "Linux",
+                "count": 0,
+                "alerts": [],
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "note": "Suricata integration not yet implemented"
+            })
+
+    except Exception as e:
+        logger.error(f"Error fetching IDS alerts: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/ids/statistics")
+async def get_ids_statistics() -> JSONResponse:
+    """
+    Get IDS engine statistics
+
+    Returns:
+        JSON with IDS statistics (total alerts, alerts by category, top sources)
+    """
+    try:
+        import platform
+        import random
+
+        is_linux = platform.system() == "Linux"
+
+        if not is_linux:
+            # Return mock statistics on Windows
+            return JSONResponse({
+                "source": "mock",
+                "platform": "Windows",
+                "total_alerts_24h": random.randint(50, 200),
+                "alerts_by_severity": {
+                    "critical": random.randint(5, 15),
+                    "high": random.randint(10, 30),
+                    "medium": random.randint(15, 50),
+                    "low": random.randint(20, 100)
+                },
+                "alerts_by_category": {
+                    "sql_injection": random.randint(5, 20),
+                    "xss": random.randint(3, 15),
+                    "scanner": random.randint(10, 40),
+                    "brute_force": random.randint(8, 25),
+                    "path_traversal": random.randint(2, 10)
+                },
+                "top_source_ips": [
+                    {"ip": f"192.168.{random.randint(1, 255)}.{random.randint(1, 255)}", "count": random.randint(10, 30)},
+                    {"ip": f"10.0.{random.randint(0, 255)}.{random.randint(1, 255)}", "count": random.randint(5, 20)},
+                    {"ip": f"172.16.{random.randint(0, 255)}.{random.randint(1, 255)}", "count": random.randint(3, 15)}
+                ],
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "note": "Mock data - Suricata IDS requires Linux"
+            })
+        else:
+            # TODO: Implement real Suricata statistics on Linux
+            return JSONResponse({
+                "source": "unavailable",
+                "platform": "Linux",
+                "total_alerts_24h": 0,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "note": "Suricata integration not yet implemented"
+            })
+
+    except Exception as e:
+        logger.error(f"Error fetching IDS statistics: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
