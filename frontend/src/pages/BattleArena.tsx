@@ -7,24 +7,31 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Play, Pause, Square, Settings, Trophy, X } from 'lucide-react'
+import { Play, Pause, Square, Settings, Trophy, X, BookOpen, BookOpenCheck } from 'lucide-react'
 import { battleEngine } from '@/services/battleEngine'
 import { RedTeamPanel } from '@/components/battle/RedTeamPanel'
 import { BlueTeamPanel } from '@/components/battle/BlueTeamPanel'
 import { Battlefield } from '@/components/battle/Battlefield'
 import { ScoreBoard } from '@/components/battle/ScoreBoard'
 import { EventTimeline } from '@/components/battle/EventTimeline'
-import { BATTLE_SCENARIOS, type BattleState, type BattleScenario } from '@/types/battle'
+import { BattleCommentator } from '@/components/battle/BattleCommentator'
+import { BattleReport } from '@/components/battle/BattleReport'
+import { useTutorial } from '@/contexts/TutorialContext'
+import { BATTLE_SCENARIOS, type BattleState, type BattleScenario, type BattleEvent } from '@/types/battle'
 import { cn } from '@/utils/cn'
 
 export function BattleArena() {
+  const { tutorialEnabled, toggleTutorial } = useTutorial()
   const [battleState, setBattleState] = useState<BattleState | null>(null)
   const [showScenarioModal, setShowScenarioModal] = useState(true)
   const [blockingDefenseId, setBlockingDefenseId] = useState<string | undefined>()
+  const [showBattleReport, setShowBattleReport] = useState(false)
+  const [battleWinner, setBattleWinner] = useState<'red' | 'blue' | null>(null)
+  const [latestEvent, setLatestEvent] = useState<BattleEvent | null>(null)
 
   // Subscribe to battle engine events
   useEffect(() => {
-    battleEngine.on('onAttackLaunched', () => {
+    battleEngine.on('onAttackLaunched', (attack) => {
       updateState()
     })
 
@@ -34,24 +41,22 @@ export function BattleArena() {
       updateState()
     })
 
-    battleEngine.on('onAttackSuccess', () => {
+    battleEngine.on('onAttackSuccess', (attack) => {
       updateState()
     })
 
-    battleEngine.on('onDefenseActivated', () => {
+    battleEngine.on('onDefenseActivated', (defense) => {
       updateState()
     })
 
-    battleEngine.on('onPhaseChange', () => {
+    battleEngine.on('onPhaseChange', (phase) => {
       updateState()
     })
 
     battleEngine.on('onBattleComplete', (winner, finalScore) => {
       updateState()
-      // Show winner modal
-      setTimeout(() => {
-        alert(`Battle Complete! Winner: ${winner.toUpperCase()}\nRed: ${finalScore.red.points} | Blue: ${finalScore.blue.points}`)
-      }, 500)
+      setBattleWinner(winner)
+      setShowBattleReport(true)
     })
 
     battleEngine.on('onScoreUpdate', () => {
@@ -76,6 +81,10 @@ export function BattleArena() {
     const state = battleEngine.getState()
     if (state) {
       setBattleState({ ...state })
+      // Update latest event for commentary
+      if (state.events.length > 0) {
+        setLatestEvent(state.events[state.events.length - 1])
+      }
     }
   }
 
@@ -83,6 +92,9 @@ export function BattleArena() {
     const state = await battleEngine.startBattle(scenario)
     setBattleState(state)
     setShowScenarioModal(false)
+    setShowBattleReport(false)
+    setBattleWinner(null)
+    setLatestEvent(null)
   }
 
   const handleLaunchAttack = (attackType: string) => {
@@ -165,6 +177,35 @@ export function BattleArena() {
                   onShowScenarios={() => setShowScenarioModal(true)}
                 />
               </div>
+
+              {/* Tutorial Toggle Button */}
+              <div className="absolute top-4 right-4 z-30">
+                <motion.button
+                  onClick={toggleTutorial}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={cn(
+                    'p-3 rounded-lg border backdrop-blur-md transition-all shadow-lg',
+                    tutorialEnabled
+                      ? 'bg-green-950/90 border-green-700/50 text-green-400 hover:bg-green-900/90'
+                      : 'bg-gray-900/90 border-gray-700/50 text-gray-400 hover:bg-gray-800/90'
+                  )}
+                  title={tutorialEnabled ? 'Tutorial Mode: ON' : 'Tutorial Mode: OFF'}
+                >
+                  {tutorialEnabled ? (
+                    <BookOpenCheck className="w-5 h-5" />
+                  ) : (
+                    <BookOpen className="w-5 h-5" />
+                  )}
+                </motion.button>
+              </div>
+
+              {/* Battle Commentator */}
+              <BattleCommentator
+                event={latestEvent}
+                tutorialMode={tutorialEnabled}
+                onDismiss={() => setLatestEvent(null)}
+              />
             </div>
 
             {/* Blue Team Panel (Right) */}
@@ -202,6 +243,18 @@ export function BattleArena() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Battle Report Modal */}
+      {showBattleReport && battleState && battleWinner && (
+        <BattleReport
+          winner={battleWinner}
+          finalScore={battleState.score}
+          successfulAttacks={battleState.activeAttacks.filter((a) => a.status === 'success')}
+          blockedAttacks={battleState.activeAttacks.filter((a) => a.status === 'blocked')}
+          metrics={battleState.metrics}
+          onClose={() => setShowBattleReport(false)}
+        />
       )}
     </div>
   )

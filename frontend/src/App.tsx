@@ -8,6 +8,7 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { SecurityProvider } from './contexts/SecurityContext'
+import { TutorialProvider } from './contexts/TutorialContext'
 import { Layout } from './components/Layout'
 import { LoadingSkeleton } from './components/LoadingSkeleton'
 
@@ -85,9 +86,11 @@ function App() {
 
   return (
     <SecurityProvider>
-      <BrowserRouter basename={basename}>
-        <AnimatedRoutes />
-      </BrowserRouter>
+      <TutorialProvider>
+        <BrowserRouter basename={basename}>
+          <AnimatedRoutes />
+        </BrowserRouter>
+      </TutorialProvider>
     </SecurityProvider>
   )
 }

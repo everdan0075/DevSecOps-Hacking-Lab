@@ -301,6 +301,7 @@ class BattleEngine {
       severity: 'info',
       points: POINT_VALUES.ATTACK_LAUNCHED,
       attackId: attack.id,
+      metadata: { attackType: type },
     })
 
     // Simulate attack execution
@@ -346,6 +347,7 @@ class BattleEngine {
         points,
         attackId: attack.id,
         defenseId: blockingDefense.id,
+        metadata: { defenseType: blockingDefense.type, attackType: attack.type },
       })
 
       // Reset defense status after animation
@@ -384,6 +386,7 @@ class BattleEngine {
         severity: 'critical',
         points,
         attackId: attack.id,
+        metadata: { attackType: attack.type, targetSystem: attack.targetSystem },
       })
 
       // Trigger critical moment
@@ -420,9 +423,23 @@ class BattleEngine {
     // Randomly select one (or use strength-based probability)
     const defense = eligibleDefenses[Math.floor(Math.random() * eligibleDefenses.length)]
 
-    // Probability based on defense strength (higher strength = more likely to block)
-    const blockProbability = defense.strength / 100
-    if (Math.random() < blockProbability) {
+    // Honeypot always detects honeypot_probe attacks (100% detection rate)
+    if (defense.type === 'honeypot' && attack.type === 'honeypot_probe') {
+      return defense
+    }
+
+    // Tiered block probabilities based on attack severity
+    const baseBlockChance = defense.strength / 100
+    const severityMultiplier: Record<string, number> = {
+      low: 0.95,
+      medium: 0.85,
+      high: 0.75,
+      critical: 0.60,
+    }
+
+    const finalChance = baseBlockChance * (severityMultiplier[attack.severity] || 0.75)
+
+    if (Math.random() < finalChance) {
       return defense
     }
 
@@ -449,7 +466,7 @@ class BattleEngine {
         type,
         name: config.displayName,
         status: 'active',
-        strength: 80 + Math.random() * 20, // 80-100%
+        strength: 90 + Math.random() * 10, // 90-100% (increased for better balance)
         timestamp: Date.now(),
         blockedAttacks: 0,
       }

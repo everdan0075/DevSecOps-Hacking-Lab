@@ -10,10 +10,11 @@
  */
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { Shield, Ban, Crosshair, Bot } from 'lucide-react'
-import { DefenseShieldGrid } from './DefenseShield'
-import type { Defense, BattleMetrics, TeamScore } from '@/types/battle'
+import { Shield, Ban, Crosshair, Bot, Zap, Key, CheckCircle } from 'lucide-react'
+import type { Defense, BattleMetrics, TeamScore, DefenseType } from '@/types/battle'
+import { DEFENSE_CONFIGS } from '@/types/battle'
 import { cn } from '@/utils/cn'
+import { AttackTooltip } from './AttackTooltip'
 
 interface BlueTeamPanelProps {
   activeDefenses: Defense[]
@@ -22,6 +23,26 @@ interface BlueTeamPanelProps {
   events: Array<{ id: string; message: string; timestamp: number; team: 'red' | 'blue' }>
   blockingDefenseId?: string
   onBlockComplete?: (defenseId: string) => void
+}
+
+const DEFENSE_ICONS: Record<DefenseType, React.ElementType> = {
+  waf: Shield,
+  rate_limit: Zap,
+  honeypot: Crosshair,
+  ip_ban: Ban,
+  token_revocation: Key,
+  incident_response: Bot,
+  jwt_validation: CheckCircle,
+}
+
+const DEFENSE_COLORS: Record<DefenseType, string> = {
+  waf: '#3b82f6',
+  rate_limit: '#06b6d4',
+  honeypot: '#f59e0b',
+  ip_ban: '#ef4444',
+  token_revocation: '#8b5cf6',
+  incident_response: '#10b981',
+  jwt_validation: '#06b6d4',
 }
 
 export function BlueTeamPanel({
@@ -100,26 +121,33 @@ export function BlueTeamPanel({
         </div>
       </div>
 
-      {/* Active Defenses */}
-      <div className="p-4 border-b border-blue-900/50 overflow-y-auto custom-scrollbar-blue max-h-80">
+      {/* Active Defenses - Fixed Layout */}
+      <div className="p-4 border-b border-blue-900/50 min-h-0">
         <h3 className="text-xs font-semibold text-blue-400/70 mb-3 uppercase tracking-wider">
           Active Defenses ({activeDefenses.length})
         </h3>
-        {activeDefenses.length === 0 ? (
-          <div className="text-xs text-blue-400/50 text-center py-8">
-            No active defenses
-          </div>
-        ) : (
-          <DefenseShieldGrid
-            defenses={activeDefenses}
-            blockingDefenseId={blockingDefenseId}
-            onBlockComplete={onBlockComplete}
-          />
-        )}
+        <div className="max-h-96 overflow-y-auto custom-scrollbar-blue pr-2">
+          {activeDefenses.length === 0 ? (
+            <div className="text-xs text-blue-400/50 text-center py-8">
+              No active defenses
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              {activeDefenses.map((defense) => (
+                <CompactDefenseShield
+                  key={defense.id}
+                  defense={defense}
+                  isBlocking={defense.id === blockingDefenseId}
+                  onBlockComplete={() => onBlockComplete?.(defense.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Defense Log */}
-      <div className="flex-1 p-4 overflow-y-auto custom-scrollbar-blue">
+      <div className="flex-1 p-4 overflow-y-auto custom-scrollbar-blue min-h-0">
         <h3 className="text-xs font-semibold text-blue-400/70 mb-3 uppercase tracking-wider">
           Defense Log
         </h3>
@@ -232,6 +260,84 @@ function MetricCard({ label, value, icon: Icon, color }: MetricCardProps) {
         {value}
       </motion.div>
     </div>
+  )
+}
+
+interface CompactDefenseShieldProps {
+  defense: Defense
+  isBlocking: boolean
+  onBlockComplete: () => void
+}
+
+function CompactDefenseShield({ defense, isBlocking, onBlockComplete }: CompactDefenseShieldProps) {
+  const config = DEFENSE_CONFIGS[defense.type]
+  const Icon = DEFENSE_ICONS[defense.type]
+  const color = DEFENSE_COLORS[defense.type]
+  const healthPercentage = defense.strength
+
+  return (
+    <AttackTooltip type={defense.type} mode="defense">
+      <div className="relative">
+        {/* Pulsing Glow */}
+        <motion.div
+          className="absolute inset-0 rounded-full blur-lg -z-10"
+          style={{ backgroundColor: color }}
+          animate={{
+            opacity: defense.status === 'active' ? [0.2, 0.4, 0.2] : 0.1,
+            scale: defense.status === 'active' ? [1, 1.1, 1] : 1,
+          }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+
+        {/* Shield Circle */}
+        <motion.div
+          className="w-16 h-16 mx-auto rounded-full border-2 flex items-center justify-center relative"
+          style={{ borderColor: color, backgroundColor: `${color}20` }}
+          animate={{
+            scale: isBlocking ? [1, 1.3, 1] : 1,
+            rotate: isBlocking ? [0, -10, 10, 0] : 0,
+          }}
+          transition={{ duration: 0.5 }}
+        >
+          <Icon className="w-7 h-7" style={{ color }} />
+
+          {/* Blocking Effect */}
+          <AnimatePresence>
+            {isBlocking && (
+              <motion.div
+                className="absolute inset-0 rounded-full"
+                style={{ backgroundColor: color }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: [0, 0.8, 0], scale: [0.8, 1.8, 2] }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.6 }}
+                onAnimationComplete={onBlockComplete}
+              />
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Health Bar */}
+        <div className="mt-2 h-1 bg-gray-800 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full rounded-full"
+            style={{ backgroundColor: color }}
+            animate={{ width: `${healthPercentage}%` }}
+            transition={{ duration: 0.3 }}
+          />
+        </div>
+
+        {/* Label */}
+        <div className="text-center mt-2">
+          <div className="text-[10px] font-mono truncate" style={{ color }}>
+            {config.displayName}
+          </div>
+          <div className="text-[9px] text-gray-500">
+            {defense.blockedAttacks} blocks
+          </div>
+        </div>
+      </div>
+    </AttackTooltip>
   )
 }
 

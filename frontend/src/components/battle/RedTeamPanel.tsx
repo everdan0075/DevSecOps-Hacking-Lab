@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Zap, TrendingUp, Database, AlertTriangle } from 'lucide-react'
 import { ATTACK_CONFIGS, type Attack, type BattleMetrics, type TeamScore } from '@/types/battle'
 import { cn } from '@/utils/cn'
+import { AttackTooltip } from './AttackTooltip'
 
 interface RedTeamPanelProps {
   activeAttacks: Attack[]
@@ -190,27 +191,28 @@ export function RedTeamPanel({
           {Object.entries(ATTACK_CONFIGS).map(([type, config]) => {
             const isEnabled = enabledAttacks.includes(type)
             return (
-              <motion.button
-                key={type}
-                onClick={() => isEnabled && !isPaused && onLaunchAttack(type)}
-                disabled={!isEnabled || isPaused}
-                whileHover={isEnabled && !isPaused ? { scale: 1.05 } : {}}
-                whileTap={isEnabled && !isPaused ? { scale: 0.95 } : {}}
-                className={cn(
-                  'p-2 rounded border text-xs font-mono transition-all',
-                  isEnabled && !isPaused
-                    ? 'bg-red-950/50 border-red-700/50 text-red-400 hover:bg-red-900/50 hover:border-red-600 cursor-pointer'
-                    : 'bg-gray-900/30 border-gray-800/50 text-gray-600 cursor-not-allowed opacity-50'
-                )}
-              >
-                <div className="flex items-center gap-1">
-                  <span>{config.icon}</span>
-                  <span className="truncate">{config.displayName}</span>
-                </div>
-                <div className="text-[10px] text-red-400/50 mt-1">
-                  {config.basePoints}pts
-                </div>
-              </motion.button>
+              <AttackTooltip key={type} type={type as any} mode="attack">
+                <motion.button
+                  onClick={() => isEnabled && !isPaused && onLaunchAttack(type)}
+                  disabled={!isEnabled || isPaused}
+                  whileHover={isEnabled && !isPaused ? { scale: 1.05 } : {}}
+                  whileTap={isEnabled && !isPaused ? { scale: 0.95 } : {}}
+                  className={cn(
+                    'p-2 rounded border text-xs font-mono transition-all w-full',
+                    isEnabled && !isPaused
+                      ? 'bg-red-950/50 border-red-700/50 text-red-400 hover:bg-red-900/50 hover:border-red-600 cursor-pointer'
+                      : 'bg-gray-900/30 border-gray-800/50 text-gray-600 cursor-not-allowed opacity-50'
+                  )}
+                >
+                  <div className="flex items-center gap-1">
+                    <span>{config.icon}</span>
+                    <span className="truncate">{config.displayName}</span>
+                  </div>
+                  <div className="text-[10px] text-red-400/50 mt-1">
+                    {config.basePoints}pts
+                  </div>
+                </motion.button>
+              </AttackTooltip>
             )
           })}
         </div>
