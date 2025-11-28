@@ -94,11 +94,11 @@ export function BattleReport({
           animate={{ scale: 1, y: 0 }}
           exit={{ scale: 0.9, y: 20 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-cyber-surface border border-cyber-border rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+          className="bg-cyber-surface border border-cyber-border rounded-lg max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col"
         >
           {/* Header */}
-          <div className={cn('p-6 border-b-2', winnerBg[winner])}>
-            <div className="flex items-center justify-between mb-4">
+          <div className={cn('p-4 border-b-2 flex-shrink-0', winnerBg[winner])}>
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 <Trophy className={cn('w-8 h-8', winnerColor[winner])} />
                 <div>
@@ -123,9 +123,11 @@ export function BattleReport({
             </div>
           </div>
 
-          {/* Attack Analysis */}
-          <div className="p-6 border-b border-cyber-border">
-            <h3 className="text-xl font-bold text-cyber-primary mb-4 flex items-center gap-2">
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Attack Analysis */}
+            <div className="p-4 border-b border-cyber-border">
+            <h3 className="text-lg font-bold text-cyber-primary mb-3 flex items-center gap-2">
               <TrendingUp className="w-5 h-5" />
               Attack Analysis
             </h3>
@@ -191,8 +193,8 @@ export function BattleReport({
 
           {/* Recommendations */}
           {recommendations.length > 0 && (
-            <div className="p-6 border-b border-cyber-border">
-              <h3 className="text-xl font-bold text-orange-500 mb-4 flex items-center gap-2">
+            <div className="p-4 border-b border-cyber-border">
+              <h3 className="text-lg font-bold text-orange-500 mb-3 flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5" />
                 Recommendations
               </h3>
@@ -208,8 +210,8 @@ export function BattleReport({
           )}
 
           {/* Key Lessons */}
-          <div className="p-6">
-            <h3 className="text-xl font-bold text-cyber-primary mb-4 flex items-center gap-2">
+          <div className="p-4">
+            <h3 className="text-lg font-bold text-cyber-primary mb-3 flex items-center gap-2">
               <Lightbulb className="w-5 h-5" />
               Key Lessons Learned
             </h3>
@@ -221,13 +223,14 @@ export function BattleReport({
                 </li>
               ))}
             </ul>
+            </div>
           </div>
 
           {/* Footer */}
-          <div className="p-6 border-t border-cyber-border bg-cyber-bg/50">
+          <div className="p-4 border-t border-cyber-border bg-cyber-bg/50 flex-shrink-0">
             <button
               onClick={onClose}
-              className="w-full py-3 bg-cyber-primary text-cyber-bg rounded-lg font-semibold hover:bg-cyber-secondary transition-all"
+              className="w-full py-2 bg-cyber-primary text-cyber-bg rounded-lg font-semibold hover:bg-cyber-secondary transition-all"
             >
               Close Report
             </button>

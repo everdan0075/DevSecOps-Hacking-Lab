@@ -28,10 +28,10 @@ const SEVERITY_COLORS = {
 } as const
 
 const SEVERITY_GLOW = {
-  low: '0 0 10px #3b82f6',
-  medium: '0 0 15px #f59e0b',
-  high: '0 0 20px #ef4444',
-  critical: '0 0 30px #dc2626, 0 0 50px #dc2626',
+  low: '0 0 20px #3b82f6, 0 0 40px #3b82f6',
+  medium: '0 0 25px #f59e0b, 0 0 45px #f59e0b',
+  high: '0 0 30px #ef4444, 0 0 50px #ef4444',
+  critical: '0 0 40px #dc2626, 0 0 70px #dc2626',
 } as const
 
 export function AttackArrow({ attack, onComplete, onCollision }: AttackArrowProps) {
@@ -104,29 +104,29 @@ export function AttackArrow({ attack, onComplete, onCollision }: AttackArrowProp
 
           {/* Arrow Shape */}
           <svg
-            width="60"
-            height="24"
-            viewBox="0 0 60 24"
+            width="120"
+            height="48"
+            viewBox="0 0 120 48"
             className="relative z-10"
             style={{ filter: `drop-shadow(${glow})` }}
           >
             {/* Arrow body */}
             <path
-              d="M 0 12 L 45 12 L 60 12 L 50 6 M 60 12 L 50 18"
+              d="M 0 24 L 90 24 L 120 24 L 100 12 M 120 24 L 100 36"
               fill="none"
               stroke={color}
-              strokeWidth="3"
+              strokeWidth="6"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
             {/* Arrow tip */}
-            <polygon points="45,6 60,12 45,18" fill={color} opacity="0.8" />
+            <polygon points="90,12 120,24 90,36" fill={color} opacity="0.9" />
           </svg>
 
           {/* Attack Icon */}
           <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xs"
-            style={{ color }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-lg font-bold"
+            style={{ color, filter: `drop-shadow(0 0 8px ${color})` }}
           >
             {config.icon}
           </div>
@@ -135,11 +135,11 @@ export function AttackArrow({ attack, onComplete, onCollision }: AttackArrowProp
           {particles.map((particle, index) => (
             <motion.div
               key={particle.id}
-              className="absolute w-1 h-1 rounded-full"
+              className="absolute w-2 h-2 rounded-full"
               style={{
                 backgroundColor: color,
-                left: `${-20 + particle.x}px`,
-                top: `${12 + particle.y}px`,
+                left: `${-40 + particle.x}px`,
+                top: `${24 + particle.y}px`,
                 boxShadow: glow,
               }}
               initial={{ opacity: 0.8, scale: 1 }}
@@ -151,10 +151,10 @@ export function AttackArrow({ attack, onComplete, onCollision }: AttackArrowProp
           {/* Pulse Wave (for critical attacks) */}
           {attack.severity === 'critical' && (
             <motion.div
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full border-2"
-              style={{ borderColor: color }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border-4"
+              style={{ borderColor: color, boxShadow: glow }}
               initial={{ scale: 0.5, opacity: 0.8 }}
-              animate={{ scale: 2, opacity: 0 }}
+              animate={{ scale: 2.5, opacity: 0 }}
               transition={{ duration: 1, repeat: Infinity, ease: 'easeOut' }}
             />
           )}
@@ -162,8 +162,8 @@ export function AttackArrow({ attack, onComplete, onCollision }: AttackArrowProp
 
         {/* Attack Label */}
         <motion.div
-          className="absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap text-xs font-mono"
-          style={{ color }}
+          className="absolute top-full left-1/2 -translate-x-1/2 mt-3 whitespace-nowrap text-sm font-mono font-bold"
+          style={{ color, textShadow: `0 0 10px ${color}` }}
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}

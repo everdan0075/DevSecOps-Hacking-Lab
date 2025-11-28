@@ -75,6 +75,7 @@ class BattleEngine {
       },
 
       activeAttacks: [],
+      attackHistory: [],
       activeDefenses: [],
       events: [],
 
@@ -288,6 +289,7 @@ class BattleEngine {
     }
 
     this.state.activeAttacks.push(attack)
+    this.state.attackHistory.push(attack)
     this.updateScore('red', 'attacksLaunched', 1)
     this.addPoints('red', POINT_VALUES.ATTACK_LAUNCHED)
 

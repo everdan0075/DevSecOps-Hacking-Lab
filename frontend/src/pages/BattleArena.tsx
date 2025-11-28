@@ -250,8 +250,8 @@ export function BattleArena() {
         <BattleReport
           winner={battleWinner}
           finalScore={battleState.score}
-          successfulAttacks={battleState.activeAttacks.filter((a) => a.status === 'success')}
-          blockedAttacks={battleState.activeAttacks.filter((a) => a.status === 'blocked')}
+          successfulAttacks={battleState.attackHistory.filter((a) => a.status === 'success')}
+          blockedAttacks={battleState.attackHistory.filter((a) => a.status === 'blocked')}
           metrics={battleState.metrics}
           onClose={() => setShowBattleReport(false)}
         />

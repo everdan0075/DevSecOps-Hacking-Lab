@@ -144,6 +144,7 @@ export interface BattleState {
   score: BattleScore
 
   activeAttacks: Attack[]
+  attackHistory: Attack[] // All attacks (completed + active)
   activeDefenses: Defense[]
   events: BattleEvent[]
 
@@ -407,7 +408,7 @@ export const BATTLE_SCENARIOS: Record<BattleScenarioType, BattleScenario> = {
         description: 'Discovering unknown vulnerability',
         intensity: 'low',
         enabledAttacks: ['honeypot_probe'],
-        enabledDefenses: ['honeypot'],
+        enabledDefenses: ['honeypot', 'waf'],
       },
       {
         name: 'exploitation',
@@ -416,7 +417,7 @@ export const BATTLE_SCENARIOS: Record<BattleScenarioType, BattleScenario> = {
         description: 'Exploiting zero-day vulnerability',
         intensity: 'high',
         enabledAttacks: ['idor', 'gateway_bypass', 'sql_injection'],
-        enabledDefenses: ['honeypot', 'incident_response'],
+        enabledDefenses: ['honeypot', 'waf', 'rate_limit', 'incident_response'],
       },
       {
         name: 'containment',
@@ -424,12 +425,12 @@ export const BATTLE_SCENARIOS: Record<BattleScenarioType, BattleScenario> = {
         duration: 15,
         description: 'Emergency containment measures',
         intensity: 'high',
-        enabledDefenses: ['ip_ban', 'token_revocation', 'incident_response'],
-        enabledAttacks: [],
+        enabledDefenses: ['ip_ban', 'waf', 'rate_limit', 'token_revocation', 'incident_response'],
+        enabledAttacks: ['gateway_bypass', 'sql_injection'],
       },
     ],
-    redPointsMultiplier: 1.5,
-    bluePointsMultiplier: 0.8,
+    redPointsMultiplier: 1.3,
+    bluePointsMultiplier: 1.0,
     autoAttackEnabled: true,
     autoAttackInterval: 8000,
     autoAttackTypes: ['idor', 'gateway_bypass', 'sql_injection'],

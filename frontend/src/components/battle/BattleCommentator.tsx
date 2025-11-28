@@ -157,12 +157,12 @@ export function BattleCommentator({ event, tutorialMode, onDismiss }: BattleComm
     <AnimatePresence>
       <motion.div
         key={event.id}
-        initial={{ opacity: 0, x: 100 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: 100 }}
+        initial={{ opacity: 0, scale: 0.9, y: -20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: -20 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         className={cn(
-          'fixed top-24 right-4 z-40 w-80 border-2 rounded-lg shadow-2xl backdrop-blur-md p-4',
+          'fixed top-32 left-1/2 -translate-x-1/2 z-40 w-96 max-w-[90vw] border-2 rounded-lg shadow-2xl backdrop-blur-md p-4',
           teamColors[commentary.team]
         )}
       >

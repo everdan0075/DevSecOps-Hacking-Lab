@@ -291,7 +291,7 @@ function CompactDefenseShield({ defense, isBlocking, onBlockComplete }: CompactD
 
         {/* Shield Circle */}
         <motion.div
-          className="w-16 h-16 mx-auto rounded-full border-2 flex items-center justify-center relative"
+          className="w-12 h-12 mx-auto rounded-full border-2 flex items-center justify-center relative"
           style={{ borderColor: color, backgroundColor: `${color}20` }}
           animate={{
             scale: isBlocking ? [1, 1.3, 1] : 1,
@@ -299,7 +299,7 @@ function CompactDefenseShield({ defense, isBlocking, onBlockComplete }: CompactD
           }}
           transition={{ duration: 0.5 }}
         >
-          <Icon className="w-7 h-7" style={{ color }} />
+          <Icon className="w-5 h-5" style={{ color }} />
 
           {/* Blocking Effect */}
           <AnimatePresence>
