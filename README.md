@@ -42,17 +42,18 @@ DevSecOps Hacking Lab is a **production-grade educational platform** demonstrati
 
 ## 🎯 Key Features
 
-### 🖥️ Frontend Dashboard (NEW - Phase 2.6B)
+### 🖥️ Frontend Dashboard (Phase 2.6B+)
 
 **Live Demo**: [https://everdan0075.github.io/DevSecOps-Hacking-Lab](https://everdan0075.github.io/DevSecOps-Hacking-Lab)
 
-Professional React + TypeScript UI with 7 pages:
+Professional React + TypeScript UI with 8 pages:
 
 - **Home**: Overview, architecture diagram, tech stack
 - **Attacks**: 8 attack scenarios with real-time execution
 - **Monitoring**: Service health, incident timeline, metrics
 - **WAF Analytics**: 28 attack signatures, rate limits, User-Agent filtering
 - **SIEM**: Threat scoring, risk assessment, attack patterns, defense metrics
+- **Battle Arena** (NEW): Red vs Blue Team visualization with 3 scenarios, real-time battle metrics, tutorial mode
 - **Architecture**: Interactive service diagram with data flow visualization
 - **Docs**: Comprehensive documentation viewer
 
@@ -92,9 +93,15 @@ All scenarios executable via **Web UI** or **Python scripts**:
 7. **Credential Stuffing** - Bulk credential testing
 8. **Honeypot Scan** - 8 reconnaissance attacks (admin panels, secrets, git exposure, etc.)
 
-### 🛡️ Defense Mechanisms (Phase 2.5A-C + 2.6B)
+### 🛡️ Defense Mechanisms (Phase 2.5A-C + 2.6B+)
 
-**WAF (Web Application Firewall)** - 28 Attack Signatures:
+**WAF (Web Application Firewall)** - 28 Attack Signatures with Real-time Analytics:
+- Signature-based detection blocking SQLi, XSS, command injection, path traversal
+- Detailed analytics dashboard showing blocked patterns, attack sources, and trends
+- User-Agent filtering (blocklist: 20 scanner/scraper agents, whitelist: 8 good bots)
+- Per-endpoint rate limiting with adaptive thresholds
+
+**Attack Signatures**:
 - SQL Injection (8 patterns)
 - Cross-Site Scripting (7 patterns)
 - Command Injection (4 patterns)
@@ -112,6 +119,12 @@ All scenarios executable via **Web UI** or **Python scripts**:
 - `/api/users/settings`: 20 req/min (burst: 10)
 - `/admin*`: 5 req/min (burst: 2) - Honeypot
 - `/.env`: 1 req/min (burst: 1) - Honeypot
+
+**Honeypot Protections** (Decoy Endpoints):
+- `/admin*` - Admin panel honeypot (1 req/min rate limit)
+- `/.env` - Secret file honeypot (1 req/min rate limit)
+- Probing detection tracks reconnaissance attempts
+- Automated response to honeypot interactions
 
 **User-Agent Filtering**:
 - Blocked: 20 agents (scanners: nikto, nmap, sqlmap; scrapers: scrapy; bots: semrush)
@@ -244,8 +257,10 @@ python admin_panel_scan.py
 
 **Frontend Dashboards** (http://localhost:5173):
 - `/monitoring` - Service health, incidents, metrics
-- `/waf` - WAF analytics, signatures, rate limits
-- `/siem` - Threat intelligence, risk assessment
+- `/waf` - WAF analytics, 28 signatures, rate limits, User-Agent filtering
+- `/siem` - Threat intelligence, risk assessment, attack pattern correlation
+- `/battle` - Battle Arena with 3 scenarios, real-time metrics, tutorial mode
+- `/architecture` - Interactive service diagram and data flow visualization
 
 **Grafana Dashboards** (http://localhost:3000):
 - Auth Security
@@ -265,7 +280,11 @@ python admin_panel_scan.py
 - [docs/auth/](./docs/auth/) - Authentication system (Phase 2.1)
 - [docs/gateway/](./docs/gateway/) - API Gateway architecture (Phase 2.2)
 - [docs/incident-response/](./docs/incident-response/) - Incident automation (Phase 2.3)
+- [docs/defense/PHASE_2.5A_ENHANCED_WAF.md](./docs/defense/PHASE_2.5A_ENHANCED_WAF.md) - WAF signatures and filtering (Phase 2.5A)
+- [docs/defense/HONEYPOT_PROTECTION.md](./docs/defense/HONEYPOT_PROTECTION.md) - Honeypot decoy endpoints (Phase 2.6+)
 - [docs/frontend/](./docs/frontend/) - Frontend integration (Phase 2.6/2.6B)
+- [docs/frontend/WAF_ANALYTICS_GUIDE.md](./docs/frontend/WAF_ANALYTICS_GUIDE.md) - WAF dashboard guide (Phase 2.6B)
+- [docs/frontend/BATTLE_ARENA_GUIDE.md](./docs/frontend/BATTLE_ARENA_GUIDE.md) - Red vs Blue Team visualization (Phase 2.8+)
 
 **Service READMEs**:
 - [vulnerable-services/login-api/README.md](./vulnerable-services/login-api/README.md)

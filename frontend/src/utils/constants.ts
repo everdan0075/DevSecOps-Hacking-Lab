@@ -46,6 +46,20 @@ export const ENDPOINTS = {
     HEALTH: IS_DEVELOPMENT ? '/incidents/health' : 'http://localhost:5002/health',
   },
 
+  // Incident Bot API endpoints (direct access)
+  INCIDENT_BOT: {
+    HEALTH: IS_DEVELOPMENT ? '/api/incidents/health' : 'http://localhost:5002/health',
+    REPORTS: IS_DEVELOPMENT ? '/api/incidents/reports' : 'http://localhost:5002/api/incidents/reports',
+    BANS: IS_DEVELOPMENT ? '/api/incidents/bans' : 'http://localhost:5002/api/bans/active',
+    RUNBOOKS: IS_DEVELOPMENT ? '/api/incidents/runbooks' : 'http://localhost:5002/api/runbooks',
+    GATEWAY_HEALTH: IS_DEVELOPMENT ? '/api/incidents/gateway-health' : 'http://localhost:5002/api/gateway/health',
+    JWT_STATS: IS_DEVELOPMENT ? '/api/incidents/jwt-stats' : 'http://localhost:5002/api/jwt/validation-stats',
+    IDS_ALERTS: IS_DEVELOPMENT ? '/api/incidents/ids-alerts' : 'http://localhost:5002/api/ids/alerts',
+    IDS_STATS: IS_DEVELOPMENT ? '/api/incidents/ids-stats' : 'http://localhost:5002/api/ids/statistics',
+    CORRELATION_STATS: IS_DEVELOPMENT ? '/api/incidents/correlation-stats' : 'http://localhost:5002/api/correlation/statistics',
+    DEFENSE_METRICS: IS_DEVELOPMENT ? '/api/incidents/defense-metrics' : 'http://localhost:5002/api/defense/metrics',
+  },
+
   // Prometheus (via Vite proxy in dev)
   PROMETHEUS: {
     QUERY: IS_DEVELOPMENT ? '/prometheus/api/v1/query' : 'http://localhost:9090/api/v1/query',

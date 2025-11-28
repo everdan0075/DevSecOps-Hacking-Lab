@@ -26,7 +26,7 @@ const services: Service[] = [
     name: 'Traefik',
     port: 8443,
     description: 'Reverse proxy with TLS termination',
-    healthEndpoint: 'https://localhost:8443/health',
+    healthEndpoint: '', // No health endpoint - check via Docker
     category: 'Proxy',
   },
   {

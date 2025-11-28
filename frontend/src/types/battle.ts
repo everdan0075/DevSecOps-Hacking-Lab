@@ -374,7 +374,7 @@ export const BATTLE_SCENARIOS: Record<BattleScenarioType, BattleScenario> = {
         description: 'Targeted exploitation',
         intensity: 'medium',
         enabledAttacks: ['idor', 'gateway_bypass'],
-        enabledDefenses: ['honeypot', 'waf', 'incident_response'],
+        enabledDefenses: ['honeypot', 'waf', 'rate_limit', 'incident_response'],
       },
       {
         name: 'containment',
@@ -383,11 +383,11 @@ export const BATTLE_SCENARIOS: Record<BattleScenarioType, BattleScenario> = {
         description: 'Final containment attempts',
         intensity: 'low',
         enabledAttacks: ['idor'],
-        enabledDefenses: ['ip_ban', 'incident_response'],
+        enabledDefenses: ['waf', 'rate_limit', 'ip_ban', 'incident_response'],
       },
     ],
-    redPointsMultiplier: 1.2,
-    bluePointsMultiplier: 1.3,
+    redPointsMultiplier: 1.0,
+    bluePointsMultiplier: 1.8,
     autoAttackEnabled: true,
     autoAttackInterval: 12000, // 12s between attacks (slower)
     autoAttackTypes: ['honeypot_probe', 'idor'],

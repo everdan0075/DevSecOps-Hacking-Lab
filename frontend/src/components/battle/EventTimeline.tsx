@@ -108,8 +108,8 @@ export function EventTimeline({ events, maxEvents = 50 }: EventTimelineProps) {
   const displayEvents = events.slice(-maxEvents)
 
   return (
-    <div className="h-24 bg-cyber-surface/95 backdrop-blur-sm border-t border-cyber-border overflow-hidden">
-      <div className="px-6 py-2 border-b border-cyber-border/50">
+    <div className="h-20 bg-cyber-surface/95 backdrop-blur-sm border-t border-cyber-border overflow-hidden">
+      <div className="px-4 py-1.5 border-b border-cyber-border/50">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-semibold text-cyber-primary font-mono uppercase tracking-wider">
             Event Timeline
@@ -122,7 +122,7 @@ export function EventTimeline({ events, maxEvents = 50 }: EventTimelineProps) {
 
       <div
         ref={scrollRef}
-        className="h-[calc(100%-2.5rem)] overflow-x-auto overflow-y-hidden px-6 py-2 custom-scrollbar-timeline"
+        className="h-[calc(100%-2rem)] overflow-x-auto overflow-y-hidden px-4 py-1.5 custom-scrollbar-timeline"
       >
         <div className="flex gap-3 h-full items-center">
           <AnimatePresence initial={false}>

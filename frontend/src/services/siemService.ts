@@ -101,7 +101,8 @@ export interface SiemDashboard {
 }
 
 class SiemService {
-  private baseUrl = 'http://localhost:5002/api/siem';
+  // Use Vite proxy in dev mode, direct URL in production
+  private baseUrl = import.meta.env.DEV ? '/incidents/api/siem' : 'http://localhost:5002/api/siem';
 
   /**
    * Get threat scores for all active IPs

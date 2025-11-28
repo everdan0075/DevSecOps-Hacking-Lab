@@ -118,7 +118,12 @@ export function BattleReport({
 
             {/* Score Breakdown */}
             <div className="grid grid-cols-2 gap-4">
-              <ScoreCard team="red" score={finalScore.red} highlight={winner === 'red'} />
+              <ScoreCard
+                team="red"
+                score={finalScore.red}
+                highlight={winner === 'red'}
+                totalAttacks={successfulAttacks.length + blockedAttacks.length}
+              />
               <ScoreCard team="blue" score={finalScore.blue} highlight={winner === 'blue'} />
             </div>
           </div>
@@ -245,9 +250,10 @@ interface ScoreCardProps {
   team: 'red' | 'blue'
   score: any
   highlight: boolean
+  totalAttacks?: number
 }
 
-function ScoreCard({ team, score, highlight }: ScoreCardProps) {
+function ScoreCard({ team, score, highlight, totalAttacks }: ScoreCardProps) {
   const colors = {
     red: 'border-red-500/50 bg-red-950/20',
     blue: 'border-blue-500/50 bg-blue-950/20',
@@ -278,7 +284,7 @@ function ScoreCard({ team, score, highlight }: ScoreCardProps) {
           <>
             <div className="flex justify-between">
               <span className="text-gray-400">Attacks</span>
-              <span className="text-gray-300">{score.attacksLaunched}</span>
+              <span className="text-gray-300">{totalAttacks ?? score.attacksLaunched}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Successful</span>

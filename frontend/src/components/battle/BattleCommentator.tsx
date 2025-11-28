@@ -5,15 +5,20 @@
  * Features:
  * - Latest critical event with explanation
  * - Animated entrance (slide in from right)
- * - Auto-dismiss after 5s
+ * - Auto-dismiss after 10s (increased from 5s)
+ * - Queue system for multiple messages (FIFO)
+ * - Positioned bottom right (doesn't block controls)
  * - Team-colored styling
  */
 
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Zap, Shield, AlertTriangle, Target, Info } from 'lucide-react'
 import type { BattleEvent, AttackType, DefenseType } from '@/types/battle'
 import { ATTACK_CONFIGS, DEFENSE_CONFIGS } from '@/types/battle'
 import { cn } from '@/utils/cn'
+
+const COMMENTARY_DURATION = 10000 // 10 seconds
 
 interface CommentaryData {
   icon: React.ReactNode
@@ -21,6 +26,38 @@ interface CommentaryData {
   description: string
   educational: string
   team: 'red' | 'blue' | 'neutral'
+}
+
+/**
+ * Get educational information about battle phases
+ */
+function getPhaseEducationalInfo(message: string, tutorialMode: boolean): string {
+  if (!tutorialMode) return ''
+
+  const lowerMessage = message.toLowerCase()
+
+  // Phase 1: Reconnaissance
+  if (lowerMessage.includes('reconnaissance') || lowerMessage.includes('scanning') || lowerMessage.includes('discovery')) {
+    return 'RECONNAISSANCE PHASE: Red Team scans for vulnerabilities and maps the attack surface. Blue Team deploys honeypots to detect scanning activities. This is the quietest phase where attackers gather intelligence.'
+  }
+
+  // Phase 2: Exploitation
+  if (lowerMessage.includes('exploitation') || lowerMessage.includes('active') || lowerMessage.includes('precision')) {
+    return 'EXPLOITATION PHASE: Red Team launches targeted attacks against discovered vulnerabilities. Blue Team activates all defensive systems (WAF, rate limiting, incident response). This is the most intense phase of the battle.'
+  }
+
+  // Phase 3: Containment
+  if (lowerMessage.includes('containment') || lowerMessage.includes('response') || lowerMessage.includes('evasion')) {
+    return 'CONTAINMENT PHASE: Blue Team takes aggressive action to contain breaches (IP bans, token revocation). Red Team attempts final exploitation before being locked out. The battle outcome is often decided here.'
+  }
+
+  // Battle start
+  if (lowerMessage.includes('battle started')) {
+    return 'The battle begins! Red Team will attempt to breach systems while Blue Team defends. Each phase has different attack/defense strategies. Watch the scoreboard to see who gains the advantage.'
+  }
+
+  // Generic phase change
+  return 'Battle phases represent different stages of a cyber attack: reconnaissance (scanning), exploitation (active attacks), and containment (defensive response).'
 }
 
 function generateCommentary(event: BattleEvent, tutorialMode: boolean): CommentaryData | null {
@@ -113,13 +150,12 @@ function generateCommentary(event: BattleEvent, tutorialMode: boolean): Commenta
     }
 
     case 'phase_change': {
+      const phaseInfo = getPhaseEducationalInfo(event.message, tutorialMode)
       return {
         icon: <Info className="w-5 h-5" />,
         title: 'Phase Transition',
         description: event.message,
-        educational: tutorialMode
-          ? 'Battle phases represent different stages of a cyber attack: reconnaissance, exploitation, and containment.'
-          : '',
+        educational: phaseInfo,
         team: 'neutral',
       }
     }
@@ -136,10 +172,36 @@ interface BattleCommentatorProps {
 }
 
 export function BattleCommentator({ event, tutorialMode, onDismiss }: BattleCommentatorProps) {
-  if (!event) return null
+  const [queue, setQueue] = useState<Array<{ event: BattleEvent; commentary: CommentaryData }>>([])
+  const [currentCommentary, setCurrentCommentary] = useState<{ event: BattleEvent; commentary: CommentaryData } | null>(null)
 
-  const commentary = generateCommentary(event, tutorialMode)
-  if (!commentary) return null
+  // Add new events to queue
+  useEffect(() => {
+    if (event) {
+      const commentary = generateCommentary(event, tutorialMode)
+      if (commentary) {
+        setQueue((prev) => [...prev, { event, commentary }])
+      }
+    }
+  }, [event, tutorialMode])
+
+  // Process queue (FIFO)
+  useEffect(() => {
+    if (!currentCommentary && queue.length > 0) {
+      const [next, ...rest] = queue
+      setCurrentCommentary(next)
+      setQueue(rest)
+    }
+  }, [currentCommentary, queue])
+
+  const handleDismiss = () => {
+    setCurrentCommentary(null)
+    onDismiss?.()
+  }
+
+  if (!currentCommentary) return null
+
+  const { event: currentEvent, commentary } = currentCommentary
 
   const teamColors = {
     red: 'border-red-500/50 bg-red-950/40',
@@ -156,16 +218,23 @@ export function BattleCommentator({ event, tutorialMode, onDismiss }: BattleComm
   return (
     <AnimatePresence>
       <motion.div
-        key={event.id}
-        initial={{ opacity: 0, scale: 0.9, y: -20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: -20 }}
+        key={currentEvent.id}
+        initial={{ opacity: 0, x: 50, y: 20 }}
+        animate={{ opacity: 1, x: 0, y: 0 }}
+        exit={{ opacity: 0, x: 50, y: 20 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         className={cn(
-          'fixed top-32 left-1/2 -translate-x-1/2 z-40 w-96 max-w-[90vw] border-2 rounded-lg shadow-2xl backdrop-blur-md p-4',
+          'fixed bottom-28 right-4 z-40 w-96 max-w-[calc(100vw-2rem)] border-2 rounded-lg shadow-2xl backdrop-blur-md p-4',
           teamColors[commentary.team]
         )}
       >
+        {/* Queue Indicator */}
+        {queue.length > 0 && (
+          <div className="absolute -top-3 right-4 px-2 py-0.5 bg-cyber-primary text-cyber-bg text-xs font-mono rounded-full">
+            +{queue.length} more
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-start gap-3 mb-3">
           <div className={cn('mt-1', iconColors[commentary.team])}>{commentary.icon}</div>
@@ -189,7 +258,7 @@ export function BattleCommentator({ event, tutorialMode, onDismiss }: BattleComm
 
         {/* Timestamp */}
         <div className="text-[10px] text-gray-600 mt-3 font-mono">
-          {new Date(event.timestamp).toLocaleTimeString()}
+          {new Date(currentEvent.timestamp).toLocaleTimeString()}
         </div>
 
         {/* Auto-dismiss indicator */}
@@ -197,8 +266,8 @@ export function BattleCommentator({ event, tutorialMode, onDismiss }: BattleComm
           className={cn('absolute bottom-0 left-0 h-1 rounded-b-lg', iconColors[commentary.team])}
           initial={{ width: '100%' }}
           animate={{ width: '0%' }}
-          transition={{ duration: 5, ease: 'linear' }}
-          onAnimationComplete={onDismiss}
+          transition={{ duration: COMMENTARY_DURATION / 1000, ease: 'linear' }}
+          onAnimationComplete={handleDismiss}
         />
       </motion.div>
     </AnimatePresence>

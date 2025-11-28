@@ -145,25 +145,63 @@ frontend/
 │   │   ├── PortMappingTable.tsx         # Service port mapping
 │   │   ├── DataFlowAnimation.tsx        # Request flow visualization
 │   │   ├── TechStackBadges.tsx          # Technology badges
+│   │   ├── waf/                         # WAF Analytics components
+│   │   │   ├── WafSignatureBreakdown.tsx  # Signature visualization
+│   │   │   ├── WafBlockedPatterns.tsx     # Blocked attack patterns
+│   │   │   ├── UserAgentFiltering.tsx     # User-Agent filtering panel
+│   │   │   └── EndpointRateLimits.tsx     # Rate limit monitoring
+│   │   ├── siem/                        # SIEM components
+│   │   │   ├── ThreatScoreGrid.tsx      # IP threat assessment
+│   │   │   ├── RiskAssessmentGauge.tsx  # Risk visualization
+│   │   │   ├── AttackPatternTimeline.tsx  # Attack patterns
+│   │   │   ├── DefenseEffectivenessDashboard.tsx  # Defense metrics
+│   │   │   ├── RealTimeAttackFeed.tsx   # Live attack stream
+│   │   │   └── CorrelationStatsPanel.tsx # Correlation analysis
+│   │   ├── battle/                      # Battle Arena components
+│   │   │   ├── BattleArena.tsx          # Main battle container (page)
+│   │   │   ├── Battlefield.tsx          # Battle visualization
+│   │   │   ├── RedTeamPanel.tsx         # Attacker interface
+│   │   │   ├── BlueTeamPanel.tsx        # Defender interface
+│   │   │   ├── AttackArrow.tsx          # Attack animation
+│   │   │   ├── DefenseShield.tsx        # Defense visualization
+│   │   │   ├── ScoreBoard.tsx           # Real-time score tracking
+│   │   │   ├── EventTimeline.tsx        # Battle event history
+│   │   │   ├── BattleCommentator.tsx    # Tutorial commentary
+│   │   │   └── BattleReport.tsx         # Post-battle analysis
 │   │   └── [more components...]
 │   ├── pages/           # Route pages
 │   │   ├── Home.tsx                     # Landing page
-│   │   ├── Attacks.tsx                  # Attack scenarios
+│   │   ├── Attacks.tsx                  # Attack scenarios (8 scenarios)
 │   │   ├── Monitoring.tsx               # Metrics and dashboards
+│   │   ├── WafAnalytics.tsx             # WAF dashboard
+│   │   ├── Siem.tsx                     # SIEM threat intelligence
+│   │   ├── BattleArena.tsx              # Red vs Blue Team battle
 │   │   ├── Architecture.tsx             # System architecture
 │   │   └── Docs.tsx                     # Documentation browser
 │   ├── hooks/           # Custom React hooks
 │   │   ├── useBackendStatus.ts          # Backend connection detection
+│   │   ├── useMetrics.ts                # Metrics fetching
+│   │   ├── useIncidents.ts              # Incident data
 │   │   └── [more hooks...]
 │   ├── services/        # API client services
 │   │   ├── api.ts                       # Axios configuration
+│   │   ├── attackService.ts             # Attack execution
+│   │   ├── wafService.ts                # WAF analytics
+│   │   ├── siemService.ts               # SIEM data
+│   │   ├── battleEngine.ts              # Battle logic
+│   │   ├── honeypotService.ts           # Honeypot attacks
+│   │   ├── incidentService.ts           # Incident reports
 │   │   └── [more services...]
 │   ├── contexts/        # React contexts
-│   │   └── SecurityContext.tsx          # Security toggle state
+│   │   ├── SecurityContext.tsx          # Security toggle state
+│   │   └── TutorialContext.tsx          # Tutorial mode state
 │   ├── types/           # TypeScript type definitions
+│   │   ├── api.ts                       # API response types
+│   │   └── battle.ts                    # Battle Arena types
 │   ├── utils/           # Utility functions
 │   │   ├── cn.ts                        # Class name merger
-│   │   └── constants.ts                 # Constants and configs
+│   │   ├── constants.ts                 # Constants and configs
+│   │   └── formatters.ts                # Data formatting utilities
 │   ├── App.tsx          # Root component with routing
 │   ├── main.tsx         # Application entry point
 │   └── index.css        # Global styles with Tailwind
@@ -216,7 +254,7 @@ When backend services are offline:
 - Backend status indicator
 
 ### 2. Attacks Page (`/attacks`)
-- **7 Attack Scenarios**:
+- **8 Attack Scenarios**:
   1. Brute Force Attack
   2. Credential Stuffing
   3. MFA Bypass
@@ -224,6 +262,7 @@ When backend services are offline:
   5. IDOR Exploitation
   6. Gateway Bypass (Direct Access)
   7. Rate Limit Bypass
+  8. Honeypot Scan - Reconnaissance attacks (admin panel, secrets, git exposure, etc.)
 - Interactive execution panel
 - Real-time attack logs
 - Results visualization
@@ -235,7 +274,32 @@ When backend services are offline:
 - **Service Health**: Live status of all microservices
 - **Incident Timeline**: Automated incident response events
 
-### 4. Architecture Page (`/architecture`)
+### 4. WAF Analytics Page (`/waf`)
+- **28 Attack Signatures**: Detailed breakdown by category
+- **Blocked Patterns**: Real-time visualization of detected attacks
+- **Rate Limits**: Per-endpoint configuration and monitoring
+- **User-Agent Filtering**: Blocked scanners and good bots whitelist
+- **Historical Trends**: Attack patterns over time
+
+### 5. SIEM Page (`/siem`)
+- **Threat Scoring**: IP-based threat assessment (0-100 scale)
+- **Attack Pattern Detection**: Reconnaissance, multi-stage, distributed, credential stuffing, APT
+- **Risk Assessment**: Environment-wide risk gauge
+- **Defense Effectiveness**: Protection success rates
+- **Real-time Attack Feed**: Live threat event stream
+
+### 6. Battle Arena Page (`/battle`) - NEW
+- **Red vs Blue Team Visualization**: Interactive cybersecurity battle
+- **3 Battle Scenarios**:
+  - Full Assault: Direct multi-vector attacks
+  - Stealth: Advanced persistent threat simulation
+  - Zero-Day: Undetected vulnerability exploitation
+- **Real-time Battle Metrics**: Attack success rates, defense activation times, score tracking
+- **Animated Battlefield**: Visual attack arrows, defense shields, status indicators
+- **Tutorial Mode**: Educational commentary and guidance
+- **Battle Report**: Post-battle analysis with detailed statistics
+
+### 7. Architecture Page (`/architecture`)
 - **Interactive Service Diagram**: 11 Docker services with connections
 - **Port Mapping Table**: All services with health checks
 - **Data Flow Animation**: Normal flow vs. attack paths
@@ -243,7 +307,7 @@ When backend services are offline:
 - **Intentional Vulnerabilities**: Educational security flaws
 - **Technology Stack**: Comprehensive tech badges
 
-### 5. Documentation Page (`/docs`)
+### 8. Documentation Page (`/docs`)
 - Markdown documentation browser
 - Sidebar navigation
 - Table of contents
@@ -385,6 +449,13 @@ When contributing to the frontend:
 6. Update this README if adding major features
 
 ## Recent Updates
+
+### Phase 2.8+ (November 2025) - Battle Arena & Enhanced Documentation
+- **Battle Arena**: Interactive Red vs Blue Team visualization with 3 scenarios
+- **Tutorial Mode**: Educational mode with commentary and guidance
+- **New Components**: RedTeamPanel, BlueTeamPanel, Battlefield, BattleCommentator, BattleReport
+- **Battle Metrics**: Real-time attack success rates, defense activation times, score tracking
+- **Documentation**: Updated WAF, honeypot, and Battle Arena information
 
 ### Phase 2.7 (November 2025)
 - **Backend Integration Complete**: All 9 missing backend endpoints implemented in incident-bot

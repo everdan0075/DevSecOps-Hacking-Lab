@@ -139,8 +139,8 @@ export function BattleArena() {
             isPaused={battleState.isPaused}
           />
 
-          {/* Main Battle Area */}
-          <div className="flex-1 flex overflow-hidden">
+          {/* Main Battle Area - Fixed height for 2K resolution */}
+          <div className="flex-1 flex overflow-hidden min-h-0">
             {/* Red Team Panel (Left) */}
             <div className="w-1/4 min-w-[280px] max-w-[360px] overflow-hidden">
               <RedTeamPanel
@@ -155,7 +155,7 @@ export function BattleArena() {
             </div>
 
             {/* Battlefield (Center) */}
-            <div className="flex-1 relative">
+            <div className="flex-1 relative min-h-0">
               <Battlefield
                 activeAttacks={battleState.activeAttacks}
                 metrics={battleState.metrics}
@@ -200,7 +200,7 @@ export function BattleArena() {
                 </motion.button>
               </div>
 
-              {/* Battle Commentator */}
+              {/* Battle Commentator - Moved to bottom right */}
               <BattleCommentator
                 event={latestEvent}
                 tutorialMode={tutorialEnabled}
@@ -223,8 +223,10 @@ export function BattleArena() {
             </div>
           </div>
 
-          {/* EventTimeline */}
-          <EventTimeline events={battleState.events} />
+          {/* EventTimeline - Reduced height */}
+          <div className="shrink-0">
+            <EventTimeline events={battleState.events} />
+          </div>
         </>
       )}
 

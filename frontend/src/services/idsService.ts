@@ -29,7 +29,8 @@ export interface IdsStatistics {
 }
 
 class IdsService {
-  private baseUrl = 'http://localhost:5002/api';
+  // Use Vite proxy in dev mode, direct URL in production
+  private baseUrl = import.meta.env.DEV ? '/incidents/api' : 'http://localhost:5002/api';
   private isLinux = !navigator.platform.toLowerCase().includes('win');
 
   /**

@@ -15,6 +15,7 @@ import type { Defense, BattleMetrics, TeamScore, DefenseType } from '@/types/bat
 import { DEFENSE_CONFIGS } from '@/types/battle'
 import { cn } from '@/utils/cn'
 import { AttackTooltip } from './AttackTooltip'
+import { DefenseActivationFeed } from './DefenseActivationFeed'
 
 interface BlueTeamPanelProps {
   activeDefenses: Defense[]
@@ -56,7 +57,13 @@ export function BlueTeamPanel({
   const blueEvents = events.filter((e) => e.team === 'blue').slice(-20).reverse()
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-bl from-blue-950/40 to-cyan-950/40 border-l border-blue-900/50">
+    <div className="h-full flex flex-col bg-gradient-to-bl from-blue-950/40 to-cyan-950/40 border-l border-blue-900/50 relative">
+      {/* Defense Activation Feed - Floating on right edge */}
+      <DefenseActivationFeed
+        blockingDefenseId={blockingDefenseId}
+        activeDefenses={activeDefenses}
+      />
+
       {/* Header */}
       <div className="p-4 border-b border-blue-900/50 bg-blue-950/50">
         <div className="flex items-center gap-3">
@@ -277,7 +284,7 @@ function CompactDefenseShield({ defense, isBlocking, onBlockComplete }: CompactD
 
   return (
     <AttackTooltip type={defense.type} mode="defense">
-      <div className="relative">
+      <div className="relative flex flex-col items-center">
         {/* Pulsing Glow */}
         <motion.div
           className="absolute inset-0 rounded-full blur-lg -z-10"
@@ -289,9 +296,9 @@ function CompactDefenseShield({ defense, isBlocking, onBlockComplete }: CompactD
           transition={{ duration: 2, repeat: Infinity }}
         />
 
-        {/* Shield Circle */}
+        {/* Shield Circle - Fixed Size */}
         <motion.div
-          className="w-12 h-12 mx-auto rounded-full border-2 flex items-center justify-center relative"
+          className="w-14 h-14 rounded-full border-2 flex items-center justify-center relative shrink-0"
           style={{ borderColor: color, backgroundColor: `${color}20` }}
           animate={{
             scale: isBlocking ? [1, 1.3, 1] : 1,
@@ -299,7 +306,7 @@ function CompactDefenseShield({ defense, isBlocking, onBlockComplete }: CompactD
           }}
           transition={{ duration: 0.5 }}
         >
-          <Icon className="w-5 h-5" style={{ color }} />
+          <Icon className="w-6 h-6" style={{ color }} />
 
           {/* Blocking Effect */}
           <AnimatePresence>
@@ -318,7 +325,7 @@ function CompactDefenseShield({ defense, isBlocking, onBlockComplete }: CompactD
         </motion.div>
 
         {/* Health Bar */}
-        <div className="mt-2 h-1 bg-gray-800 rounded-full overflow-hidden">
+        <div className="mt-2 h-1 w-full bg-gray-800 rounded-full overflow-hidden">
           <motion.div
             className="h-full rounded-full"
             style={{ backgroundColor: color }}
@@ -328,7 +335,7 @@ function CompactDefenseShield({ defense, isBlocking, onBlockComplete }: CompactD
         </div>
 
         {/* Label */}
-        <div className="text-center mt-2">
+        <div className="text-center mt-2 w-full">
           <div className="text-[10px] font-mono truncate" style={{ color }}>
             {config.displayName}
           </div>

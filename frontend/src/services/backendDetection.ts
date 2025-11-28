@@ -68,7 +68,7 @@ class BackendDetectionService {
       this.checkService(ENDPOINTS.GATEWAY.HEALTH),
       this.checkService(isDev ? '/direct/auth-service/health' : 'http://localhost:8000/health'),
       this.checkService(isDev ? '/direct/user-service/health' : 'http://localhost:8002/health'),
-      this.checkService(ENDPOINTS.INCIDENTS.HEALTH),
+      this.checkService(isDev ? '/incidents/health' : 'http://localhost:5002/health'),
       this.checkService(`${ENDPOINTS.PROMETHEUS.QUERY.replace('/api/v1/query', '')}/api/v1/status/buildinfo`),
       this.checkService(`${ENDPOINTS.GRAFANA.BASE}/api/health`),
     ])

@@ -60,6 +60,11 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/grafana/, ''),
       },
+      '/incidents/health': {
+        target: 'http://localhost:5002/health',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/incidents\/health/, ''),
+      },
       '/incidents': {
         target: 'http://localhost:5002',
         changeOrigin: true,

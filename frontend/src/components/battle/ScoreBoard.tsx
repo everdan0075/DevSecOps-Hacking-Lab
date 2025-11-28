@@ -45,8 +45,8 @@ export function ScoreBoard({
   const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
 
   return (
-    <div className="h-20 bg-cyber-surface/95 backdrop-blur-sm border-b border-cyber-border flex items-center px-6">
-      <div className="flex items-center justify-between w-full gap-6">
+    <div className="h-20 bg-cyber-surface/95 backdrop-blur-sm border-b border-cyber-border flex items-center px-4">
+      <div className="flex items-center justify-between w-full gap-4">
         {/* RED TEAM Score */}
         <div className="flex items-center gap-4 min-w-[200px]">
           <div className="relative">
