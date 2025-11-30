@@ -14,23 +14,61 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AttackArrowBatch } from './AttackArrow'
 import { Zap, Shield, Database, Server } from 'lucide-react'
-import type { Attack, BattleMetrics } from '@/types/battle'
+import type { Attack, BattleMetrics, Defense, DefenseType } from '@/types/battle'
+import { DEFENSE_CONFIGS } from '@/types/battle'
+import { Ban, Crosshair, Bot, Key, CheckCircle } from 'lucide-react'
 import { cn } from '@/utils/cn'
 
 interface BattlefieldProps {
   activeAttacks: Attack[]
   metrics: BattleMetrics
+  blockingDefenseId?: string
+  activeDefenses?: Defense[]
   onAttackComplete?: (attackId: string) => void
   onAttackCollision?: (attackId: string) => void
+}
+
+const DEFENSE_ICONS: Record<DefenseType, React.ElementType> = {
+  waf: Shield,
+  rate_limit: Zap,
+  honeypot: Crosshair,
+  ip_ban: Ban,
+  token_revocation: Key,
+  incident_response: Bot,
+  jwt_validation: CheckCircle,
+}
+
+const DEFENSE_COLORS: Record<DefenseType, string> = {
+  waf: '#3b82f6',
+  rate_limit: '#06b6d4',
+  honeypot: '#f59e0b',
+  ip_ban: '#ef4444',
+  token_revocation: '#8b5cf6',
+  incident_response: '#10b981',
+  jwt_validation: '#06b6d4',
 }
 
 export function Battlefield({
   activeAttacks,
   metrics,
+  blockingDefenseId,
+  activeDefenses = [],
   onAttackComplete,
   onAttackCollision,
 }: BattlefieldProps) {
   const [matrixChars, setMatrixChars] = useState<Array<{ id: number; x: number; char: string }>>([])
+  const [flyingDefense, setFlyingDefense] = useState<{ id: string; type: DefenseType } | null>(null)
+
+  // Trigger defense shield animation when blocking
+  useEffect(() => {
+    if (blockingDefenseId) {
+      const defense = activeDefenses.find((d) => d.id === blockingDefenseId)
+      if (defense) {
+        setFlyingDefense({ id: defense.id, type: defense.type })
+        setTimeout(() => setFlyingDefense(null), 2000) // Clear after animation
+      }
+    }
+  }, [blockingDefenseId, activeDefenses])
 
   // Generate matrix rain effect
   useEffect(() => {
@@ -81,6 +119,13 @@ export function Battlefield({
         onAttackComplete={onAttackComplete}
         onAttackCollision={onAttackCollision}
       />
+
+      {/* Flying Defense Shield (RIGHT to LEFT, opposite of attacks) */}
+      <AnimatePresence>
+        {flyingDefense && (
+          <FlyingDefenseShield defenseType={flyingDefense.type} />
+        )}
+      </AnimatePresence>
 
       {/* Center Metrics Overlay */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
@@ -280,5 +325,88 @@ function Hexagon({ size, x, y, delay }: HexagonProps) {
         ease: 'easeInOut',
       }}
     />
+  )
+}
+
+/**
+ * Flying Defense Shield - Animates from RIGHT to LEFT (opposite of attack arrows)
+ */
+interface FlyingDefenseShieldProps {
+  defenseType: DefenseType
+}
+
+function FlyingDefenseShield({ defenseType }: FlyingDefenseShieldProps) {
+  const config = DEFENSE_CONFIGS[defenseType]
+  const Icon = DEFENSE_ICONS[defenseType]
+  const color = DEFENSE_COLORS[defenseType]
+
+  return (
+    <div className="absolute inset-0 pointer-events-none">
+      <motion.div
+        className="absolute top-1/2 -translate-y-1/2 right-0"
+        initial={{ x: 0 }}
+        animate={{ x: '-80%' }}
+        exit={{ opacity: 0, scale: 0.5 }}
+        transition={{ duration: 1.2, ease: 'linear' }}
+      >
+        <div className="relative">
+          {/* Glow Effect */}
+          <motion.div
+            className="absolute inset-0 rounded-full blur-2xl"
+            style={{ backgroundColor: color }}
+            animate={{
+              opacity: [0.4, 0.8, 0.4],
+              scale: [1, 1.3, 1],
+            }}
+            transition={{
+              duration: 0.8,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          />
+
+          {/* Shield Icon Container */}
+          <div
+            className="relative w-20 h-20 rounded-full border-4 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+            style={{
+              borderColor: color,
+              boxShadow: `0 0 40px ${color}80, 0 0 80px ${color}40`,
+            }}
+          >
+            <Icon className="w-10 h-10" style={{ color }} />
+          </div>
+
+          {/* Defense Name Label */}
+          <motion.div
+            className="absolute top-full left-1/2 -translate-x-1/2 mt-3 whitespace-nowrap"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div
+              className="px-4 py-2 rounded-lg text-sm font-mono font-bold border-2 backdrop-blur-sm"
+              style={{
+                backgroundColor: `${color}30`,
+                borderColor: color,
+                color: color,
+                boxShadow: `0 0 20px ${color}40`,
+                textShadow: `0 0 10px ${color}`,
+              }}
+            >
+              {config.displayName}
+            </div>
+          </motion.div>
+
+          {/* Expanding Ripple */}
+          <motion.div
+            className="absolute inset-0 rounded-full border-4"
+            style={{ borderColor: color }}
+            initial={{ scale: 1, opacity: 0.8 }}
+            animate={{ scale: 2.5, opacity: 0 }}
+            transition={{ duration: 1, ease: 'easeOut' }}
+          />
+        </div>
+      </motion.div>
+    </div>
   )
 }

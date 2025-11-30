@@ -98,23 +98,23 @@ const EVENT_COLORS: Record<BattleEventType, { bg: string; border: string; text: 
 export function EventTimeline({ events, maxEvents = 50 }: EventTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Auto-scroll to latest event
+  // Auto-scroll to latest event (vertical)
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
   }, [events])
 
   const displayEvents = events.slice(-maxEvents)
 
   return (
-    <div className="h-20 bg-cyber-surface/95 backdrop-blur-sm border-t border-cyber-border overflow-hidden">
-      <div className="px-4 py-1.5 border-b border-cyber-border/50">
-        <div className="flex items-center justify-between">
+    <div className="h-full bg-cyber-surface/95 backdrop-blur-sm border-r border-cyber-border overflow-hidden flex flex-col">
+      <div className="px-3 py-2 border-b border-cyber-border/50 shrink-0">
+        <div className="flex flex-col gap-1">
           <h3 className="text-xs font-semibold text-cyber-primary font-mono uppercase tracking-wider">
             Event Timeline
           </h3>
-          <span className="text-xs text-gray-500 font-mono">
+          <span className="text-[9px] text-gray-500 font-mono">
             {displayEvents.length} events
           </span>
         </div>
@@ -122,15 +122,15 @@ export function EventTimeline({ events, maxEvents = 50 }: EventTimelineProps) {
 
       <div
         ref={scrollRef}
-        className="h-[calc(100%-2rem)] overflow-x-auto overflow-y-hidden px-4 py-1.5 custom-scrollbar-timeline"
+        className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-2 custom-scrollbar-timeline"
       >
-        <div className="flex gap-3 h-full items-center">
+        <div className="flex flex-col gap-2">
           <AnimatePresence initial={false}>
             {displayEvents.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="text-xs text-gray-500 font-mono"
+                className="text-xs text-gray-500 font-mono text-center py-4"
               >
                 Waiting for events...
               </motion.div>
@@ -157,66 +157,71 @@ function EventCard({ event, index }: EventCardProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -50, scale: 0.8 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
+      initial={{ opacity: 0, y: -20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.8 }}
-      transition={{ delay: index * 0.03, duration: 0.3 }}
+      transition={{ delay: index * 0.02, duration: 0.25 }}
       className={cn(
-        'flex-shrink-0 flex items-center gap-3 px-4 py-2 rounded-lg border min-w-[280px] max-w-[400px]',
+        'flex flex-col gap-1 px-2 py-2 rounded-lg border',
         colors.bg,
         colors.border
       )}
     >
-      {/* Icon */}
-      <div className="flex-shrink-0">
-        <div className="relative">
-          <Icon className={cn('w-5 h-5', colors.text)} />
-          {event.severity === 'critical' && (
-            <motion.div
-              className="absolute inset-0 blur-lg bg-red-500/50"
-              animate={{ opacity: [0.3, 0.8, 0.3] }}
-              transition={{ duration: 1, repeat: Infinity }}
-            />
-          )}
+      {/* Header: Icon + Type + Time */}
+      <div className="flex items-center gap-2">
+        <div className="flex-shrink-0">
+          <div className="relative">
+            <Icon className={cn('w-4 h-4', colors.text)} />
+            {event.severity === 'critical' && (
+              <motion.div
+                className="absolute inset-0 blur-md bg-red-500/50"
+                animate={{ opacity: [0.3, 0.8, 0.3] }}
+                transition={{ duration: 1, repeat: Infinity }}
+              />
+            )}
+          </div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-1">
+            <span className={cn('text-[10px] font-mono font-semibold truncate', colors.text)}>
+              {formatEventType(event.type)}
+            </span>
+            <span className="text-[9px] text-gray-500 font-mono flex-shrink-0">
+              {formatTime(event.timestamp)}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <span className={cn('text-xs font-mono', colors.text)}>
-            {formatEventType(event.type)}
-          </span>
-          <span className="text-[10px] text-gray-500 font-mono flex-shrink-0">
-            {formatTime(event.timestamp)}
-          </span>
-        </div>
-        <p className="text-xs text-gray-400 truncate">{event.message}</p>
+      {/* Message */}
+      <p className="text-[10px] text-gray-400 leading-tight line-clamp-2">{event.message}</p>
+
+      {/* Footer: Points + Severity */}
+      <div className="flex items-center justify-between gap-2">
+        {/* Points Badge */}
+        {event.points > 0 && (
+          <motion.div
+            className={cn(
+              'px-1.5 py-0.5 rounded text-[9px] font-bold font-mono',
+              event.team === 'red' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
+            )}
+            initial={{ scale: 1.2 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            +{event.points}
+          </motion.div>
+        )}
+
+        {/* Severity Indicator */}
+        {event.severity === 'critical' && (
+          <motion.div
+            className="w-1.5 h-1.5 bg-red-500 rounded-full"
+            animate={{ scale: [1, 1.4, 1], opacity: [1, 0.5, 1] }}
+            transition={{ duration: 1, repeat: Infinity }}
+          />
+        )}
       </div>
-
-      {/* Points Badge */}
-      {event.points > 0 && (
-        <motion.div
-          className={cn(
-            'flex-shrink-0 px-2 py-1 rounded text-xs font-bold font-mono',
-            event.team === 'red' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
-          )}
-          initial={{ scale: 1.3 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.3 }}
-        >
-          +{event.points}
-        </motion.div>
-      )}
-
-      {/* Severity Indicator */}
-      {event.severity === 'critical' && (
-        <motion.div
-          className="flex-shrink-0 w-2 h-2 bg-red-500 rounded-full"
-          animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
-          transition={{ duration: 1, repeat: Infinity }}
-        />
-      )}
     </motion.div>
   )
 }
@@ -241,7 +246,7 @@ function formatTime(timestamp: number): string {
 // Custom scrollbar styles for timeline (add to global CSS)
 const scrollbarStyles = `
   .custom-scrollbar-timeline::-webkit-scrollbar {
-    height: 4px;
+    width: 4px;
   }
   .custom-scrollbar-timeline::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.2);

@@ -58,14 +58,8 @@ export function BlueTeamPanel({
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-bl from-blue-950/40 to-cyan-950/40 border-l border-blue-900/50 relative">
-      {/* Defense Activation Feed - Floating on right edge */}
-      <DefenseActivationFeed
-        blockingDefenseId={blockingDefenseId}
-        activeDefenses={activeDefenses}
-      />
-
       {/* Header */}
-      <div className="p-4 border-b border-blue-900/50 bg-blue-950/50">
+      <div className="p-3 border-b border-blue-900/50 bg-blue-950/50">
         <div className="flex items-center gap-3">
           <div className="relative">
             <Shield className="w-6 h-6 text-blue-500" />
@@ -99,7 +93,7 @@ export function BlueTeamPanel({
       </div>
 
       {/* Metrics Grid */}
-      <div className="p-4 border-b border-blue-900/50">
+      <div className="p-3 border-b border-blue-900/50">
         <div className="grid grid-cols-2 gap-3">
           <MetricCard
             label="Blocked"
@@ -128,34 +122,32 @@ export function BlueTeamPanel({
         </div>
       </div>
 
-      {/* Active Defenses - Fixed Layout */}
-      <div className="p-4 border-b border-blue-900/50 min-h-0">
-        <h3 className="text-xs font-semibold text-blue-400/70 mb-3 uppercase tracking-wider">
+      {/* Active Defenses - No Scroll */}
+      <div className="p-2 border-b border-blue-900/50 shrink-0">
+        <h3 className="text-[10px] font-semibold text-blue-400/70 mb-2 uppercase tracking-wider">
           Active Defenses ({activeDefenses.length})
         </h3>
-        <div className="max-h-96 overflow-y-auto custom-scrollbar-blue pr-2">
+        <div className="grid grid-cols-3 gap-2">
           {activeDefenses.length === 0 ? (
-            <div className="text-xs text-blue-400/50 text-center py-8">
+            <div className="text-xs text-blue-400/50 text-center py-4 col-span-3">
               No active defenses
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4">
-              {activeDefenses.map((defense) => (
-                <CompactDefenseShield
-                  key={defense.id}
-                  defense={defense}
-                  isBlocking={defense.id === blockingDefenseId}
-                  onBlockComplete={() => onBlockComplete?.(defense.id)}
-                />
-              ))}
-            </div>
+            activeDefenses.map((defense) => (
+              <SimpleDefenseIcon
+                key={defense.id}
+                defense={defense}
+                isBlocking={defense.id === blockingDefenseId}
+                onBlockComplete={onBlockComplete}
+              />
+            ))
           )}
         </div>
       </div>
 
       {/* Defense Log */}
-      <div className="flex-1 p-4 overflow-y-auto custom-scrollbar-blue min-h-0">
-        <h3 className="text-xs font-semibold text-blue-400/70 mb-3 uppercase tracking-wider">
+      <div className="flex-1 p-2 overflow-y-auto custom-scrollbar-blue min-h-0">
+        <h3 className="text-[10px] font-semibold text-blue-400/70 mb-2 uppercase tracking-wider">
           Defense Log
         </h3>
         <div className="space-y-1">
@@ -185,8 +177,8 @@ export function BlueTeamPanel({
       </div>
 
       {/* System Status */}
-      <div className="p-4 border-t border-blue-900/50 bg-blue-950/30">
-        <h3 className="text-xs font-semibold text-blue-400/70 mb-3 uppercase tracking-wider">
+      <div className="p-2 border-t border-blue-900/50 bg-blue-950/30 shrink-0">
+        <h3 className="text-[10px] font-semibold text-blue-400/70 mb-2 uppercase tracking-wider">
           System Status
         </h3>
         <div className="space-y-2">
@@ -270,81 +262,40 @@ function MetricCard({ label, value, icon: Icon, color }: MetricCardProps) {
   )
 }
 
-interface CompactDefenseShieldProps {
+interface SimpleDefenseIconProps {
   defense: Defense
   isBlocking: boolean
-  onBlockComplete: () => void
+  onBlockComplete?: (defenseId: string) => void
 }
 
-function CompactDefenseShield({ defense, isBlocking, onBlockComplete }: CompactDefenseShieldProps) {
+function SimpleDefenseIcon({ defense, isBlocking, onBlockComplete }: SimpleDefenseIconProps) {
   const config = DEFENSE_CONFIGS[defense.type]
-  const Icon = DEFENSE_ICONS[defense.type]
   const color = DEFENSE_COLORS[defense.type]
-  const healthPercentage = defense.strength
 
   return (
-    <AttackTooltip type={defense.type} mode="defense">
-      <div className="relative flex flex-col items-center">
-        {/* Pulsing Glow */}
+    <div className="w-full">
+      <AttackTooltip type={defense.type} mode="defense">
         <motion.div
-          className="absolute inset-0 rounded-full blur-lg -z-10"
-          style={{ backgroundColor: color }}
+          className={cn(
+            'p-2 rounded border flex flex-col items-center justify-center gap-1 min-h-[60px] cursor-help w-full',
+            'bg-blue-950/50 border-blue-700/50 text-blue-400 hover:bg-blue-900/50'
+          )}
           animate={{
-            opacity: defense.status === 'active' ? [0.2, 0.4, 0.2] : 0.1,
-            scale: defense.status === 'active' ? [1, 1.1, 1] : 1,
+            scale: isBlocking ? [1, 1.1, 1] : 1,
+            borderColor: isBlocking ? [color, '#ffffff', color] : undefined,
           }}
-          transition={{ duration: 2, repeat: Infinity }}
-        />
-
-        {/* Shield Circle - Fixed Size */}
-        <motion.div
-          className="w-14 h-14 rounded-full border-2 flex items-center justify-center relative shrink-0"
-          style={{ borderColor: color, backgroundColor: `${color}20` }}
-          animate={{
-            scale: isBlocking ? [1, 1.3, 1] : 1,
-            rotate: isBlocking ? [0, -10, 10, 0] : 0,
+          transition={{ duration: 0.3 }}
+          onAnimationComplete={() => {
+            if (isBlocking && onBlockComplete) {
+              onBlockComplete(defense.id)
+            }
           }}
-          transition={{ duration: 0.5 }}
         >
-          <Icon className="w-6 h-6" style={{ color }} />
-
-          {/* Blocking Effect */}
-          <AnimatePresence>
-            {isBlocking && (
-              <motion.div
-                className="absolute inset-0 rounded-full"
-                style={{ backgroundColor: color }}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: [0, 0.8, 0], scale: [0.8, 1.8, 2] }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.6 }}
-                onAnimationComplete={onBlockComplete}
-              />
-            )}
-          </AnimatePresence>
+          <span className="text-lg">{config.icon}</span>
+          <span className="text-[8px] leading-tight text-center w-full px-1">{config.displayName}</span>
         </motion.div>
-
-        {/* Health Bar */}
-        <div className="mt-2 h-1 w-full bg-gray-800 rounded-full overflow-hidden">
-          <motion.div
-            className="h-full rounded-full"
-            style={{ backgroundColor: color }}
-            animate={{ width: `${healthPercentage}%` }}
-            transition={{ duration: 0.3 }}
-          />
-        </div>
-
-        {/* Label */}
-        <div className="text-center mt-2 w-full">
-          <div className="text-[10px] font-mono truncate" style={{ color }}>
-            {config.displayName}
-          </div>
-          <div className="text-[9px] text-gray-500">
-            {defense.blockedAttacks} blocks
-          </div>
-        </div>
-      </div>
-    </AttackTooltip>
+      </AttackTooltip>
+    </div>
   )
 }
 

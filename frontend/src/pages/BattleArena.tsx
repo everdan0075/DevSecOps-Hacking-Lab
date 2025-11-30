@@ -141,8 +141,13 @@ export function BattleArena() {
 
           {/* Main Battle Area - Fixed height for 2K resolution */}
           <div className="flex-1 flex overflow-hidden min-h-0">
-            {/* Red Team Panel (Left) */}
-            <div className="w-1/4 min-w-[280px] max-w-[360px] overflow-hidden">
+            {/* Event Timeline (Left - Vertical) */}
+            <div className="w-56 shrink-0 overflow-hidden">
+              <EventTimeline events={battleState.events} />
+            </div>
+
+            {/* Red Team Panel (Left-Center) */}
+            <div className="w-80 shrink-0 overflow-hidden">
               <RedTeamPanel
                 activeAttacks={battleState.activeAttacks}
                 score={battleState.score.red}
@@ -159,6 +164,8 @@ export function BattleArena() {
               <Battlefield
                 activeAttacks={battleState.activeAttacks}
                 metrics={battleState.metrics}
+                blockingDefenseId={blockingDefenseId}
+                activeDefenses={battleState.activeDefenses}
                 onAttackComplete={(attackId) => {
                   // Attack animation complete
                 }}
@@ -179,7 +186,7 @@ export function BattleArena() {
               </div>
 
               {/* Tutorial Toggle Button */}
-              <div className="absolute top-4 right-4 z-30">
+              <div className="absolute top-20 right-4 z-30">
                 <motion.button
                   onClick={toggleTutorial}
                   whileHover={{ scale: 1.05 }}
@@ -200,7 +207,7 @@ export function BattleArena() {
                 </motion.button>
               </div>
 
-              {/* Battle Commentator - Moved to bottom right */}
+              {/* Battle Commentator - Top right inside battlefield */}
               <BattleCommentator
                 event={latestEvent}
                 tutorialMode={tutorialEnabled}
@@ -209,7 +216,7 @@ export function BattleArena() {
             </div>
 
             {/* Blue Team Panel (Right) */}
-            <div className="w-1/4 min-w-[280px] max-w-[360px] overflow-hidden">
+            <div className="w-80 shrink-0 overflow-hidden">
               <BlueTeamPanel
                 activeDefenses={battleState.activeDefenses}
                 score={battleState.score.blue}
@@ -221,11 +228,6 @@ export function BattleArena() {
                 }}
               />
             </div>
-          </div>
-
-          {/* EventTimeline - Reduced height */}
-          <div className="shrink-0">
-            <EventTimeline events={battleState.events} />
           </div>
         </>
       )}

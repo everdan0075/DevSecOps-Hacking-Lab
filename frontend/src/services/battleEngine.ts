@@ -329,8 +329,6 @@ class BattleEngine {
       attack.progress = 100
 
       this.updateScore('blue', 'attacksBlocked', 1)
-      this.state.metrics.blockedAttacks++
-      this.state.metrics.totalBlocks++
 
       const points = POINT_VALUES.ATTACK_BLOCKED
       this.addPoints('blue', points)
@@ -362,7 +360,6 @@ class BattleEngine {
       attack.progress = 100
 
       this.updateScore('red', 'attacksSuccessful', 1)
-      this.state.metrics.successfulAttacks++
 
       const config = ATTACK_CONFIGS[attack.type]
       const points = config.basePoints * this.state.scenario.redPointsMultiplier
@@ -395,10 +392,15 @@ class BattleEngine {
       this.emit('onCriticalMoment', this.state.events[this.state.events.length - 1])
     }
 
-    // Update metrics
-    this.state.metrics.totalAttacks++
+    // Sync metrics with score (score is source of truth)
+    this.state.metrics.totalAttacks = this.state.score.red.attacksLaunched
+    this.state.metrics.successfulAttacks = this.state.score.red.attacksSuccessful
+    this.state.metrics.blockedAttacks = this.state.score.blue.attacksBlocked
+    this.state.metrics.totalBlocks = this.state.score.blue.attacksBlocked
     this.state.metrics.successRate =
-      (this.state.metrics.successfulAttacks / this.state.metrics.totalAttacks) * 100
+      this.state.metrics.totalAttacks > 0
+        ? (this.state.metrics.successfulAttacks / this.state.metrics.totalAttacks) * 100
+        : 0
 
     // Remove from active attacks after delay
     setTimeout(() => {
@@ -433,13 +435,13 @@ class BattleEngine {
     // Tiered block probabilities based on attack severity
     const baseBlockChance = defense.strength / 100
     const severityMultiplier: Record<string, number> = {
-      low: 0.95,
-      medium: 0.85,
-      high: 0.75,
-      critical: 0.60,
+      low: 1.0,   // 100% - easy to block
+      medium: 0.95, // 95% - slightly harder
+      high: 0.85,  // 85% - moderately difficult
+      critical: 0.75, // 75% - hardest to block
     }
 
-    const finalChance = baseBlockChance * (severityMultiplier[attack.severity] || 0.75)
+    const finalChance = baseBlockChance * (severityMultiplier[attack.severity] || 0.85)
 
     if (Math.random() < finalChance) {
       return defense
@@ -574,7 +576,7 @@ class BattleEngine {
 
     const currentValue = this.state.score[team][metric]
     if (typeof currentValue === 'number') {
-      ;(this.state.score[team][metric] as number) = value
+      ;(this.state.score[team][metric] as number) = currentValue + value
     }
   }
 

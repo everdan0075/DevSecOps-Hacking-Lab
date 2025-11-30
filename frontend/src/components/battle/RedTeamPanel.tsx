@@ -3,15 +3,15 @@
  *
  * Left panel showing RED TEAM offensive dashboard
  * Features:
- * - Active attacks list with progress bars
- * - Metrics: attempts, success rate, breaches, data exfiltrated
- * - Live attack feed (scrolling logs)
- * - Manual attack launcher buttons
+ * - Score and metrics display
+ * - Attack launchers grid
+ * - Active attacks feed
+ * - Attack event log
  * - Red/orange cyberpunk theme
  */
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { Zap, TrendingUp, Database, AlertTriangle } from 'lucide-react'
+import { Zap, TrendingUp, Database, AlertTriangle, Target } from 'lucide-react'
 import { ATTACK_CONFIGS, type Attack, type BattleMetrics, type TeamScore } from '@/types/battle'
 import { cn } from '@/utils/cn'
 import { AttackTooltip } from './AttackTooltip'
@@ -38,9 +38,9 @@ export function RedTeamPanel({
   const redEvents = events.filter((e) => e.team === 'red').slice(-20).reverse()
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-red-950/40 to-orange-950/40 border-r border-red-900/50">
+    <div className="h-full flex flex-col bg-gradient-to-br from-red-950/40 to-orange-950/40 border-r border-red-900/50 relative">
       {/* Header */}
-      <div className="p-4 border-b border-red-900/50 bg-red-950/50">
+      <div className="p-3 border-b border-red-900/50 bg-red-950/50">
         <div className="flex items-center gap-3">
           <div className="relative">
             <Zap className="w-6 h-6 text-red-500" />
@@ -74,7 +74,7 @@ export function RedTeamPanel({
       </div>
 
       {/* Metrics Grid */}
-      <div className="p-4 border-b border-red-900/50">
+      <div className="p-3 border-b border-red-900/50">
         <div className="grid grid-cols-2 gap-3">
           <MetricCard
             label="Attacks"
@@ -83,7 +83,7 @@ export function RedTeamPanel({
             color="red"
           />
           <MetricCard
-            label="Success Rate"
+            label="Success"
             value={`${Math.round(metrics.successRate || 0)}%`}
             icon={TrendingUp}
             color="orange"
@@ -95,66 +95,83 @@ export function RedTeamPanel({
             color="red"
           />
           <MetricCard
-            label="Data (MB)"
-            value={Math.round(score.dataExfiltrated || 0)}
+            label="Data"
+            value={`${Math.round(score.dataExfiltrated || 0)}MB`}
             icon={Database}
             color="orange"
           />
         </div>
       </div>
 
-      {/* Active Attacks */}
-      <div className="p-4 border-b border-red-900/50 max-h-48 overflow-y-auto custom-scrollbar">
-        <h3 className="text-xs font-semibold text-red-400/70 mb-3 uppercase tracking-wider">
-          Active Attacks ({activeAttacks.length})
+      {/* Attack Launchers */}
+      <div className="p-2 border-b border-red-900/50 shrink-0">
+        <h3 className="text-[10px] font-semibold text-red-400/70 mb-2 uppercase tracking-wider">
+          Attack Arsenal
         </h3>
-        <div className="space-y-2">
-          <AnimatePresence>
-            {activeAttacks.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-xs text-red-400/50 text-center py-4"
-              >
-                No active attacks
-              </motion.div>
-            ) : (
-              activeAttacks.map((attack) => (
-                <motion.div
-                  key={attack.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  className="p-2 bg-black/30 rounded border border-red-900/30"
+        <div className="grid grid-cols-3 gap-2">
+          {Object.entries(ATTACK_CONFIGS).map(([type, config]) => {
+            const isEnabled = enabledAttacks.includes(type)
+            return (
+              <AttackTooltip key={type} type={type as any} mode="attack">
+                <button
+                  onClick={() => isEnabled && !isPaused && onLaunchAttack(type)}
+                  disabled={!isEnabled || isPaused}
+                  className={cn(
+                    'p-2 rounded border text-xs flex flex-col items-center justify-center gap-1 min-h-[60px]',
+                    isEnabled && !isPaused
+                      ? 'bg-red-950/50 border-red-700/50 text-red-400 hover:bg-red-900/50 cursor-pointer'
+                      : 'bg-gray-900/30 border-gray-800/50 text-gray-600 cursor-not-allowed opacity-50'
+                  )}
                 >
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-mono text-red-400">
-                      {ATTACK_CONFIGS[attack.type]?.icon} {attack.name}
-                    </span>
-                    <span className="text-xs text-red-400/50">
-                      {attack.status}
-                    </span>
-                  </div>
-                  <div className="h-1 bg-red-950/50 rounded-full overflow-hidden">
-                    <motion.div
-                      className="h-full bg-gradient-to-r from-red-500 to-orange-500"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${attack.progress}%` }}
-                      transition={{ duration: 0.3 }}
-                    />
-                  </div>
-                </motion.div>
-              ))
-            )}
-          </AnimatePresence>
+                  <span className="text-lg">{config.icon}</span>
+                  <span className="text-[8px] leading-tight text-center">{config.displayName}</span>
+                </button>
+              </AttackTooltip>
+            )
+          })}
         </div>
       </div>
 
-      {/* Attack Feed */}
-      <div className="flex-1 p-4 overflow-y-auto custom-scrollbar">
-        <h3 className="text-xs font-semibold text-red-400/70 mb-3 uppercase tracking-wider">
-          Attack Feed
+      {/* Active Attacks */}
+      <div className="p-2 border-b border-red-900/50 shrink-0">
+        <h3 className="text-[10px] font-semibold text-red-400/70 mb-2 uppercase tracking-wider">
+          Active Attacks ({activeAttacks.length})
+        </h3>
+        <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar-red">
+          {activeAttacks.length === 0 ? (
+            <div className="text-xs text-red-400/50 text-center py-4">
+              No active attacks
+            </div>
+          ) : (
+            activeAttacks.slice(0, 5).map((attack) => (
+              <motion.div
+                key={attack.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="p-2 bg-black/20 rounded border border-red-900/20"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-red-400 font-mono truncate">{attack.name}</span>
+                  <span className="text-[10px] text-red-500/70">{attack.progress}%</span>
+                </div>
+                <div className="h-1.5 bg-red-950/50 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-red-500 to-orange-500"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${attack.progress}%` }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </div>
+              </motion.div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Attack Log */}
+      <div className="flex-1 p-2 overflow-y-auto custom-scrollbar-red min-h-0">
+        <h3 className="text-[10px] font-semibold text-red-400/70 mb-2 uppercase tracking-wider">
+          Attack Log
         </h3>
         <div className="space-y-1">
           <AnimatePresence>
@@ -182,39 +199,34 @@ export function RedTeamPanel({
         </div>
       </div>
 
-      {/* Attack Launchers */}
-      <div className="p-4 border-t border-red-900/50 bg-red-950/30">
-        <h3 className="text-xs font-semibold text-red-400/70 mb-3 uppercase tracking-wider">
-          Launch Attack
+      {/* Attack Stats */}
+      <div className="p-2 border-t border-red-900/50 bg-red-950/30 shrink-0">
+        <h3 className="text-[10px] font-semibold text-red-400/70 mb-2 uppercase tracking-wider">
+          Combat Stats
         </h3>
-        <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar">
-          {Object.entries(ATTACK_CONFIGS).map(([type, config]) => {
-            const isEnabled = enabledAttacks.includes(type)
-            return (
-              <AttackTooltip key={type} type={type as any} mode="attack">
-                <motion.button
-                  onClick={() => isEnabled && !isPaused && onLaunchAttack(type)}
-                  disabled={!isEnabled || isPaused}
-                  whileHover={isEnabled && !isPaused ? { scale: 1.05 } : {}}
-                  whileTap={isEnabled && !isPaused ? { scale: 0.95 } : {}}
-                  className={cn(
-                    'p-2 rounded border text-xs font-mono transition-all w-full',
-                    isEnabled && !isPaused
-                      ? 'bg-red-950/50 border-red-700/50 text-red-400 hover:bg-red-900/50 hover:border-red-600 cursor-pointer'
-                      : 'bg-gray-900/30 border-gray-800/50 text-gray-600 cursor-not-allowed opacity-50'
-                  )}
-                >
-                  <div className="flex items-center gap-1">
-                    <span>{config.icon}</span>
-                    <span className="truncate">{config.displayName}</span>
-                  </div>
-                  <div className="text-[10px] text-red-400/50 mt-1">
-                    {config.basePoints}pts
-                  </div>
-                </motion.button>
-              </AttackTooltip>
-            )
-          })}
+        <div className="space-y-2">
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-red-400/70">Success Rate</span>
+            <motion.span
+              key={metrics.successRate}
+              className="text-red-500 font-mono font-bold"
+              initial={{ scale: 1.2 }}
+              animate={{ scale: 1 }}
+            >
+              {Math.round(metrics.successRate || 0)}%
+            </motion.span>
+          </div>
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-red-400/70">Systems Compromised</span>
+            <motion.span
+              key={score.systemsCompromised}
+              className="text-orange-500 font-mono font-bold"
+              initial={{ scale: 1.2 }}
+              animate={{ scale: 1 }}
+            >
+              {score.systemsCompromised || 0}
+            </motion.span>
+          </div>
         </div>
       </div>
     </div>
@@ -253,19 +265,19 @@ function MetricCard({ label, value, icon: Icon, color }: MetricCardProps) {
   )
 }
 
-// Custom scrollbar styles (add to global CSS)
+// Custom scrollbar styles for red team (add to global CSS)
 const scrollbarStyles = `
-  .custom-scrollbar::-webkit-scrollbar {
+  .custom-scrollbar-red::-webkit-scrollbar {
     width: 4px;
   }
-  .custom-scrollbar::-webkit-scrollbar-track {
+  .custom-scrollbar-red::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.2);
   }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
+  .custom-scrollbar-red::-webkit-scrollbar-thumb {
     background: rgba(239, 68, 68, 0.3);
     border-radius: 2px;
   }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  .custom-scrollbar-red::-webkit-scrollbar-thumb:hover {
     background: rgba(239, 68, 68, 0.5);
   }
 `

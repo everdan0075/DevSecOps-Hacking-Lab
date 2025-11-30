@@ -45,10 +45,10 @@ export function ScoreBoard({
   const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
 
   return (
-    <div className="h-20 bg-cyber-surface/95 backdrop-blur-sm border-b border-cyber-border flex items-center px-4">
-      <div className="flex items-center justify-between w-full gap-4">
+    <div className="shrink-0 bg-cyber-surface/95 backdrop-blur-sm border-b border-cyber-border px-4 py-3">
+      <div className="flex items-center justify-center w-full gap-8">
         {/* RED TEAM Score */}
-        <div className="flex items-center gap-4 min-w-[200px]">
+        <div className="flex items-center gap-4">
           <div className="relative">
             <Zap className="w-8 h-8 text-red-500" />
             <motion.div
@@ -74,7 +74,7 @@ export function ScoreBoard({
         {/* CENTER: Advantage Bar + Phase Info */}
         <div className="flex-1 max-w-2xl">
           {/* Phase Info */}
-          <div className="flex items-center justify-center gap-3 mb-2">
+          <div className="flex items-center justify-center gap-3 mb-1">
             <div className="flex items-center gap-2 px-3 py-1 bg-cyber-bg/50 border border-cyber-border rounded-lg">
               <Clock className="w-4 h-4 text-cyber-primary" />
               <span className="text-xs font-mono text-cyber-primary">
@@ -117,14 +117,14 @@ export function ScoreBoard({
             />
 
             {/* Labels */}
-            <div className="flex justify-between mt-2 text-xs font-mono">
+            <div className="flex justify-between mt-1 text-xs font-mono">
               <span className="text-red-500">RED ADVANTAGE</span>
               <span className="text-gray-500">NEUTRAL</span>
               <span className="text-blue-500">BLUE ADVANTAGE</span>
             </div>
 
             {/* Advantage Text */}
-            <div className="text-center mt-2">
+            <div className="text-center mt-1">
               <motion.span
                 key={advantage}
                 className={cn(
@@ -144,7 +144,7 @@ export function ScoreBoard({
         </div>
 
         {/* BLUE TEAM Score */}
-        <div className="flex items-center gap-4 min-w-[200px] justify-end">
+        <div className="flex items-center gap-4">
           <div className="text-right">
             <div className="text-xs text-blue-400/70 font-mono uppercase">Blue Team</div>
             <motion.div

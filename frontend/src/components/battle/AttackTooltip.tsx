@@ -11,7 +11,7 @@
 
 import { Info } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { AttackType, DefenseType } from '@/types/battle'
 
 interface TooltipContent {
@@ -200,34 +200,72 @@ interface AttackTooltipProps {
 
 export function AttackTooltip({ type, mode, children }: AttackTooltipProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 })
+  const triggerRef = useRef<HTMLDivElement>(null)
 
   const content = mode === 'attack'
     ? ATTACK_TOOLTIPS[type as AttackType]
     : DEFENSE_TOOLTIPS[type as DefenseType]
 
+  // Calculate tooltip position when opened
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      const tooltipWidth = 320 // w-80 = 320px
+      const tooltipHeight = 400 // estimated height
+      const margin = 20
+
+      // Calculate ideal centered position
+      const centerX = rect.left + rect.width / 2
+
+      // Calculate actual left position (accounting for centering)
+      let left = centerX - tooltipWidth / 2
+
+      // Adjust for right boundary
+      if (left + tooltipWidth > window.innerWidth - margin) {
+        left = window.innerWidth - tooltipWidth - margin
+      }
+
+      // Adjust for left boundary
+      if (left < margin) {
+        left = margin
+      }
+
+      // Position above the element
+      const top = rect.top - tooltipHeight - 10
+
+      setTooltipPos({ top, left })
+    }
+  }, [isOpen])
+
   if (!content) return <>{children}</>
 
   return (
-    <div className="relative inline-block">
+    <div className="relative inline-block group">
       <div
+        ref={triggerRef}
         onMouseEnter={() => setIsOpen(true)}
         onMouseLeave={() => setIsOpen(false)}
         className="inline-flex items-center gap-1 cursor-help"
       >
         {children}
-        <Info className="w-3 h-3 text-gray-500 hover:text-cyber-primary transition-colors" />
+        <Info className="w-3 h-3 text-gray-500 group-hover:text-cyber-primary transition-colors" />
       </div>
 
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 pointer-events-none"
+            className="fixed z-[9999] w-80 pointer-events-none"
+            style={{
+              top: `${tooltipPos.top}px`,
+              left: `${tooltipPos.left}px`,
+            }}
           >
-            <div className="bg-cyber-surface border border-cyber-border rounded-lg shadow-2xl p-4">
+            <div className="bg-cyber-surface border-2 border-cyber-border rounded-lg shadow-2xl p-4 backdrop-blur-xl">
               <div className="space-y-3">
                 {/* What */}
                 <div>
@@ -265,7 +303,7 @@ export function AttackTooltip({ type, mode, children }: AttackTooltipProps) {
                 </div>
               </div>
 
-              {/* Arrow */}
+              {/* Arrow pointer */}
               <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
                 <div className="border-8 border-transparent border-t-cyber-border" />
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full">

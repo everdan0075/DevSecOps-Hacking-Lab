@@ -175,12 +175,21 @@ export function BattleCommentator({ event, tutorialMode, onDismiss }: BattleComm
   const [queue, setQueue] = useState<Array<{ event: BattleEvent; commentary: CommentaryData }>>([])
   const [currentCommentary, setCurrentCommentary] = useState<{ event: BattleEvent; commentary: CommentaryData } | null>(null)
 
-  // Add new events to queue
+  // Add new events to queue - IMMEDIATE display, no queue delay
   useEffect(() => {
     if (event) {
+      // Clear queue and current commentary if battle is complete
+      if (event.type === 'phase_change' && event.message.toLowerCase().includes('complete')) {
+        setQueue([])
+        setCurrentCommentary(null)
+        return
+      }
+
       const commentary = generateCommentary(event, tutorialMode)
       if (commentary) {
-        setQueue((prev) => [...prev, { event, commentary }])
+        // IMMEDIATELY show this event, clear any previous queue
+        setCurrentCommentary({ event, commentary })
+        setQueue([])
       }
     }
   }, [event, tutorialMode])
@@ -219,12 +228,12 @@ export function BattleCommentator({ event, tutorialMode, onDismiss }: BattleComm
     <AnimatePresence>
       <motion.div
         key={currentEvent.id}
-        initial={{ opacity: 0, x: 50, y: 20 }}
+        initial={{ opacity: 0, x: 50, y: -20 }}
         animate={{ opacity: 1, x: 0, y: 0 }}
-        exit={{ opacity: 0, x: 50, y: 20 }}
+        exit={{ opacity: 0, x: 50, y: -20 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         className={cn(
-          'fixed bottom-28 right-4 z-40 w-96 max-w-[calc(100vw-2rem)] border-2 rounded-lg shadow-2xl backdrop-blur-md p-4',
+          'absolute top-16 right-20 z-40 w-[380px] max-w-[calc(100%-2rem)] border-2 rounded-lg shadow-2xl backdrop-blur-md p-3',
           teamColors[commentary.team]
         )}
       >
