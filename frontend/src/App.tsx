@@ -21,6 +21,7 @@ const Siem = lazy(() => import('./pages/Siem').then(m => ({ default: m.Siem })))
 const Docs = lazy(() => import('./pages/Docs').then(m => ({ default: m.Docs })))
 const Architecture = lazy(() => import('./pages/Architecture').then(m => ({ default: m.Architecture })))
 const BattleArena = lazy(() => import('./pages/BattleArena').then(m => ({ default: m.BattleArena })))
+const TimeBreach = lazy(() => import('./pages/TimeBreach').then(m => ({ default: m.TimeBreach })))
 
 function AnimatedRoutes() {
   const location = useLocation()
@@ -62,6 +63,16 @@ function AnimatedRoutes() {
           <Route path="battle" element={
             <Suspense fallback={<LoadingSkeleton variant="page" />}>
               <BattleArena />
+            </Suspense>
+          } />
+          <Route path="time-breach" element={
+            <Suspense fallback={<LoadingSkeleton variant="page" />}>
+              <TimeBreach />
+            </Suspense>
+          } />
+          <Route path="time-breach/:missionId" element={
+            <Suspense fallback={<LoadingSkeleton variant="page" />}>
+              <TimeBreach />
             </Suspense>
           } />
           <Route path="docs" element={

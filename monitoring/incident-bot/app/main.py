@@ -23,6 +23,7 @@ from app.models.runbook import RunbookExecution
 from app.services.executor import RunbookExecutor
 from app.services.runbook_loader import RunbookLoader
 from app.correlation import correlation_engine, AttackEvent
+from app.routes import time_breach
 
 # Configure logging
 logging.basicConfig(
@@ -68,6 +69,9 @@ app = FastAPI(
     version=settings.app_version,
     lifespan=lifespan,
 )
+
+# Include routers
+app.include_router(time_breach.router, prefix="/api")
 
 
 class HealthResponse(BaseModel):
