@@ -21,6 +21,9 @@ import {
 } from 'lucide-react'
 import type { Mission, MissionProgress } from '@/types/mission'
 import { cn } from '@/utils/cn'
+import { AchievementBadge } from './AchievementBadge'
+import achievementsData from '../../data/achievements.json'
+import type { Achievement } from '../../types/mission'
 
 interface MissionDebriefProps {
   mission: Mission
@@ -220,23 +223,30 @@ export function MissionDebrief({ mission, progress, onRestart, onBackToSelect }:
           {/* Achievements */}
           {ending.rewards.achievements.length > 0 && (
             <div className="p-6 bg-cyber-surface border border-cyber-border rounded-lg">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-6">
                 <Trophy className="w-5 h-5 text-yellow-500" />
                 <h2 className="text-lg font-semibold text-white">Achievements Unlocked</h2>
+                <span className="px-2 py-1 bg-yellow-500/10 rounded text-sm text-yellow-500 font-bold">
+                  +{ending.rewards.achievements.length}
+                </span>
               </div>
 
-              <div className="flex flex-wrap gap-3">
-                {ending.rewards.achievements.map((achievement, index) => (
-                  <motion.div
-                    key={achievement}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="px-4 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg"
-                  >
-                    <div className="text-sm font-semibold text-yellow-500">{achievement}</div>
-                  </motion.div>
-                ))}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                {ending.rewards.achievements.map((achievementId, index) => {
+                  const achievement = (achievementsData as Achievement[]).find((a) => a.id === achievementId)
+                  if (!achievement) return null
+
+                  return (
+                    <AchievementBadge
+                      key={achievementId}
+                      achievement={achievement}
+                      unlocked={true}
+                      showDetails={true}
+                      size="md"
+                      animated={true}
+                    />
+                  )
+                })}
               </div>
             </div>
           )}

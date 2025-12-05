@@ -203,3 +203,57 @@ export interface MissionStats {
   mostUsedRole: MissionRole
   endingDistribution: Record<EndingType, number>
 }
+
+/**
+ * Achievement System
+ */
+export type AchievementCategory = 'technique' | 'mission' | 'role' | 'special' | 'speedrun'
+export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum'
+
+export interface Achievement {
+  id: string
+  title: string
+  description: string
+  category: AchievementCategory
+  tier: AchievementTier
+  icon: string // Emoji or icon name
+
+  // Unlock conditions
+  condition: {
+    type: 'mitre_technique' | 'mission_complete' | 'role_mastery' | 'perfect_score' | 'speed' | 'custom'
+    value?: any // Technique ID, mission ID, time threshold, etc.
+  }
+
+  // Rewards
+  points: number
+  unlocks?: string[] // What this achievement unlocks (new missions, roles, etc.)
+
+  // Metadata
+  rarity?: number // 0-100, percentage of players who unlocked
+  hidden?: boolean // Secret achievement not shown until unlocked
+}
+
+export interface AchievementProgress {
+  userId?: string
+
+  // Unlocked achievements
+  unlockedAchievements: string[]
+
+  // MITRE technique mastery
+  unlockedTechniques: string[]
+  techniqueUsageCount: Record<string, number> // T1190: 5, T1505: 3, etc.
+
+  // Mission completion
+  completedMissions: string[]
+  missionsByRole: Record<MissionRole, string[]> // attacker: [equifax, capitalone], etc.
+
+  // Stats
+  totalPoints: number
+  totalPlayTime: number // seconds
+  fastestCompletions: Record<string, number> // missionId: timeInSeconds
+  perfectMissions: string[] // 100% completion
+
+  // Metadata
+  firstAchievementAt?: string
+  lastUpdatedAt: string
+}

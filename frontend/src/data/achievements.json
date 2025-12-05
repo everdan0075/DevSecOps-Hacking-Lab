@@ -1,0 +1,200 @@
+[
+  {
+    "id": "first-exploit",
+    "title": "First Blood",
+    "description": "Successfully exploit your first vulnerability",
+    "category": "special",
+    "tier": "bronze",
+    "icon": "🎯",
+    "condition": {
+      "type": "custom",
+      "value": "complete_any_exploitation_objective"
+    },
+    "points": 50
+  },
+  {
+    "id": "mitre-t1190",
+    "title": "Exploit Public-Facing Application",
+    "description": "Master MITRE ATT&CK technique T1190",
+    "category": "technique",
+    "tier": "silver",
+    "icon": "🌐",
+    "condition": {
+      "type": "mitre_technique",
+      "value": "T1190"
+    },
+    "points": 100
+  },
+  {
+    "id": "mitre-t1505",
+    "title": "Server Software Component",
+    "description": "Master MITRE ATT&CK technique T1505 (Web Shells)",
+    "category": "technique",
+    "tier": "silver",
+    "icon": "🐚",
+    "condition": {
+      "type": "mitre_technique",
+      "value": "T1505"
+    },
+    "points": 100
+  },
+  {
+    "id": "mitre-t1018",
+    "title": "Remote System Discovery",
+    "description": "Master MITRE ATT&CK technique T1018",
+    "category": "technique",
+    "tier": "silver",
+    "icon": "🔍",
+    "condition": {
+      "type": "mitre_technique",
+      "value": "T1018"
+    },
+    "points": 100
+  },
+  {
+    "id": "mitre-t1005",
+    "title": "Data from Local System",
+    "description": "Master MITRE ATT&CK technique T1005",
+    "category": "technique",
+    "tier": "silver",
+    "icon": "💾",
+    "condition": {
+      "type": "mitre_technique",
+      "value": "T1005"
+    },
+    "points": 100
+  },
+  {
+    "id": "mitre-t1041",
+    "title": "Exfiltration Over C2 Channel",
+    "description": "Master MITRE ATT&CK technique T1041",
+    "category": "technique",
+    "tier": "silver",
+    "icon": "📡",
+    "condition": {
+      "type": "mitre_technique",
+      "value": "T1041"
+    },
+    "points": 100
+  },
+  {
+    "id": "equifax-complete",
+    "title": "Equifax Historian",
+    "description": "Complete the Equifax 2017 breach mission",
+    "category": "mission",
+    "tier": "gold",
+    "icon": "🏆",
+    "condition": {
+      "type": "mission_complete",
+      "value": "equifax-2017"
+    },
+    "points": 500
+  },
+  {
+    "id": "equifax-speedrun",
+    "title": "Time Traveler",
+    "description": "Complete Equifax mission in under 30 minutes",
+    "category": "speedrun",
+    "tier": "platinum",
+    "icon": "⚡",
+    "condition": {
+      "type": "speed",
+      "value": {
+        "missionId": "equifax-2017",
+        "maxTime": 1800
+      }
+    },
+    "points": 1000,
+    "rarity": 5
+  },
+  {
+    "id": "equifax-perfect",
+    "title": "Perfectionist",
+    "description": "Complete Equifax mission with 100% objectives and no hints",
+    "category": "special",
+    "tier": "platinum",
+    "icon": "💎",
+    "condition": {
+      "type": "perfect_score",
+      "value": "equifax-2017"
+    },
+    "points": 750,
+    "rarity": 10
+  },
+  {
+    "id": "attacker-mastery",
+    "title": "Master Attacker",
+    "description": "Complete 3 missions as attacker role",
+    "category": "role",
+    "tier": "gold",
+    "icon": "⚔️",
+    "condition": {
+      "type": "role_mastery",
+      "value": {
+        "role": "attacker",
+        "count": 3
+      }
+    },
+    "points": 300
+  },
+  {
+    "id": "defender-mastery",
+    "title": "Master Defender",
+    "description": "Complete 3 missions as defender role",
+    "category": "role",
+    "tier": "gold",
+    "icon": "🛡️",
+    "condition": {
+      "type": "role_mastery",
+      "value": {
+        "role": "defender",
+        "count": 3
+      }
+    },
+    "points": 300
+  },
+  {
+    "id": "forensics-mastery",
+    "title": "Master Investigator",
+    "description": "Complete 3 missions as forensics role",
+    "category": "role",
+    "tier": "gold",
+    "icon": "🔬",
+    "condition": {
+      "type": "role_mastery",
+      "value": {
+        "role": "forensics",
+        "count": 3
+      }
+    },
+    "points": 300
+  },
+  {
+    "id": "technique-collector",
+    "title": "Technique Collector",
+    "description": "Unlock 10 different MITRE ATT&CK techniques",
+    "category": "technique",
+    "tier": "gold",
+    "icon": "📚",
+    "condition": {
+      "type": "custom",
+      "value": "unlock_10_techniques"
+    },
+    "points": 500
+  },
+  {
+    "id": "mitre-master",
+    "title": "ATT&CK Master",
+    "description": "Unlock all MITRE techniques across all missions",
+    "category": "technique",
+    "tier": "platinum",
+    "icon": "👑",
+    "condition": {
+      "type": "custom",
+      "value": "unlock_all_techniques"
+    },
+    "points": 2000,
+    "rarity": 1,
+    "hidden": true
+  }
+]

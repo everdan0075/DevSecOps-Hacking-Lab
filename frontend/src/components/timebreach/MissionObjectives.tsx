@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, Circle, Lock, Target, Shield, Search, Lightbulb, Award } from 'lucide-react'
 import type { Mission, MissionProgress, TimelinePhase, MissionRole, Objective } from '@/types/mission'
 import { cn } from '@/utils/cn'
+import { CodePlayground } from './CodePlayground'
 
 interface MissionObjectivesProps {
   mission: Mission
@@ -85,6 +86,21 @@ export function MissionObjectives({
     }
 
     setSelectedObjective(null)
+  }
+
+  const handleCodePlaygroundComplete = (points: number, technique: string) => {
+    if (selectedObjective) {
+      onObjectiveComplete(selectedObjective.id, points)
+
+      // Unlock evidence
+      if (selectedObjective.unlocksEvidence) {
+        selectedObjective.unlocksEvidence.forEach((evidenceId) => {
+          onEvidenceDiscovered(evidenceId)
+        })
+      }
+
+      setSelectedObjective(null)
+    }
   }
 
   const getTypeIcon = (type: Objective['type']) => {
@@ -230,8 +246,8 @@ export function MissionObjectives({
                   </div>
                 )}
 
-                {/* Hints */}
-                {selectedObjective.hints.length > 0 && (
+                {/* Hints - Only show for non-exploitation objectives */}
+                {selectedObjective.type !== 'exploitation' && selectedObjective.hints.length > 0 && (
                   <div className="mb-4">
                     <div className="text-sm font-semibold text-gray-400 mb-2">Hints:</div>
                     <div className="space-y-2">
@@ -263,7 +279,18 @@ export function MissionObjectives({
                   </div>
                 )}
 
-                {/* Complete Button */}
+                {/* Code Playground for exploitation objectives */}
+                {selectedObjective.type === 'exploitation' && getObjectiveStatus(selectedObjective) === 'available' && (
+                  <div className="mb-4">
+                    <CodePlayground
+                      objective={selectedObjective}
+                      missionId={mission.id}
+                      onComplete={handleCodePlaygroundComplete}
+                    />
+                  </div>
+                )}
+
+                {/* Complete Button - Only for non-exploitation objectives */}
                 <div className="flex gap-3">
                   <button
                     onClick={() => setSelectedObjective(null)}
@@ -271,7 +298,7 @@ export function MissionObjectives({
                   >
                     Close
                   </button>
-                  {getObjectiveStatus(selectedObjective) === 'available' && (
+                  {selectedObjective.type !== 'exploitation' && getObjectiveStatus(selectedObjective) === 'available' && (
                     <button
                       onClick={() => handleComplete(selectedObjective)}
                       className="flex-1 py-2 bg-cyber-primary text-cyber-bg rounded font-semibold hover:bg-cyber-secondary transition-all"
