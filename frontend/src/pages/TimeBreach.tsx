@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Clock, Shield, Target, Award, BookOpen, ArrowLeft } from 'lucide-react'
+import { Clock, Shield, Target, BookOpen, ArrowLeft } from 'lucide-react'
 import { MissionBriefing } from '@/components/timebreach/MissionBriefing'
 import { InteractiveTimeline } from '@/components/timebreach/InteractiveTimeline'
 import { MissionObjectives } from '@/components/timebreach/MissionObjectives'
@@ -85,50 +85,74 @@ export function TimeBreach() {
 
   const handlePhaseChange = (phaseIndex: number) => {
     setCurrentPhaseIndex(phaseIndex)
-    if (selectedMission && progress) {
+    if (selectedMission) {
       const newPhaseId = selectedMission.timeline[phaseIndex].id
-      setProgress({
-        ...progress,
-        currentPhaseId: newPhaseId,
-        lastPlayedAt: new Date().toISOString(),
+      setProgress((prevProgress) => {
+        if (!prevProgress) return prevProgress
+
+        return {
+          ...prevProgress,
+          currentPhaseId: newPhaseId,
+          lastPlayedAt: new Date().toISOString(),
+        }
       })
     }
   }
 
-  const handleObjectiveComplete = (objectiveId: string, pointsEarned: number) => {
-    if (!progress) return
+  const handleObjectiveComplete = (objectiveId: string) => {
+    console.log('[TimeBreach] handleObjectiveComplete called with:', objectiveId)
 
-    setProgress({
-      ...progress,
-      completedObjectives: [...progress.completedObjectives, objectiveId],
-      score: progress.score + pointsEarned,
-      lastPlayedAt: new Date().toISOString(),
+    setProgress((prevProgress) => {
+      if (!prevProgress) return prevProgress
+
+      console.log('[TimeBreach] Current completedObjectives:', prevProgress.completedObjectives)
+
+      // Prevent multiple completions
+      if (prevProgress.completedObjectives.includes(objectiveId)) {
+        console.log('[TimeBreach] Objective already completed, skipping')
+        return prevProgress
+      }
+
+      const newCompletedObjectives = [...prevProgress.completedObjectives, objectiveId]
+      console.log('[TimeBreach] Updating progress with new completedObjectives:', newCompletedObjectives)
+
+      return {
+        ...prevProgress,
+        completedObjectives: newCompletedObjectives,
+        lastPlayedAt: new Date().toISOString(),
+      }
     })
   }
 
   const handleEvidenceDiscovered = (evidenceId: string) => {
-    if (!progress) return
+    setProgress((prevProgress) => {
+      if (!prevProgress) return prevProgress
 
-    setProgress({
-      ...progress,
-      discoveredEvidence: [...progress.discoveredEvidence, evidenceId],
-      lastPlayedAt: new Date().toISOString(),
+      return {
+        ...prevProgress,
+        discoveredEvidence: [...prevProgress.discoveredEvidence, evidenceId],
+        lastPlayedAt: new Date().toISOString(),
+      }
     })
   }
 
   const handleMissionComplete = (endingId: string) => {
-    if (!progress) return
+    setProgress((prevProgress) => {
+      if (!prevProgress) return prevProgress
 
-    setProgress({
-      ...progress,
-      completedAt: new Date().toISOString(),
-      ending: endingId,
+      return {
+        ...prevProgress,
+        completedAt: new Date().toISOString(),
+        ending: endingId,
+      }
     })
 
     setGamePhase('debrief')
   }
 
   const currentPhase = selectedMission?.timeline[currentPhaseIndex]
+
+  console.log('[TimeBreach] Component rendering with progress:', progress?.completedObjectives)
 
   return (
     <div className="min-h-screen bg-cyber-bg">
@@ -246,14 +270,6 @@ export function TimeBreach() {
                     )}
                     <span className="text-sm font-medium text-gray-300 capitalize">
                       {selectedRole}
-                    </span>
-                  </div>
-
-                  {/* Score */}
-                  <div className="flex items-center gap-2">
-                    <Award className="w-5 h-5 text-cyber-primary" />
-                    <span className="text-lg font-bold text-cyber-primary">
-                      {progress.score} pts
                     </span>
                   </div>
                 </div>

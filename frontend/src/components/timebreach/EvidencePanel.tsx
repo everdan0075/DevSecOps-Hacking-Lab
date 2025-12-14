@@ -92,12 +92,20 @@ export function EvidencePanel({
     URL.revokeObjectURL(url)
   }
 
+  // Calculate evidence available up to current phase (not future phases)
+  const relevantEvidence = mission.evidence.filter((evidence) => {
+    const phaseIndex = mission.timeline.findIndex(p => p.id === currentPhase.id)
+    const evidencePhaseIndex = mission.timeline.findIndex(p => p.id === evidence.discoveredAt)
+    // Include evidence from current and past phases only (but exclude if not assigned to any phase)
+    return evidencePhaseIndex !== -1 && evidencePhaseIndex <= phaseIndex
+  })
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-white">Evidence Collected</h3>
         <div className="text-sm text-gray-400">
-          {availableEvidence.length} / {mission.evidence.length} items
+          {progress.discoveredEvidence.length} / {mission.evidence.length} items
         </div>
       </div>
 

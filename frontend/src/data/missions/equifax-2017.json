@@ -250,6 +250,7 @@
       "type": "exploitation",
       "requiredObjectives": ["obj-lateral-movement"],
       "requiredEvidence": ["evidence-db-server"],
+      "unlocksEvidence": ["evidence-network-logs"],
       "validation": {
         "type": "api_call",
         "endpoint": "/api/time-breach/equifax/exfiltrate"
@@ -270,6 +271,7 @@
       "description": "As a defender, you received the March 9 email. Identify all systems running Apache Struts and apply the patch before the breach occurs.",
       "role": "defender",
       "type": "defense",
+      "unlocksEvidence": ["evidence-cve-advisory", "evidence-acis-portal", "evidence-struts-version"],
       "validation": {
         "type": "api_call",
         "endpoint": "/api/time-breach/equifax/defender/patch"
@@ -294,6 +296,7 @@
       "description": "The March 15 scan failed to detect the vulnerability. Identify why and reconfigure the scanner to find the dispute portal.",
       "role": "defender",
       "type": "defense",
+      "unlocksEvidence": ["evidence-exploit-poc", "evidence-webshell", "evidence-persistence"],
       "validation": {
         "type": "manual"
       },
@@ -313,7 +316,7 @@
       "description": "Analyze network logs from May-July. Identify the data exfiltration patterns: large outbound transfers to Chinese IP addresses.",
       "role": "defender",
       "type": "investigation",
-      "requiredEvidence": ["evidence-network-logs"],
+      "unlocksEvidence": ["evidence-network-map", "evidence-db-server", "evidence-network-logs"],
       "validation": {
         "type": "quiz",
         "payload": "outbound_china"

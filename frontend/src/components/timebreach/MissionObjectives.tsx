@@ -6,17 +6,60 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle2, Circle, Lock, Target, Shield, Search, Lightbulb, Award } from 'lucide-react'
+import { CheckCircle2, Circle, Lock, Target, Shield, Search, Lightbulb, FileCheck, AlertTriangle, ChevronRight } from 'lucide-react'
 import type { Mission, MissionProgress, TimelinePhase, MissionRole, Objective } from '@/types/mission'
 import { cn } from '@/utils/cn'
 import { CodePlayground } from './CodePlayground'
+
+interface RevealCardProps {
+  title: string
+  content: React.ReactNode
+}
+
+function RevealCard({ title, content }: RevealCardProps) {
+  const [isRevealed, setIsRevealed] = useState(false)
+
+  return (
+    <div>
+      <button
+        onClick={() => setIsRevealed(!isRevealed)}
+        className="w-full text-left p-3 bg-cyber-bg border border-purple-500/30 rounded hover:border-purple-400 transition-all group"
+      >
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-purple-300">{title}</span>
+          <motion.div
+            animate={{ rotate: isRevealed ? 90 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ChevronRight className="w-4 h-4 text-purple-400" />
+          </motion.div>
+        </div>
+      </button>
+      <AnimatePresence>
+        {isRevealed && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden"
+          >
+            <div className="p-3 bg-cyber-surface border-l-2 border-purple-500 ml-4 mt-2">
+              {content}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
 
 interface MissionObjectivesProps {
   mission: Mission
   progress: MissionProgress
   currentPhase: TimelinePhase
   role: MissionRole
-  onObjectiveComplete: (objectiveId: string, points: number) => void
+  onObjectiveComplete: (objectiveId: string) => void
   onEvidenceDiscovered: (evidenceId: string) => void
 }
 
@@ -28,8 +71,11 @@ export function MissionObjectives({
   onObjectiveComplete,
   onEvidenceDiscovered,
 }: MissionObjectivesProps) {
+  console.log('[MissionObjectives] Component rendered, onObjectiveComplete type:', typeof onObjectiveComplete)
+
   const [selectedObjective, setSelectedObjective] = useState<Objective | null>(null)
   const [showHints, setShowHints] = useState<Record<string, number>>({})
+  const [defenseTasks, setDefenseTasks] = useState<Record<string, boolean>>({})
 
   // Get objectives for current phase and role
   const phaseObjectives = mission.objectives.filter(
@@ -37,46 +83,45 @@ export function MissionObjectives({
   )
 
   const getObjectiveStatus = (objective: Objective): 'locked' | 'available' | 'completed' => {
-    if (progress.completedObjectives.includes(objective.id)) {
+    const isCompleted = progress.completedObjectives.includes(objective.id)
+    console.log(`[MissionObjectives] getObjectiveStatus for ${objective.id} (${objective.title}):`, {
+      isCompleted,
+      completedObjectives: progress.completedObjectives
+    })
+
+    if (isCompleted) {
       return 'completed'
     }
 
-    // Check if requirements are met
-    if (objective.requiredObjectives) {
-      const allRequired = objective.requiredObjectives.every((reqId) =>
-        progress.completedObjectives.includes(reqId)
-      )
-      if (!allRequired) return 'locked'
-    }
-
-    if (objective.requiredEvidence) {
-      const allEvidence = objective.requiredEvidence.every((evidenceId) =>
-        progress.discoveredEvidence.includes(evidenceId)
-      )
-      if (!allEvidence) return 'locked'
-    }
-
+    // Educational mode: ALL objectives in current phase are ALWAYS available
+    // No locks, no barriers - let players explore freely!
     return 'available'
   }
 
   const handleObjectiveClick = (objective: Objective) => {
+    console.log('[MissionObjectives] handleObjectiveClick called for:', objective.id, objective.title)
     const status = getObjectiveStatus(objective)
+    console.log('[MissionObjectives] Objective status:', status)
     if (status !== 'locked') {
+      console.log('[MissionObjectives] Opening modal for objective:', objective.id)
       setSelectedObjective(objective)
+    } else {
+      console.log('[MissionObjectives] Objective is locked, not opening modal')
     }
   }
 
-  const handleRevealHint = (objectiveId: string, hintIndex: number, cost: number) => {
+  const handleRevealHint = (objectiveId: string, hintIndex: number) => {
     setShowHints({
       ...showHints,
       [objectiveId]: Math.max(showHints[objectiveId] || 0, hintIndex + 1),
     })
-
-    // Deduct points (optional - можno добавить в progress)
   }
 
   const handleComplete = (objective: Objective) => {
-    onObjectiveComplete(objective.id, objective.points)
+    console.log('[MissionObjectives] handleComplete called for objective:', objective.id)
+    console.log('[MissionObjectives] Objective title:', objective.title)
+
+    onObjectiveComplete(objective.id)
 
     // Unlock evidence
     if (objective.unlocksEvidence) {
@@ -85,12 +130,15 @@ export function MissionObjectives({
       })
     }
 
-    setSelectedObjective(null)
+    // Don't auto-close - let user read the results and close manually
   }
 
-  const handleCodePlaygroundComplete = (points: number, technique: string) => {
+  const handleCodePlaygroundComplete = () => {
     if (selectedObjective) {
-      onObjectiveComplete(selectedObjective.id, points)
+      console.log('[MissionObjectives] handleCodePlaygroundComplete called for objective:', selectedObjective.id)
+      console.log('[MissionObjectives] Objective title:', selectedObjective.title)
+
+      onObjectiveComplete(selectedObjective.id)
 
       // Unlock evidence
       if (selectedObjective.unlocksEvidence) {
@@ -99,9 +147,10 @@ export function MissionObjectives({
         })
       }
 
-      setSelectedObjective(null)
+      // Don't auto-close - let user read the exploit results and close manually
     }
   }
+
 
   const getTypeIcon = (type: Objective['type']) => {
     switch (type) {
@@ -116,35 +165,133 @@ export function MissionObjectives({
     }
   }
 
+  const getDefenseTasks = (objective: Objective): string[] => {
+    // Generate interactive tasks based on objective
+    if (objective.id.includes('patch')) {
+      return [
+        'Identify all servers running Apache Struts',
+        'Download security patch from Apache repository',
+        'Schedule maintenance window for deployment',
+        'Apply patch to ACIS dispute portal',
+        'Verify patch installation with version check',
+        'Restart web services',
+        'Run vulnerability scan to confirm fix',
+      ]
+    }
+    if (objective.id.includes('scan')) {
+      return [
+        'Review vulnerability scanner configuration',
+        'Add ACIS portal to scan scope',
+        'Configure authentication credentials',
+        'Enable Apache Struts detection signatures',
+        'Run manual scan test',
+        'Schedule recurring scans',
+      ]
+    }
+    if (objective.id.includes('detect') || objective.id.includes('traffic')) {
+      return [
+        'Review SIEM alerts for suspicious patterns',
+        'Analyze outbound traffic from dispute portal',
+        'Check for unusual database queries',
+        'Investigate unauthorized file access',
+        'Correlate timeline with security events',
+      ]
+    }
+    return [
+      'Complete the objective requirements',
+      'Review the security implications',
+      'Document your findings',
+    ]
+  }
+
+  // Calculate progress stats
+  const totalObjectives = phaseObjectives.length
+  const completedCount = phaseObjectives.filter(obj =>
+    progress.completedObjectives.includes(obj.id)
+  ).length
+  const availableCount = phaseObjectives.filter(obj =>
+    getObjectiveStatus(obj) === 'available'
+  ).length
+  const progressPercent = totalObjectives > 0 ? (completedCount / totalObjectives) * 100 : 0
+
   return (
     <div className="p-4">
-      <h3 className="text-sm font-semibold text-gray-400 mb-3">OBJECTIVES</h3>
+      {/* Header with Stats */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-semibold text-gray-400">OBJECTIVES</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-green-400 font-medium">{completedCount}</span>
+            <span className="text-xs text-gray-500">/</span>
+            <span className="text-xs text-gray-400">{totalObjectives}</span>
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        {totalObjectives > 0 && (
+          <div className="relative h-1.5 bg-gray-800 rounded-full overflow-hidden">
+            <motion.div
+              className="absolute top-0 left-0 h-full bg-gradient-to-r from-green-500 to-cyan-500"
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPercent}%` }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+            />
+          </div>
+        )}
+
+        {/* Live stats */}
+        {availableCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-2 flex items-center gap-2 text-xs"
+          >
+            <motion.div
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-2 h-2 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50"
+            />
+            <span className="text-cyan-400 font-medium">{availableCount} objective{availableCount > 1 ? 's' : ''} ready</span>
+          </motion.div>
+        )}
+      </div>
 
       {phaseObjectives.length === 0 ? (
-        <div className="text-sm text-gray-500 text-center py-8">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-sm text-gray-500 text-center py-8"
+        >
           No objectives for this phase. Advance timeline to continue.
-        </div>
+        </motion.div>
       ) : (
         <div className="space-y-2">
-          {phaseObjectives.map((objective) => {
+          {phaseObjectives.map((objective, idx) => {
             const status = getObjectiveStatus(objective)
             const Icon = getTypeIcon(objective.type)
+            console.log('[MissionObjectives] Rendering button for:', objective.id, 'status:', status, 'disabled:', status === 'locked')
 
             return (
               <motion.button
                 key={objective.id}
-                onClick={() => handleObjectiveClick(objective)}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.1, duration: 0.3 }}
+                onClick={() => {
+                  console.log('[MissionObjectives] BUTTON CLICKED INLINE for:', objective.id)
+                  handleObjectiveClick(objective)
+                }}
                 disabled={status === 'locked'}
                 className={cn(
                   'w-full text-left p-3 rounded-lg border transition-all',
                   status === 'completed' &&
-                    'bg-green-950/20 border-green-700/30 hover:border-green-500',
+                    'bg-green-950/20 border-green-700/30 hover:border-green-500 hover:shadow-lg hover:shadow-green-500/20',
                   status === 'available' &&
-                    'bg-cyber-bg border-cyber-border hover:border-cyber-primary',
+                    'bg-cyber-bg border-cyber-border hover:border-cyber-primary cursor-pointer hover:bg-cyber-primary/5 hover:shadow-lg hover:shadow-cyber-primary/20 animate-pulse-slow',
                   status === 'locked' && 'bg-gray-900/20 border-gray-700/30 opacity-50 cursor-not-allowed'
                 )}
-                whileHover={status !== 'locked' ? { scale: 1.02 } : {}}
-                whileTap={status !== 'locked' ? { scale: 0.98 } : {}}
+                whileHover={status !== 'locked' ? { scale: 1.03, x: 4 } : {}}
+                whileTap={status !== 'locked' ? { scale: 0.97 } : {}}
               >
                 <div className="flex items-start gap-3">
                   {status === 'completed' ? (
@@ -164,11 +311,16 @@ export function MissionObjectives({
                     <div className="text-xs text-gray-400 line-clamp-2">{objective.description}</div>
 
                     <div className="mt-2 flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <Award className="w-3 h-3 text-cyber-primary" />
-                        <span className="text-xs text-cyber-primary font-medium">
-                          {objective.points} pts
-                        </span>
+                      <div className="flex items-center gap-2">
+                        {status === 'available' && (
+                          <motion.span
+                            animate={{ x: [0, 3, 0] }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                            className="text-xs text-cyan-400 font-medium"
+                          >
+                            ▶ Start
+                          </motion.span>
+                        )}
                       </div>
 
                       {objective.mitreTechniques.length > 0 && (
@@ -266,10 +418,10 @@ export function MissionObjectives({
                               </div>
                             ) : (
                               <button
-                                onClick={() => handleRevealHint(selectedObjective.id, index, hint.cost)}
+                                onClick={() => handleRevealHint(selectedObjective.id, index)}
                                 className="text-sm text-cyber-primary hover:text-cyber-secondary transition-colors"
                               >
-                                Reveal hint ({hint.cost} pts)
+                                Reveal hint
                               </button>
                             )}
                           </div>
@@ -280,17 +432,172 @@ export function MissionObjectives({
                 )}
 
                 {/* Code Playground for exploitation objectives */}
-                {selectedObjective.type === 'exploitation' && getObjectiveStatus(selectedObjective) === 'available' && (
+                {selectedObjective.type === 'exploitation' && (
                   <div className="mb-4">
                     <CodePlayground
                       objective={selectedObjective}
                       missionId={mission.id}
                       onComplete={handleCodePlaygroundComplete}
+                      isAlreadyCompleted={getObjectiveStatus(selectedObjective) === 'completed'}
                     />
                   </div>
                 )}
 
-                {/* Complete Button - Only for non-exploitation objectives */}
+                {/* Interactive Reconnaissance Story */}
+                {selectedObjective.type === 'reconnaissance' && getObjectiveStatus(selectedObjective) === 'available' && (
+                  <div className="mb-4">
+                    <div className="p-4 bg-purple-500/5 border border-purple-500/20 rounded-lg">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Search className="w-5 h-5 text-purple-400" />
+                        <h4 className="font-semibold text-purple-300">Intelligence Gathering</h4>
+                      </div>
+
+                      <div className="space-y-3">
+                        <p className="text-sm text-gray-300 italic">
+                          "March 2017. A critical vulnerability has been discovered in Apache Struts 2. Click below to investigate..."
+                        </p>
+
+                        {/* Story cards - click to reveal */}
+                        <div className="space-y-2">
+                          <RevealCard
+                            title="📄 CVE-2017-5638 Advisory"
+                            content={
+                              <>
+                                <p className="text-xs text-gray-300 mb-2">
+                                  <strong className="text-purple-400">Apache Security Bulletin:</strong> Remote Code Execution in Jakarta Multipart parser
+                                </p>
+                                <p className="text-xs text-gray-400 mb-2">
+                                  Attackers can execute arbitrary code by sending a crafted <code className="text-red-400 bg-red-900/20 px-1">Content-Type</code> header with OGNL expressions.
+                                </p>
+                                <div className="text-xs text-orange-300 bg-orange-900/20 p-2 rounded">
+                                  ⚠️ Severity: <strong>CRITICAL</strong> | CVSSv3: 10.0
+                                </div>
+                              </>
+                            }
+                          />
+
+                          <RevealCard
+                            title="🎯 Equifax Response (or lack thereof)"
+                            content={
+                              <>
+                                <p className="text-xs text-gray-300 mb-2">
+                                  <strong className="text-orange-400">Timeline:</strong>
+                                </p>
+                                <ul className="text-xs text-gray-400 space-y-1 ml-4">
+                                  <li>• <strong>March 7:</strong> Apache releases patch</li>
+                                  <li>• <strong>March 8:</strong> DHS warns Equifax</li>
+                                  <li>• <strong>March 9:</strong> Internal email sent to admins</li>
+                                  <li className="text-red-400 font-medium">• <strong>March 10:</strong> ACIS portal still unpatched ⚠️</li>
+                                </ul>
+                              </>
+                            }
+                          />
+
+                          <RevealCard
+                            title="⚡ Attack Vector Analysis"
+                            content={
+                              <>
+                                <p className="text-xs text-gray-300 mb-2">
+                                  <strong className="text-red-400">Exploitation Method:</strong>
+                                </p>
+                                <pre className="text-xs text-green-400 bg-black/70 p-3 rounded overflow-x-auto font-mono">
+{`POST /struts2-showcase/action HTTP/1.1
+Host: vulnerable-equifax-server.com
+Content-Type: %{(#cmd='whoami').(#cmds={'/bin/bash','-c',#cmd})
+.(#p=new java.lang.ProcessBuilder(#cmds)).(#process=#p.start())}`}
+                                </pre>
+                                <p className="text-xs text-gray-400 mt-2">
+                                  This payload executes <code className="text-cyan-400">whoami</code> on the server. Ready for the real attack?
+                                </p>
+                              </>
+                            }
+                          />
+                        </div>
+
+                        {/* Complete button */}
+                        <motion.button
+                          onClick={() => handleComplete(selectedObjective)}
+                          disabled={getObjectiveStatus(selectedObjective) === 'completed'}
+                          className="w-full py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white rounded font-semibold transition-all shadow-lg shadow-purple-500/25"
+                          whileHover={{ scale: getObjectiveStatus(selectedObjective) === 'completed' ? 1 : 1.02 }}
+                          whileTap={{ scale: getObjectiveStatus(selectedObjective) === 'completed' ? 1 : 0.98 }}
+                        >
+                          {getObjectiveStatus(selectedObjective) === 'completed'
+                            ? '✓ Intelligence Gathered'
+                            : 'Intelligence Gathered → Continue'}
+                        </motion.button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Interactive Defense Tasks */}
+                {(selectedObjective.type === 'defense' || selectedObjective.type === 'investigation') && getObjectiveStatus(selectedObjective) === 'available' && (
+                  <div className="mb-4">
+                    <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                      <div className="flex items-center gap-2 mb-3">
+                        <FileCheck className="w-5 h-5 text-blue-400" />
+                        <h4 className="font-semibold text-blue-300">Defense Checklist</h4>
+                      </div>
+                      <div className="space-y-2">
+                        {getDefenseTasks(selectedObjective).map((task, index) => {
+                          const taskId = `${selectedObjective.id}-task-${index}`
+                          const isCompleted = defenseTasks[taskId] || false
+
+                          return (
+                            <motion.label
+                              key={taskId}
+                              className={cn(
+                                'flex items-start gap-3 p-2 rounded cursor-pointer transition-all',
+                                isCompleted ? 'bg-green-500/10 hover:bg-green-500/15' : 'hover:bg-blue-500/10'
+                              )}
+                              whileHover={{ x: 2 }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isCompleted}
+                                onChange={() =>
+                                  setDefenseTasks({
+                                    ...defenseTasks,
+                                    [taskId]: !isCompleted,
+                                  })
+                                }
+                                className="mt-0.5 w-4 h-4 rounded border-2 border-blue-500 text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                              />
+                              <span className={cn(
+                                'text-sm flex-1',
+                                isCompleted ? 'text-green-300 line-through' : 'text-gray-300'
+                              )}>
+                                {task}
+                              </span>
+                            </motion.label>
+                          )
+                        })}
+                      </div>
+                      <div className="mt-3 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-yellow-200/80">
+                          Check off each task as you complete it. This helps you understand the defender's workflow.
+                        </p>
+                      </div>
+
+                      {/* Complete button for defense/investigation */}
+                      <motion.button
+                        onClick={() => handleComplete(selectedObjective)}
+                        disabled={getObjectiveStatus(selectedObjective) === 'completed'}
+                        className="w-full mt-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white rounded font-semibold transition-all shadow-lg shadow-blue-500/25"
+                        whileHover={{ scale: getObjectiveStatus(selectedObjective) === 'completed' ? 1 : 1.02 }}
+                        whileTap={{ scale: getObjectiveStatus(selectedObjective) === 'completed' ? 1 : 0.98 }}
+                      >
+                        {getObjectiveStatus(selectedObjective) === 'completed'
+                          ? '✓ Completed'
+                          : 'Complete Analysis'}
+                      </motion.button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Complete Button - Only for objectives without custom completion */}
                 <div className="flex gap-3">
                   <button
                     onClick={() => setSelectedObjective(null)}
@@ -298,12 +605,16 @@ export function MissionObjectives({
                   >
                     Close
                   </button>
-                  {selectedObjective.type !== 'exploitation' && getObjectiveStatus(selectedObjective) === 'available' && (
+                  {selectedObjective.type !== 'exploitation' &&
+                   selectedObjective.type !== 'reconnaissance' &&
+                   selectedObjective.type !== 'defense' &&
+                   selectedObjective.type !== 'investigation' &&
+                   getObjectiveStatus(selectedObjective) === 'available' && (
                     <button
                       onClick={() => handleComplete(selectedObjective)}
                       className="flex-1 py-2 bg-cyber-primary text-cyber-bg rounded font-semibold hover:bg-cyber-secondary transition-all"
                     >
-                      Complete (+{selectedObjective.points} pts)
+                      Complete
                     </button>
                   )}
                 </div>
