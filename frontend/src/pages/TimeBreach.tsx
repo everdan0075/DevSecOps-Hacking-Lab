@@ -20,10 +20,12 @@ import { cn } from '@/utils/cn'
 // Import mission data
 import equifaxMission from '@/data/missions/equifax-2017.json'
 import moveitMission from '@/data/missions/moveit-2023.json'
+import capitalOneMission from '@/data/missions/capital-one-2019.json'
 
 const AVAILABLE_MISSIONS: Mission[] = [
   equifaxMission as Mission,
-  moveitMission as Mission
+  moveitMission as Mission,
+  capitalOneMission as Mission
 ]
 
 type GamePhase = 'select' | 'briefing' | 'playing' | 'debrief'

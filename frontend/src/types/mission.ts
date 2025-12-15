@@ -79,7 +79,7 @@ export interface Objective {
   }
 
   // Rewards
-  points: number
+  points?: number // Optional - newer missions may not use points system
   mitreTechniques: string[] // Technique IDs unlocked
   unlocksEvidence?: string[] // Evidence IDs revealed upon completion
 

