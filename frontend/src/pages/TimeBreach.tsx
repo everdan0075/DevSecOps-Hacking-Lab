@@ -19,8 +19,12 @@ import { cn } from '@/utils/cn'
 
 // Import mission data
 import equifaxMission from '@/data/missions/equifax-2017.json'
+import moveitMission from '@/data/missions/moveit-2023.json'
 
-const AVAILABLE_MISSIONS: Mission[] = [equifaxMission as Mission]
+const AVAILABLE_MISSIONS: Mission[] = [
+  equifaxMission as Mission,
+  moveitMission as Mission
+]
 
 type GamePhase = 'select' | 'briefing' | 'playing' | 'debrief'
 

