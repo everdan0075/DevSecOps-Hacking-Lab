@@ -17,18 +17,31 @@ import { MissionDebrief } from '@/components/timebreach/MissionDebrief'
 import type { Mission, MissionRole, MissionProgress } from '@/types/mission'
 import { cn } from '@/utils/cn'
 
-// Import mission data
-import equifaxMission from '@/data/missions/equifax-2017.json'
-import moveitMission from '@/data/missions/moveit-2023.json'
-import capitalOneMission from '@/data/missions/capital-one-2019.json'
-
-const AVAILABLE_MISSIONS: Mission[] = [
-  equifaxMission as unknown as Mission,
-  moveitMission as unknown as Mission,
-  capitalOneMission as unknown as Mission
+// Mission metadata for lazy loading
+const MISSION_METADATA = [
+  { id: 'equifax-2017', filename: 'equifax-2017.json' },
+  { id: 'moveit-2023', filename: 'moveit-2023.json' },
+  { id: 'capital-one-2019', filename: 'capital-one-2019.json' },
 ]
 
 type GamePhase = 'select' | 'briefing' | 'playing' | 'debrief'
+
+// Async mission loader
+async function loadMission(missionId: string): Promise<Mission | null> {
+  try {
+    // Use relative path - Vite will handle base URL automatically
+    const response = await fetch(`${import.meta.env.BASE_URL}missions/${missionId}.json`)
+    if (!response.ok) {
+      console.error(`Failed to load mission ${missionId}: ${response.statusText}`)
+      return null
+    }
+    const data = await response.json()
+    return data as Mission
+  } catch (error) {
+    console.error(`Error loading mission ${missionId}:`, error)
+    return null
+  }
+}
 
 export function TimeBreach() {
   const { missionId } = useParams<{ missionId: string }>()
@@ -39,17 +52,61 @@ export function TimeBreach() {
   const [selectedRole, setSelectedRole] = useState<MissionRole | null>(null)
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0)
   const [progress, setProgress] = useState<MissionProgress | null>(null)
+  const [availableMissions, setAvailableMissions] = useState<Mission[]>([])
+  const [isLoadingMissions, setIsLoadingMissions] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+
+  // Load all missions on mount
+  useEffect(() => {
+    async function loadAllMissions() {
+      setIsLoadingMissions(true)
+      setLoadError(null)
+
+      try {
+        const missions = await Promise.all(
+          MISSION_METADATA.map(({ id }) => loadMission(id))
+        )
+
+        const validMissions = missions.filter((m): m is Mission => m !== null)
+
+        if (validMissions.length === 0) {
+          setLoadError('Failed to load any missions. Please try again.')
+        }
+
+        setAvailableMissions(validMissions)
+      } catch (error) {
+        console.error('Error loading missions:', error)
+        setLoadError('An error occurred while loading missions.')
+      } finally {
+        setIsLoadingMissions(false)
+      }
+    }
+
+    loadAllMissions()
+  }, [])
 
   // Load mission from URL parameter
   useEffect(() => {
-    if (missionId) {
-      const mission = AVAILABLE_MISSIONS.find((m) => m.id === missionId)
-      if (mission) {
-        setSelectedMission(mission)
-        setGamePhase('briefing')
+    async function loadMissionFromUrl() {
+      if (missionId && !selectedMission) {
+        // Check if mission is already loaded
+        const cachedMission = availableMissions.find((m) => m.id === missionId)
+        if (cachedMission) {
+          setSelectedMission(cachedMission)
+          setGamePhase('briefing')
+        } else {
+          // Load mission on-demand
+          const mission = await loadMission(missionId)
+          if (mission) {
+            setSelectedMission(mission)
+            setGamePhase('briefing')
+          }
+        }
       }
     }
-  }, [missionId])
+
+    loadMissionFromUrl()
+  }, [missionId, availableMissions, selectedMission])
 
   const handleSelectMission = (mission: Mission) => {
     setSelectedMission(mission)
@@ -191,27 +248,40 @@ export function TimeBreach() {
             </div>
 
             {/* Mission Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {AVAILABLE_MISSIONS.map((mission) => (
-                <MissionCard
-                  key={mission.id}
-                  mission={mission}
-                  onSelect={() => handleSelectMission(mission)}
-                />
-              ))}
+            {isLoadingMissions ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-cyber-primary mb-4"></div>
+                  <p className="text-gray-400">Loading missions...</p>
+                </div>
+              </div>
+            ) : loadError ? (
+              <div className="p-6 bg-red-500/10 border border-red-500/30 rounded-lg">
+                <p className="text-red-400 text-center">{loadError}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {availableMissions.map((mission) => (
+                  <MissionCard
+                    key={mission.id}
+                    mission={mission}
+                    onSelect={() => handleSelectMission(mission)}
+                  />
+                ))}
 
-              {/* Coming Soon Cards */}
-              <ComingSoonCard
-                title="Capital One Cloud Breach"
-                subtitle="SSRF + AWS Metadata Exploitation"
-                date="2019"
-              />
-              <ComingSoonCard
-                title="Log4Shell Zero-Day"
-                subtitle="CVE-2021-44228: The Internet on Fire"
-                date="2021"
-              />
-            </div>
+                {/* Coming Soon Cards */}
+                <ComingSoonCard
+                  title="Log4Shell Zero-Day"
+                  subtitle="CVE-2021-44228: The Internet on Fire"
+                  date="2021"
+                />
+                <ComingSoonCard
+                  title="SolarWinds Supply Chain Attack"
+                  subtitle="Nation-State Backdoor Campaign"
+                  date="2020"
+                />
+              </div>
+            )}
           </motion.div>
         )}
 
