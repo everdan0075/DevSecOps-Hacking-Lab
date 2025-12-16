@@ -6,10 +6,11 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle2, Circle, Lock, Target, Shield, Search, Lightbulb, FileCheck, AlertTriangle, ChevronRight } from 'lucide-react'
+import { CheckCircle2, Circle, Lock, Target, Shield, Search, Lightbulb, ChevronRight } from 'lucide-react'
 import type { Mission, MissionProgress, TimelinePhase, MissionRole, Objective } from '@/types/mission'
 import { cn } from '@/utils/cn'
 import { CodePlayground } from './CodePlayground'
+import { DefenseToolkit } from './DefenseToolkit'
 
 interface RevealCardProps {
   title: string
@@ -75,7 +76,6 @@ export function MissionObjectives({
 
   const [selectedObjective, setSelectedObjective] = useState<Objective | null>(null)
   const [showHints, setShowHints] = useState<Record<string, number>>({})
-  const [defenseTasks, setDefenseTasks] = useState<Record<string, boolean>>({})
 
   // Get objectives for current phase and role
   const phaseObjectives = mission.objectives.filter(
@@ -163,45 +163,6 @@ export function MissionObjectives({
       default:
         return Target
     }
-  }
-
-  const getDefenseTasks = (objective: Objective): string[] => {
-    // Generate interactive tasks based on objective
-    if (objective.id.includes('patch')) {
-      return [
-        'Identify all servers running Apache Struts',
-        'Download security patch from Apache repository',
-        'Schedule maintenance window for deployment',
-        'Apply patch to ACIS dispute portal',
-        'Verify patch installation with version check',
-        'Restart web services',
-        'Run vulnerability scan to confirm fix',
-      ]
-    }
-    if (objective.id.includes('scan')) {
-      return [
-        'Review vulnerability scanner configuration',
-        'Add ACIS portal to scan scope',
-        'Configure authentication credentials',
-        'Enable Apache Struts detection signatures',
-        'Run manual scan test',
-        'Schedule recurring scans',
-      ]
-    }
-    if (objective.id.includes('detect') || objective.id.includes('traffic')) {
-      return [
-        'Review SIEM alerts for suspicious patterns',
-        'Analyze outbound traffic from dispute portal',
-        'Check for unusual database queries',
-        'Investigate unauthorized file access',
-        'Correlate timeline with security events',
-      ]
-    }
-    return [
-      'Complete the objective requirements',
-      'Review the security implications',
-      'Document your findings',
-    ]
   }
 
   // Calculate progress stats
@@ -351,7 +312,7 @@ export function MissionObjectives({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-start justify-center pt-56 pb-4 px-4 overflow-y-auto"
             onClick={() => setSelectedObjective(null)}
           >
             <motion.div
@@ -361,12 +322,15 @@ export function MissionObjectives({
               onClick={(e) => e.stopPropagation()}
               className="bg-cyber-surface border border-cyber-border rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto"
             >
-              <div className="p-6">
+              {/* Sticky Title and Description */}
+              <div className="sticky top-0 bg-cyber-surface z-10 px-6 pt-6 pb-4 border-b border-cyber-border shadow-lg">
                 <h3 className="text-xl font-bold text-cyber-primary mb-2">
                   {selectedObjective.title}
                 </h3>
-                <p className="text-gray-300 mb-4">{selectedObjective.description}</p>
+                <p className="text-gray-300 text-sm">{selectedObjective.description}</p>
+              </div>
 
+              <div className="p-6 pt-4">
                 {/* Requirements */}
                 {(selectedObjective.requiredObjectives || selectedObjective.requiredEvidence) && (
                   <div className="mb-4 p-3 bg-cyber-bg border border-cyber-border rounded">
@@ -398,8 +362,11 @@ export function MissionObjectives({
                   </div>
                 )}
 
-                {/* Hints - Only show for non-exploitation objectives */}
-                {selectedObjective.type !== 'exploitation' && selectedObjective.hints.length > 0 && (
+                {/* Hints - Only show for non-defender objectives (defender has DefenseToolkit with its own hints) */}
+                {selectedObjective.type !== 'defense' &&
+                 selectedObjective.type !== 'investigation' &&
+                 selectedObjective.hints &&
+                 selectedObjective.hints.length > 0 && (
                   <div className="mb-4">
                     <div className="text-sm font-semibold text-gray-400 mb-2">Hints:</div>
                     <div className="space-y-2">
@@ -531,69 +498,15 @@ Content-Type: %{(#cmd='whoami').(#cmds={'/bin/bash','-c',#cmd})
                   </div>
                 )}
 
-                {/* Interactive Defense Tasks */}
-                {(selectedObjective.type === 'defense' || selectedObjective.type === 'investigation') && getObjectiveStatus(selectedObjective) === 'available' && (
+                {/* Defense Toolkit - Interactive tools for defender objectives */}
+                {(selectedObjective.type === 'defense' || selectedObjective.type === 'investigation') && (
                   <div className="mb-4">
-                    <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg">
-                      <div className="flex items-center gap-2 mb-3">
-                        <FileCheck className="w-5 h-5 text-blue-400" />
-                        <h4 className="font-semibold text-blue-300">Defense Checklist</h4>
-                      </div>
-                      <div className="space-y-2">
-                        {getDefenseTasks(selectedObjective).map((task, index) => {
-                          const taskId = `${selectedObjective.id}-task-${index}`
-                          const isCompleted = defenseTasks[taskId] || false
-
-                          return (
-                            <motion.label
-                              key={taskId}
-                              className={cn(
-                                'flex items-start gap-3 p-2 rounded cursor-pointer transition-all',
-                                isCompleted ? 'bg-green-500/10 hover:bg-green-500/15' : 'hover:bg-blue-500/10'
-                              )}
-                              whileHover={{ x: 2 }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isCompleted}
-                                onChange={() =>
-                                  setDefenseTasks({
-                                    ...defenseTasks,
-                                    [taskId]: !isCompleted,
-                                  })
-                                }
-                                className="mt-0.5 w-4 h-4 rounded border-2 border-blue-500 text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
-                              />
-                              <span className={cn(
-                                'text-sm flex-1',
-                                isCompleted ? 'text-green-300 line-through' : 'text-gray-300'
-                              )}>
-                                {task}
-                              </span>
-                            </motion.label>
-                          )
-                        })}
-                      </div>
-                      <div className="mt-3 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded flex items-start gap-2">
-                        <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
-                        <p className="text-xs text-yellow-200/80">
-                          Check off each task as you complete it. This helps you understand the defender's workflow.
-                        </p>
-                      </div>
-
-                      {/* Complete button for defense/investigation */}
-                      <motion.button
-                        onClick={() => handleComplete(selectedObjective)}
-                        disabled={getObjectiveStatus(selectedObjective) === 'completed'}
-                        className="w-full mt-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white rounded font-semibold transition-all shadow-lg shadow-blue-500/25"
-                        whileHover={{ scale: getObjectiveStatus(selectedObjective) === 'completed' ? 1 : 1.02 }}
-                        whileTap={{ scale: getObjectiveStatus(selectedObjective) === 'completed' ? 1 : 0.98 }}
-                      >
-                        {getObjectiveStatus(selectedObjective) === 'completed'
-                          ? '✓ Completed'
-                          : 'Complete Analysis'}
-                      </motion.button>
-                    </div>
+                    <DefenseToolkit
+                      objective={selectedObjective}
+                      missionId={mission.id}
+                      onComplete={handleCodePlaygroundComplete}
+                      isAlreadyCompleted={getObjectiveStatus(selectedObjective) === 'completed'}
+                    />
                   </div>
                 )}
 
