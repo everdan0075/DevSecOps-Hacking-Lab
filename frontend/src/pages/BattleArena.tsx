@@ -68,16 +68,16 @@ export function BattleArena() {
       updateState()
     })
 
-    // Periodic state updates
-    const interval = setInterval(() => {
-      const state = battleEngine.getState()
-      if (state && state.isRunning) {
-        setBattleState({ ...state })
+    // Subscribe to state changes (replaces polling)
+    battleEngine.on('onStateChanged', (newState) => {
+      setBattleState({ ...newState })
+      // Update latest event for commentary
+      if (newState.events.length > 0) {
+        setLatestEvent(newState.events[newState.events.length - 1])
       }
-    }, 100)
+    })
 
     return () => {
-      clearInterval(interval)
       battleEngine.stopBattle()
     }
   }, [])

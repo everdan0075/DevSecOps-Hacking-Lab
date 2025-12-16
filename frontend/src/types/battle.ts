@@ -275,6 +275,7 @@ export interface BattleEngineEvents {
   onBattleComplete: (winner: 'red' | 'blue' | 'draw', finalScore: BattleScore) => void
   onCriticalMoment: (event: BattleEvent) => void
   onScoreUpdate: (score: BattleScore) => void
+  onStateChanged: (state: BattleState) => void
 }
 
 // ============================================================================

@@ -172,6 +172,9 @@ class BattleEngine {
       }
       this.startPeriodicUpdates()
     }
+
+    // Emit state change for pause/resume
+    this.emit('onStateChanged', this.state)
   }
 
   /**
@@ -199,6 +202,9 @@ class BattleEngine {
       if (!currentPhaseConfig) return
 
       this.state.phaseTimeRemaining = Math.max(0, currentPhaseConfig.duration - elapsed)
+
+      // Emit state change for timer updates
+      this.emit('onStateChanged', this.state)
 
       // Phase transition
       if (this.state.phaseTimeRemaining === 0) {
@@ -500,6 +506,9 @@ class BattleEngine {
       if (honeypotDefense && honeypotDefense.blockedAttacks > 0) {
         this.state.metrics.totalHoneypotHits = honeypotDefense.blockedAttacks
       }
+
+      // Emit state change after defense data update
+      this.emit('onStateChanged', this.state)
     } catch (error) {
       console.error('Failed to fetch defense data:', error)
     }
