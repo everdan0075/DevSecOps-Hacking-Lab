@@ -14,7 +14,7 @@ import { InteractiveTimeline } from '@/components/timebreach/InteractiveTimeline
 import { MissionObjectives } from '@/components/timebreach/MissionObjectives'
 import { EvidencePanel } from '@/components/timebreach/EvidencePanel'
 import { MissionDebrief } from '@/components/timebreach/MissionDebrief'
-import type { Mission, MissionRole, MissionProgress, TimelinePhase } from '@/types/mission'
+import type { Mission, MissionRole, MissionProgress } from '@/types/mission'
 import { cn } from '@/utils/cn'
 
 // Import mission data
@@ -23,9 +23,9 @@ import moveitMission from '@/data/missions/moveit-2023.json'
 import capitalOneMission from '@/data/missions/capital-one-2019.json'
 
 const AVAILABLE_MISSIONS: Mission[] = [
-  equifaxMission as Mission,
-  moveitMission as Mission,
-  capitalOneMission as Mission
+  equifaxMission as unknown as Mission,
+  moveitMission as unknown as Mission,
+  capitalOneMission as unknown as Mission
 ]
 
 type GamePhase = 'select' | 'briefing' | 'playing' | 'debrief'
@@ -140,20 +140,6 @@ export function TimeBreach() {
         lastPlayedAt: new Date().toISOString(),
       }
     })
-  }
-
-  const handleMissionComplete = (endingId: string) => {
-    setProgress((prevProgress) => {
-      if (!prevProgress) return prevProgress
-
-      return {
-        ...prevProgress,
-        completedAt: new Date().toISOString(),
-        ending: endingId,
-      }
-    })
-
-    setGamePhase('debrief')
   }
 
   const currentPhase = selectedMission?.timeline[currentPhaseIndex]

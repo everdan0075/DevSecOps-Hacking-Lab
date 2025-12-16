@@ -8,21 +8,16 @@
  * - Emits real-time battle updates
  */
 
-import { attackService } from './attackService'
 import { incidentService } from './incidentService'
 import type {
   BattleState,
   BattleScenario,
-  BattlePhase,
   Attack,
   Defense,
   BattleEvent,
-  BattleScore,
   AttackType,
-  DefenseType,
   BattleEngineEvents,
   TeamScore,
-  BattleMetrics,
 } from '@/types/battle'
 import {
   POINT_VALUES,
@@ -30,11 +25,6 @@ import {
   DEFENSE_CONFIGS,
   BATTLE_SCENARIOS,
 } from '@/types/battle'
-
-type EventHandler = <K extends keyof BattleEngineEvents>(
-  event: K,
-  ...args: Parameters<BattleEngineEvents[K]>
-) => void
 
 class BattleEngine {
   private state: BattleState | null = null
@@ -393,10 +383,10 @@ class BattleEngine {
     }
 
     // Sync metrics with score (score is source of truth)
-    this.state.metrics.totalAttacks = this.state.score.red.attacksLaunched
-    this.state.metrics.successfulAttacks = this.state.score.red.attacksSuccessful
-    this.state.metrics.blockedAttacks = this.state.score.blue.attacksBlocked
-    this.state.metrics.totalBlocks = this.state.score.blue.attacksBlocked
+    this.state.metrics.totalAttacks = this.state.score.red.attacksLaunched ?? 0
+    this.state.metrics.successfulAttacks = this.state.score.red.attacksSuccessful ?? 0
+    this.state.metrics.blockedAttacks = this.state.score.blue.attacksBlocked ?? 0
+    this.state.metrics.totalBlocks = this.state.score.blue.attacksBlocked ?? 0
     this.state.metrics.successRate =
       this.state.metrics.totalAttacks > 0
         ? (this.state.metrics.successfulAttacks / this.state.metrics.totalAttacks) * 100
@@ -491,10 +481,10 @@ class BattleEngine {
 
     try {
       // Fetch active IP bans
-      const bans = await incidentService.getActiveBans()
-      if (bans && bans.length > 0) {
-        this.updateScore('blue', 'ipsBanned', bans.length)
-        this.state.metrics.totalBans = bans.length
+      const bansData = await incidentService.getActiveBans()
+      if (bansData && bansData.bans.length > 0) {
+        this.updateScore('blue', 'ipsBanned', bansData.bans.length)
+        this.state.metrics.totalBans = bansData.bans.length
       }
 
       // Fetch recent incidents

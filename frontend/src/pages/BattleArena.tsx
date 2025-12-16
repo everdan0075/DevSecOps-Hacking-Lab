@@ -31,31 +31,36 @@ export function BattleArena() {
 
   // Subscribe to battle engine events
   useEffect(() => {
-    battleEngine.on('onAttackLaunched', (attack) => {
+    battleEngine.on('onAttackLaunched', () => {
       updateState()
     })
 
-    battleEngine.on('onAttackBlocked', (attack, defense) => {
+    battleEngine.on('onAttackBlocked', (_attack, defense) => {
       setBlockingDefenseId(defense.id)
       setTimeout(() => setBlockingDefenseId(undefined), 1000)
       updateState()
     })
 
-    battleEngine.on('onAttackSuccess', (attack) => {
+    battleEngine.on('onAttackSuccess', () => {
       updateState()
     })
 
-    battleEngine.on('onDefenseActivated', (defense) => {
+    battleEngine.on('onDefenseActivated', () => {
       updateState()
     })
 
-    battleEngine.on('onPhaseChange', (phase) => {
+    battleEngine.on('onPhaseChange', () => {
       updateState()
     })
 
-    battleEngine.on('onBattleComplete', (winner, finalScore) => {
+    battleEngine.on('onBattleComplete', (winner) => {
       updateState()
-      setBattleWinner(winner)
+      // Handle all possible winner values including 'draw'
+      if (winner === 'draw') {
+        setBattleWinner(null) // Treat draw as no winner
+      } else {
+        setBattleWinner(winner)
+      }
       setShowBattleReport(true)
     })
 
@@ -166,10 +171,10 @@ export function BattleArena() {
                 metrics={battleState.metrics}
                 blockingDefenseId={blockingDefenseId}
                 activeDefenses={battleState.activeDefenses}
-                onAttackComplete={(attackId) => {
+                onAttackComplete={() => {
                   // Attack animation complete
                 }}
-                onAttackCollision={(attackId) => {
+                onAttackCollision={() => {
                   // Attack was blocked
                 }}
               />
@@ -177,7 +182,6 @@ export function BattleArena() {
               {/* Control Panel Overlay */}
               <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30">
                 <ControlPanel
-                  isRunning={battleState.isRunning}
                   isPaused={battleState.isPaused}
                   onTogglePause={handleTogglePause}
                   onStop={handleStop}
@@ -223,7 +227,7 @@ export function BattleArena() {
                 metrics={battleState.metrics}
                 events={battleState.events}
                 blockingDefenseId={blockingDefenseId}
-                onBlockComplete={(defenseId) => {
+                onBlockComplete={() => {
                   setBlockingDefenseId(undefined)
                 }}
               />
@@ -265,14 +269,13 @@ export function BattleArena() {
 }
 
 interface ControlPanelProps {
-  isRunning: boolean
   isPaused: boolean
   onTogglePause: () => void
   onStop: () => void
   onShowScenarios: () => void
 }
 
-function ControlPanel({ isRunning, isPaused, onTogglePause, onStop, onShowScenarios }: ControlPanelProps) {
+function ControlPanel({ isPaused, onTogglePause, onStop, onShowScenarios }: ControlPanelProps) {
   return (
     <motion.div
       initial={{ y: -50, opacity: 0 }}
