@@ -12,7 +12,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { Trophy, X, CheckCircle, XCircle, AlertTriangle, Lightbulb, TrendingUp } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, memo } from 'react'
 import confetti from 'canvas-confetti'
 import type { BattleScore, Attack, BattleMetrics } from '@/types/battle'
 import { ATTACK_CONFIGS } from '@/types/battle'
@@ -27,7 +27,7 @@ interface BattleReportProps {
   onClose: () => void
 }
 
-export function BattleReport({
+export const BattleReport = memo(function BattleReport({
   winner,
   finalScore,
   successfulAttacks,
@@ -244,7 +244,7 @@ export function BattleReport({
       </motion.div>
     </AnimatePresence>
   )
-}
+})
 
 interface ScoreCardProps {
   team: 'red' | 'blue'

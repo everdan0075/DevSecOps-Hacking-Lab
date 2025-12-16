@@ -10,6 +10,7 @@
  */
 
 import { motion, AnimatePresence } from 'framer-motion'
+import { memo } from 'react'
 import { Shield, Ban, Crosshair, Bot, Zap, Key, CheckCircle } from 'lucide-react'
 import type { Defense, BattleMetrics, TeamScore, DefenseType } from '@/types/battle'
 import { DEFENSE_CONFIGS } from '@/types/battle'
@@ -46,7 +47,7 @@ const DEFENSE_COLORS: Record<DefenseType, string> = {
   jwt_validation: '#06b6d4',
 }
 
-export function BlueTeamPanel({
+export const BlueTeamPanel = memo(function BlueTeamPanel({
   activeDefenses,
   score,
   metrics,
@@ -228,7 +229,7 @@ export function BlueTeamPanel({
       </div>
     </div>
   )
-}
+})
 
 interface MetricCardProps {
   label: string

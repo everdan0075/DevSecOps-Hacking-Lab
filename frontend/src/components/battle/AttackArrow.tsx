@@ -9,7 +9,7 @@
  * - Collision detection
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, memo } from 'react'
 import { motion } from 'framer-motion'
 import { ATTACK_CONFIGS, type Attack, type AttackSeverity } from '@/types/battle'
 import { cn } from '@/utils/cn'
@@ -34,7 +34,7 @@ const SEVERITY_GLOW = {
   critical: '0 0 40px #dc2626, 0 0 70px #dc2626',
 } as const
 
-export function AttackArrow({ attack, onComplete, onCollision }: AttackArrowProps) {
+export const AttackArrow = memo(function AttackArrow({ attack, onComplete, onCollision }: AttackArrowProps) {
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number }>>([])
   const config = ATTACK_CONFIGS[attack.type]
   const color = SEVERITY_COLORS[attack.severity]
@@ -173,7 +173,7 @@ export function AttackArrow({ attack, onComplete, onCollision }: AttackArrowProp
       </motion.div>
     </div>
   )
-}
+})
 
 /**
  * AttackArrowBatch - Renders multiple attack arrows
@@ -184,7 +184,7 @@ interface AttackArrowBatchProps {
   onAttackCollision?: (attackId: string) => void
 }
 
-export function AttackArrowBatch({ attacks, onAttackComplete, onAttackCollision }: AttackArrowBatchProps) {
+export const AttackArrowBatch = memo(function AttackArrowBatch({ attacks, onAttackComplete, onAttackCollision }: AttackArrowBatchProps) {
   return (
     <div className="absolute inset-0 pointer-events-none">
       {attacks
@@ -207,4 +207,4 @@ export function AttackArrowBatch({ attacks, onAttackComplete, onAttackCollision 
         ))}
     </div>
   )
-}
+})

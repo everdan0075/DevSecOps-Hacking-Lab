@@ -10,7 +10,7 @@
  * - Collision effects area
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AttackArrowBatch } from './AttackArrow'
 import { Zap, Shield, Database, Server } from 'lucide-react'
@@ -48,7 +48,7 @@ const DEFENSE_COLORS: Record<DefenseType, string> = {
   jwt_validation: '#06b6d4',
 }
 
-export function Battlefield({
+export const Battlefield = memo(function Battlefield({
   activeAttacks,
   metrics,
   blockingDefenseId,
@@ -208,7 +208,7 @@ export function Battlefield({
       </div>
     </div>
   )
-}
+})
 
 interface MetricDisplayProps {
   label: string

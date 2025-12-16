@@ -13,7 +13,7 @@
  */
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import type { DefenseType } from '@/types/battle'
 import { DEFENSE_CONFIGS } from '@/types/battle'
 import { Shield, Ban, Crosshair, Bot, Zap, Key, CheckCircle } from 'lucide-react'
@@ -53,7 +53,7 @@ interface DefenseActivationFeedProps {
 const MAX_ACTIVATIONS = 5
 const ACTIVATION_LIFETIME = 3500 // ms
 
-export function DefenseActivationFeed({ blockingDefenseId, activeDefenses }: DefenseActivationFeedProps) {
+export const DefenseActivationFeed = memo(function DefenseActivationFeed({ blockingDefenseId, activeDefenses }: DefenseActivationFeedProps) {
   const [activations, setActivations] = useState<DefenseActivation[]>([])
 
   // Track defense activations
@@ -99,7 +99,7 @@ export function DefenseActivationFeed({ blockingDefenseId, activeDefenses }: Def
       </div>
     </div>
   )
-}
+})
 
 interface DefenseActivationIconProps {
   activation: DefenseActivation

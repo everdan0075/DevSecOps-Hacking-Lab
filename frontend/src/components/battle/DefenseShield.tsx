@@ -10,6 +10,7 @@
  */
 
 import { motion, AnimatePresence } from 'framer-motion'
+import { memo } from 'react'
 import { Shield, Zap, Crosshair, Ban, Key, Bot, CheckCircle } from 'lucide-react'
 import { DEFENSE_CONFIGS, type Defense, type DefenseType } from '@/types/battle'
 import { cn } from '@/utils/cn'
@@ -40,7 +41,7 @@ const DEFENSE_COLORS = {
   jwt_validation: '#06b6d4',
 } as const
 
-export function DefenseShield({ defense, isBlocking = false, onBlockComplete }: DefenseShieldProps) {
+export const DefenseShield = memo(function DefenseShield({ defense, isBlocking = false, onBlockComplete }: DefenseShieldProps) {
   const config = DEFENSE_CONFIGS[defense.type]
   const Icon = DEFENSE_ICONS[defense.type]
   const color = DEFENSE_COLORS[defense.type]
@@ -246,7 +247,7 @@ export function DefenseShield({ defense, isBlocking = false, onBlockComplete }: 
       )}
     </div>
   )
-}
+})
 
 /**
  * DefenseShieldGrid - Renders multiple defense shields
@@ -257,7 +258,7 @@ interface DefenseShieldGridProps {
   onBlockComplete?: (defenseId: string) => void
 }
 
-export function DefenseShieldGrid({ defenses, blockingDefenseId, onBlockComplete }: DefenseShieldGridProps) {
+export const DefenseShieldGrid = memo(function DefenseShieldGrid({ defenses, blockingDefenseId, onBlockComplete }: DefenseShieldGridProps) {
   return (
     <div className="grid grid-cols-2 gap-8 p-4">
       {defenses.map((defense) => (
@@ -271,4 +272,4 @@ export function DefenseShieldGrid({ defenses, blockingDefenseId, onBlockComplete
       ))}
     </div>
   )
-}
+})

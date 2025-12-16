@@ -9,7 +9,7 @@
  * - Color-coded by event type
  */
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Zap,
@@ -95,7 +95,7 @@ const EVENT_COLORS: Record<BattleEventType, { bg: string; border: string; text: 
   },
 }
 
-export function EventTimeline({ events, maxEvents = 50 }: EventTimelineProps) {
+export const EventTimeline = memo(function EventTimeline({ events, maxEvents = 50 }: EventTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll to latest event (vertical)
@@ -144,7 +144,7 @@ export function EventTimeline({ events, maxEvents = 50 }: EventTimelineProps) {
       </div>
     </div>
   )
-}
+})
 
 interface EventCardProps {
   event: BattleEvent

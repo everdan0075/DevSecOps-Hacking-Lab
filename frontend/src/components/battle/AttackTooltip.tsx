@@ -11,7 +11,7 @@
 
 import { Info } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, memo } from 'react'
 import type { AttackType, DefenseType } from '@/types/battle'
 
 interface TooltipContent {
@@ -198,7 +198,7 @@ interface AttackTooltipProps {
   children?: React.ReactNode
 }
 
-export function AttackTooltip({ type, mode, children }: AttackTooltipProps) {
+export const AttackTooltip = memo(function AttackTooltip({ type, mode, children }: AttackTooltipProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 })
   const triggerRef = useRef<HTMLDivElement>(null)
@@ -316,4 +316,4 @@ export function AttackTooltip({ type, mode, children }: AttackTooltipProps) {
       </AnimatePresence>
     </div>
   )
-}
+})

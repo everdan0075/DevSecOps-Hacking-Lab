@@ -10,6 +10,7 @@
  * - Red/orange cyberpunk theme
  */
 
+import { memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Zap, TrendingUp, Database, AlertTriangle, Target } from 'lucide-react'
 import { ATTACK_CONFIGS, type Attack, type BattleMetrics, type TeamScore } from '@/types/battle'
@@ -26,7 +27,7 @@ interface RedTeamPanelProps {
   isPaused: boolean
 }
 
-export function RedTeamPanel({
+export const RedTeamPanel = memo(function RedTeamPanel({
   activeAttacks,
   score,
   metrics,
@@ -231,7 +232,7 @@ export function RedTeamPanel({
       </div>
     </div>
   )
-}
+})
 
 interface MetricCardProps {
   label: string

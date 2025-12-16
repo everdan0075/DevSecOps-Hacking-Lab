@@ -9,6 +9,7 @@
  * - Phase indicator with countdown timer
  */
 
+import { memo } from 'react'
 import { motion } from 'framer-motion'
 import { Zap, Shield, Clock } from 'lucide-react'
 import type { BattleScore, BattlePhase } from '@/types/battle'
@@ -22,7 +23,7 @@ interface ScoreBoardProps {
   isPaused: boolean
 }
 
-export function ScoreBoard({
+export const ScoreBoard = memo(function ScoreBoard({
   score,
   phase,
   phaseDisplayName,
@@ -169,7 +170,7 @@ export function ScoreBoard({
       </div>
     </div>
   )
-}
+})
 
 function getPhaseNumber(phase: BattlePhase): number {
   const phases: Record<BattlePhase, number> = {

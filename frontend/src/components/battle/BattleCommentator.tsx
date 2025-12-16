@@ -11,7 +11,7 @@
  * - Team-colored styling
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Zap, Shield, AlertTriangle, Target, Info } from 'lucide-react'
 import type { BattleEvent, AttackType, DefenseType } from '@/types/battle'
@@ -171,7 +171,7 @@ interface BattleCommentatorProps {
   onDismiss?: () => void
 }
 
-export function BattleCommentator({ event, tutorialMode, onDismiss }: BattleCommentatorProps) {
+export const BattleCommentator = memo(function BattleCommentator({ event, tutorialMode, onDismiss }: BattleCommentatorProps) {
   const [queue, setQueue] = useState<Array<{ event: BattleEvent; commentary: CommentaryData }>>([])
   const [currentCommentary, setCurrentCommentary] = useState<{ event: BattleEvent; commentary: CommentaryData } | null>(null)
 
@@ -281,4 +281,4 @@ export function BattleCommentator({ event, tutorialMode, onDismiss }: BattleComm
       </motion.div>
     </AnimatePresence>
   )
-}
+})
