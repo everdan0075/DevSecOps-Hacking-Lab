@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Editor } from '@monaco-editor/react'
-import { Play, CheckCircle, XCircle, Terminal, Code2, FileCode } from 'lucide-react'
+import { Play, CheckCircle, XCircle, FileCode, Terminal } from 'lucide-react'
 import type { Objective } from '../../types/mission'
 
 interface CodePlaygroundProps {
@@ -1811,7 +1811,6 @@ export function CodePlayground({ objective, missionId, onComplete, isAlreadyComp
   const [code, setCode] = useState(getPlaceholderCode(objective.id))
   const [isRunning, setIsRunning] = useState(false)
   const [result, setResult] = useState<ValidationResult | null>(null)
-  const [showHint, setShowHint] = useState(false)
   const [isCompleted, setIsCompleted] = useState(isAlreadyCompleted)
 
   const language = getLanguageForObjective(objective.id)
@@ -2156,51 +2155,6 @@ Port scan results:
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-cyan-500/10 rounded-lg">
-            <Code2 className="w-5 h-5 text-cyan-400" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">{objective.title}</h3>
-            <p className="text-sm text-gray-400 mt-1">{objective.description}</p>
-          </div>
-        </div>
-
-        {objective.hints && objective.hints.length > 0 && (
-          <button
-            onClick={() => setShowHint(!showHint)}
-            className="px-3 py-1.5 text-sm bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 rounded-lg transition-colors"
-          >
-            {showHint ? 'Hide' : 'Show'} Hint
-          </button>
-        )}
-      </div>
-
-      {/* Hints */}
-      <AnimatePresence>
-        {showHint && objective.hints && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-4"
-          >
-            <div className="flex items-start gap-2">
-              <Terminal className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
-              <div className="space-y-2 flex-1 min-w-0">
-                {objective.hints.map((hint, idx) => (
-                  <p key={idx} className="text-sm text-yellow-200/80 break-words whitespace-pre-wrap overflow-wrap-anywhere">
-                    {hint.text}
-                  </p>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Code Editor */}
       <div className="border border-gray-700 rounded-lg overflow-hidden">
         <div className="bg-gray-800 px-4 py-2 border-b border-gray-700 flex items-center gap-2">

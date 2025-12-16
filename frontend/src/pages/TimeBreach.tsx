@@ -372,23 +372,33 @@ function MissionCard({ mission, onSelect }: MissionCardProps) {
       <h3 className="text-xl font-bold text-cyber-primary group-hover:text-cyber-secondary mb-2">
         {mission.title}
       </h3>
-      <p className="text-sm text-gray-400 mb-4">{mission.subtitle}</p>
+      <p className="text-sm text-gray-400 mb-4 line-clamp-2">{mission.subtitle}</p>
 
       <div className="space-y-2 text-xs mb-4">
-        <div className="flex justify-between">
-          <span className="text-gray-500">Organization</span>
-          <span className="text-cyber-primary font-medium">{mission.realIncident.organization}</span>
+        <div className="flex justify-between gap-2">
+          <span className="text-gray-500 flex-shrink-0">Organization</span>
+          <span
+            className="text-cyber-primary font-medium text-right truncate"
+            title={mission.realIncident.organization}
+          >
+            {mission.realIncident.organization}
+          </span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-gray-500">Date</span>
+        <div className="flex justify-between gap-2">
+          <span className="text-gray-500 flex-shrink-0">Date</span>
           <span className="text-cyber-primary font-medium">{mission.realIncident.date}</span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-gray-500">CVE</span>
-          <span className="text-cyber-primary font-mono">{mission.realIncident.cve}</span>
+        <div className="flex justify-between gap-2">
+          <span className="text-gray-500 flex-shrink-0">CVE</span>
+          <span
+            className="text-cyber-primary font-mono text-right truncate"
+            title={mission.realIncident.cve}
+          >
+            {mission.realIncident.cve}
+          </span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-gray-500">Duration</span>
+        <div className="flex justify-between gap-2">
+          <span className="text-gray-500 flex-shrink-0">Duration</span>
           <span className="text-cyber-primary font-medium">{mission.estimatedDuration} min</span>
         </div>
       </div>
