@@ -4,7 +4,7 @@
  * Displays code with syntax highlighting and copy functionality
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Copy, Check } from 'lucide-react'
 
 interface CodeBlockProps {
@@ -15,11 +15,18 @@ interface CodeBlockProps {
 export function CodeBlock({ code, language = 'text' }: CodeBlockProps) {
   const [copied, setCopied] = useState(false)
 
+  // Cleanup timer for copied state
+  useEffect(() => {
+    if (copied) {
+      const timer = setTimeout(() => setCopied(false), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [copied])
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(code)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
     } catch (err) {
       console.error('Failed to copy:', err)
     }

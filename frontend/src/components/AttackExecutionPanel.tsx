@@ -52,10 +52,17 @@ export function AttackExecutionPanel({ scenario, onClose }: AttackExecutionPanel
     }
   }, [scenario.id])
 
+  // Cleanup timer for tokenCopied state
+  useEffect(() => {
+    if (tokenCopied) {
+      const timer = setTimeout(() => setTokenCopied(false), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [tokenCopied])
+
   const copyRefreshToken = () => {
     navigator.clipboard.writeText(currentRefreshToken)
     setTokenCopied(true)
-    setTimeout(() => setTokenCopied(false), 2000)
   }
 
   const fetchChallengeId = async () => {

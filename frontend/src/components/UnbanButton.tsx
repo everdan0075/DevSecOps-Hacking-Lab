@@ -4,7 +4,7 @@
  * Allows user to unban their IP address for testing purposes
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ShieldCheck, Loader2 } from 'lucide-react'
 import { apiClient } from '@/services/apiClient'
 import { ENDPOINTS } from '@/utils/constants'
@@ -13,6 +13,14 @@ import { cn } from '@/utils/cn'
 export function UnbanButton() {
   const [isUnbanning, setIsUnbanning] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+
+  // Cleanup timer for message state
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(null), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [message])
 
   const handleUnban = async () => {
     setIsUnbanning(true)
@@ -30,13 +38,9 @@ export function UnbanButton() {
       } else {
         setMessage('IP was not banned')
       }
-
-      // Clear message after 3 seconds
-      setTimeout(() => setMessage(null), 3000)
     } catch (error: unknown) {
       console.error('Unban failed:', error)
       setMessage(error instanceof Error ? error.message : 'Failed to unban')
-      setTimeout(() => setMessage(null), 3000)
     } finally {
       setIsUnbanning(false)
     }

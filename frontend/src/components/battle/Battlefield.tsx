@@ -65,7 +65,8 @@ export const Battlefield = memo(function Battlefield({
       const defense = activeDefenses.find((d) => d.id === blockingDefenseId)
       if (defense) {
         setFlyingDefense({ id: defense.id, type: defense.type })
-        setTimeout(() => setFlyingDefense(null), 2000) // Clear after animation
+        const timer = setTimeout(() => setFlyingDefense(null), 2000)
+        return () => clearTimeout(timer)
       }
     }
   }, [blockingDefenseId, activeDefenses])

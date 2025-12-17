@@ -31,13 +31,16 @@ export function BattleArena() {
 
   // Subscribe to battle engine events
   useEffect(() => {
+    let blockingDefenseTimer: NodeJS.Timeout | undefined
+
     battleEngine.on('onAttackLaunched', () => {
       updateState()
     })
 
     battleEngine.on('onAttackBlocked', (_attack, defense) => {
       setBlockingDefenseId(defense.id)
-      setTimeout(() => setBlockingDefenseId(undefined), 1000)
+      if (blockingDefenseTimer) clearTimeout(blockingDefenseTimer)
+      blockingDefenseTimer = setTimeout(() => setBlockingDefenseId(undefined), 1000)
       updateState()
     })
 
@@ -78,6 +81,7 @@ export function BattleArena() {
     })
 
     return () => {
+      if (blockingDefenseTimer) clearTimeout(blockingDefenseTimer)
       battleEngine.stopBattle()
     }
   }, [])
