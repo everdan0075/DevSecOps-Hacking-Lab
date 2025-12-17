@@ -4,13 +4,15 @@
  * Displays objectives for current mission phase and handles completion
  */
 
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, Circle, Lock, Target, Shield, Search, Lightbulb, ChevronRight } from 'lucide-react'
 import type { Mission, MissionProgress, TimelinePhase, MissionRole, Objective } from '@/types/mission'
 import { cn } from '@/utils/cn'
-import { CodePlayground } from './CodePlayground'
 import { DefenseToolkit } from './DefenseToolkit'
+
+// Lazy load CodePlayground (includes Monaco Editor ~2MB) - only loads for exploitation objectives
+const CodePlayground = lazy(() => import('./CodePlayground').then(m => ({ default: m.CodePlayground })))
 
 interface RevealCardProps {
   title: string
@@ -401,12 +403,22 @@ export function MissionObjectives({
                 {/* Code Playground for exploitation objectives */}
                 {selectedObjective.type === 'exploitation' && (
                   <div className="mb-4">
-                    <CodePlayground
-                      objective={selectedObjective}
-                      missionId={mission.id}
-                      onComplete={handleCodePlaygroundComplete}
-                      isAlreadyCompleted={getObjectiveStatus(selectedObjective) === 'completed'}
-                    />
+                    <Suspense
+                      fallback={
+                        <div className="p-8 rounded-lg bg-cyber-surface border border-cyber-border">
+                          <div className="flex items-center justify-center">
+                            <div className="text-cyber-primary animate-pulse">Loading code editor...</div>
+                          </div>
+                        </div>
+                      }
+                    >
+                      <CodePlayground
+                        objective={selectedObjective}
+                        missionId={mission.id}
+                        onComplete={handleCodePlaygroundComplete}
+                        isAlreadyCompleted={getObjectiveStatus(selectedObjective) === 'completed'}
+                      />
+                    </Suspense>
                   </div>
                 )}
 
