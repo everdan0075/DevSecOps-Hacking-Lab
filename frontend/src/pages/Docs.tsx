@@ -17,24 +17,40 @@ export function Docs() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [guide, setGuide] = useState<ReturnType<typeof getGuideBySlug> extends Promise<infer T> ? T : never>(undefined)
+  const [loading, setLoading] = useState(true)
 
   // Default to quick-start if no slug provided
   const currentSlug = slug || 'quick-start'
-  const guide = getGuideBySlug(currentSlug)
 
-  // Redirect to quick-start if slug not found
+  // Load guide content
   useEffect(() => {
-    if (!guide && currentSlug !== 'quick-start') {
-      navigate('/docs/quick-start')
+    let cancelled = false
+    setLoading(true)
+
+    getGuideBySlug(currentSlug).then(loadedGuide => {
+      if (cancelled) return
+
+      if (!loadedGuide && currentSlug !== 'quick-start') {
+        navigate('/docs/quick-start')
+        return
+      }
+
+      setGuide(loadedGuide)
+      setLoading(false)
+    })
+
+    return () => {
+      cancelled = true
     }
-  }, [guide, currentSlug, navigate])
+  }, [currentSlug, navigate])
 
   // Close sidebar on mobile when guide changes
   useEffect(() => {
     setSidebarOpen(false)
   }, [currentSlug])
 
-  if (!guide) {
+  if (loading || !guide) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
         <h1 className="text-2xl font-bold text-white mb-4">Loading...</h1>
