@@ -4,13 +4,12 @@
  * Security monitoring dashboard with real-time metrics and incident tracking
  */
 
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { Activity, AlertCircle, AlertTriangle, BarChart3, Server, Shield } from 'lucide-react'
 import { useBackendStatus } from '@/hooks/useBackendStatus'
 import { useMetrics } from '@/hooks/useMetrics'
 import { useIncidents } from '@/hooks/useIncidents'
 import { MetricsGrid } from '@/components/MetricsGrid'
-import { MetricsChart } from '@/components/MetricsChart'
 import { IncidentTimeline } from '@/components/IncidentTimeline'
 import { IncidentStats } from '@/components/IncidentStats'
 import { GrafanaDashboardViewer } from '@/components/GrafanaDashboardViewer'
@@ -23,6 +22,9 @@ import { ActiveBansPanel } from '@/components/incidents/ActiveBansPanel'
 import { RunbookCatalog } from '@/components/incidents/RunbookCatalog'
 import { CorrelationStatsPanel } from '@/components/siem/CorrelationStatsPanel'
 import { cn } from '@/utils/cn'
+
+// Lazy load MetricsChart to code-split Recharts (~313KB)
+const MetricsChart = lazy(() => import('@/components/MetricsChart'))
 
 type Tab = 'metrics' | 'incidents' | 'grafana' | 'health'
 
@@ -134,7 +136,19 @@ export function Monitoring() {
         {activeTab === 'metrics' && (
           <>
             <MetricsGrid metrics={metricsData.metrics} loading={metricsData.loading} />
-            <MetricsChart />
+
+            {/* Lazy-loaded chart with Suspense fallback */}
+            <Suspense
+              fallback={
+                <div className="p-4 rounded-lg bg-cyber-surface border border-cyber-border">
+                  <div className="h-64 flex items-center justify-center">
+                    <div className="text-gray-400">Loading chart...</div>
+                  </div>
+                </div>
+              }
+            >
+              <MetricsChart />
+            </Suspense>
 
             {/* Gateway & Network Security Section */}
             <section className="mt-8">

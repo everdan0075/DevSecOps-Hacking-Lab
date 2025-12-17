@@ -4,7 +4,7 @@
  * Line chart showing metric over time using recharts
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { TrendingUp, AlertCircle } from 'lucide-react'
 import { metricsService } from '@/services/metricsService'
@@ -30,7 +30,7 @@ const METRIC_OPTIONS: MetricOption[] = [
   { label: 'Rate Limit Blocks', value: 'gateway_rate_limit_blocks_total', color: '#f97316' },
 ]
 
-export function MetricsChart({ className }: MetricsChartProps) {
+function MetricsChartComponent({ className }: MetricsChartProps) {
   const [selectedMetric, setSelectedMetric] = useState(METRIC_OPTIONS[0])
   const [data, setData] = useState<MetricTimeSeriesPoint[]>([])
   const [loading, setLoading] = useState(true)
@@ -154,3 +154,7 @@ export function MetricsChart({ className }: MetricsChartProps) {
     </div>
   )
 }
+
+// Memoized and exported as both named and default export for lazy loading
+export const MetricsChart = memo(MetricsChartComponent)
+export default MetricsChart
