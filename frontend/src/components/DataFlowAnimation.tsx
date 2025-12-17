@@ -5,13 +5,13 @@
  * and alternative attack paths bypassing security controls
  */
 
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { Shield, Lock, Eye, AlertTriangle } from 'lucide-react'
 import { cn } from '@/utils/cn'
 
 type FlowType = 'normal' | 'attack'
 
-export function DataFlowAnimation() {
+export const DataFlowAnimation = memo(function DataFlowAnimation() {
   const [activeFlow, setActiveFlow] = useState<FlowType>('normal')
 
   return (
@@ -129,7 +129,7 @@ export function DataFlowAnimation() {
       </div>
     </div>
   )
-}
+})
 
 function NormalFlow() {
   return (

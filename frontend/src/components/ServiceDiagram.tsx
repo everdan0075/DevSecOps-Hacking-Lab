@@ -5,7 +5,7 @@
  * with hover effects and connection highlighting
  */
 
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { cn } from '@/utils/cn'
 
 interface ServiceDiagramProps {
@@ -72,7 +72,7 @@ const connections = [
   { from: 'client', to: 'user', type: 'attack' },
 ]
 
-export function ServiceDiagram({ selectedService, onServiceSelect, isConnected }: ServiceDiagramProps) {
+export const ServiceDiagram = memo(function ServiceDiagram({ selectedService, onServiceSelect, isConnected }: ServiceDiagramProps) {
   const [hoveredService, setHoveredService] = useState<string | null>(null)
 
   const activeService = selectedService || hoveredService
@@ -411,4 +411,4 @@ export function ServiceDiagram({ selectedService, onServiceSelect, isConnected }
       )}
     </div>
   )
-}
+})
