@@ -11,6 +11,7 @@ import { SecurityProvider } from './contexts/SecurityContext'
 import { TutorialProvider } from './contexts/TutorialContext'
 import { Layout } from './components/Layout'
 import { LoadingSkeleton } from './components/LoadingSkeleton'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 // Lazy load page components for code splitting
 const Home = lazy(() => import('./pages/Home').then(m => ({ default: m.Home })))
@@ -96,13 +97,15 @@ function App() {
   const basename = import.meta.env.PROD ? '/DevSecOps-Hacking-Lab' : ''
 
   return (
-    <SecurityProvider>
-      <TutorialProvider>
-        <BrowserRouter basename={basename}>
-          <AnimatedRoutes />
-        </BrowserRouter>
-      </TutorialProvider>
-    </SecurityProvider>
+    <ErrorBoundary>
+      <SecurityProvider>
+        <TutorialProvider>
+          <BrowserRouter basename={basename}>
+            <AnimatedRoutes />
+          </BrowserRouter>
+        </TutorialProvider>
+      </SecurityProvider>
+    </ErrorBoundary>
   )
 }
 
