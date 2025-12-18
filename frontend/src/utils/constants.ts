@@ -5,14 +5,16 @@
  * In local development: Vite proxy forwards requests to localhost:8080
  */
 
+import { config } from '@/config/env'
+
 // Determine if we're in production or development
-export const IS_PRODUCTION = import.meta.env.PROD
-export const IS_DEVELOPMENT = import.meta.env.DEV
+export const IS_PRODUCTION = config.isProduction
+export const IS_DEVELOPMENT = config.isDevelopment
 
 // Base URL configuration
 // In dev: use proxy (empty string = same origin)
-// In prod: would need CORS-enabled backend or show disconnected state
-export const API_BASE_URL = IS_DEVELOPMENT ? '' : 'http://localhost:8080'
+// In prod: use configured gateway URL
+export const API_BASE_URL = IS_DEVELOPMENT ? '' : config.apiGatewayUrl
 
 // Service endpoints
 export const ENDPOINTS = {
@@ -41,55 +43,55 @@ export const ENDPOINTS = {
 
   // Incident Bot (via Vite proxy in dev)
   INCIDENTS: {
-    LIST: IS_DEVELOPMENT ? '/incidents' : 'http://localhost:5002/incidents',
-    STATS: IS_DEVELOPMENT ? '/incidents/stats' : 'http://localhost:5002/stats',
-    HEALTH: IS_DEVELOPMENT ? '/incidents/health' : 'http://localhost:5002/health',
+    LIST: IS_DEVELOPMENT ? '/incidents' : `${config.incidentBotUrl}/incidents`,
+    STATS: IS_DEVELOPMENT ? '/incidents/stats' : `${config.incidentBotUrl}/stats`,
+    HEALTH: IS_DEVELOPMENT ? '/incidents/health' : `${config.incidentBotUrl}/health`,
   },
 
   // Incident Bot API endpoints (direct access)
   INCIDENT_BOT: {
-    HEALTH: IS_DEVELOPMENT ? '/api/incidents/health' : 'http://localhost:5002/health',
-    REPORTS: IS_DEVELOPMENT ? '/api/incidents/reports' : 'http://localhost:5002/api/incidents/reports',
-    BANS: IS_DEVELOPMENT ? '/api/incidents/bans' : 'http://localhost:5002/api/bans/active',
-    RUNBOOKS: IS_DEVELOPMENT ? '/api/incidents/runbooks' : 'http://localhost:5002/api/runbooks',
-    GATEWAY_HEALTH: IS_DEVELOPMENT ? '/api/incidents/gateway-health' : 'http://localhost:5002/api/gateway/health',
-    JWT_STATS: IS_DEVELOPMENT ? '/api/incidents/jwt-stats' : 'http://localhost:5002/api/jwt/validation-stats',
-    IDS_ALERTS: IS_DEVELOPMENT ? '/api/incidents/ids-alerts' : 'http://localhost:5002/api/ids/alerts',
-    IDS_STATS: IS_DEVELOPMENT ? '/api/incidents/ids-stats' : 'http://localhost:5002/api/ids/statistics',
-    CORRELATION_STATS: IS_DEVELOPMENT ? '/api/incidents/correlation-stats' : 'http://localhost:5002/api/correlation/statistics',
-    DEFENSE_METRICS: IS_DEVELOPMENT ? '/api/incidents/defense-metrics' : 'http://localhost:5002/api/defense/metrics',
+    HEALTH: IS_DEVELOPMENT ? '/api/incidents/health' : `${config.incidentBotUrl}/health`,
+    REPORTS: IS_DEVELOPMENT ? '/api/incidents/reports' : `${config.incidentBotUrl}/api/incidents/reports`,
+    BANS: IS_DEVELOPMENT ? '/api/incidents/bans' : `${config.incidentBotUrl}/api/bans/active`,
+    RUNBOOKS: IS_DEVELOPMENT ? '/api/incidents/runbooks' : `${config.incidentBotUrl}/api/runbooks`,
+    GATEWAY_HEALTH: IS_DEVELOPMENT ? '/api/incidents/gateway-health' : `${config.incidentBotUrl}/api/gateway/health`,
+    JWT_STATS: IS_DEVELOPMENT ? '/api/incidents/jwt-stats' : `${config.incidentBotUrl}/api/jwt/validation-stats`,
+    IDS_ALERTS: IS_DEVELOPMENT ? '/api/incidents/ids-alerts' : `${config.incidentBotUrl}/api/ids/alerts`,
+    IDS_STATS: IS_DEVELOPMENT ? '/api/incidents/ids-stats' : `${config.incidentBotUrl}/api/ids/statistics`,
+    CORRELATION_STATS: IS_DEVELOPMENT ? '/api/incidents/correlation-stats' : `${config.incidentBotUrl}/api/correlation/statistics`,
+    DEFENSE_METRICS: IS_DEVELOPMENT ? '/api/incidents/defense-metrics' : `${config.incidentBotUrl}/api/defense/metrics`,
   },
 
   // Prometheus (via Vite proxy in dev)
   PROMETHEUS: {
-    QUERY: IS_DEVELOPMENT ? '/prometheus/api/v1/query' : 'http://localhost:9090/api/v1/query',
-    QUERY_RANGE: IS_DEVELOPMENT ? '/prometheus/api/v1/query_range' : 'http://localhost:9090/api/v1/query_range',
-    TARGETS: IS_DEVELOPMENT ? '/prometheus/api/v1/targets' : 'http://localhost:9090/api/v1/targets',
+    QUERY: IS_DEVELOPMENT ? '/prometheus/api/v1/query' : `${config.prometheusUrl}/api/v1/query`,
+    QUERY_RANGE: IS_DEVELOPMENT ? '/prometheus/api/v1/query_range' : `${config.prometheusUrl}/api/v1/query_range`,
+    TARGETS: IS_DEVELOPMENT ? '/prometheus/api/v1/targets' : `${config.prometheusUrl}/api/v1/targets`,
   },
 
   // Grafana (embedded, via Vite proxy in dev)
   GRAFANA: {
-    BASE: IS_DEVELOPMENT ? '/grafana' : 'http://localhost:3000',
+    BASE: IS_DEVELOPMENT ? '/grafana' : config.grafanaUrl,
     DASHBOARDS: {
-      AUTH_SECURITY: IS_DEVELOPMENT ? '/grafana/d/auth-security' : 'http://localhost:3000/d/auth-security',
-      ATTACK_VISIBILITY: IS_DEVELOPMENT ? '/grafana/d/devsecops-attack-visibility' : 'http://localhost:3000/d/devsecops-attack-visibility',
-      SERVICE_MESH: IS_DEVELOPMENT ? '/grafana/d/service-mesh-security' : 'http://localhost:3000/d/service-mesh-security',
-      INCIDENT_RESPONSE: IS_DEVELOPMENT ? '/grafana/d/incident-response' : 'http://localhost:3000/d/incident-response',
+      AUTH_SECURITY: IS_DEVELOPMENT ? '/grafana/d/auth-security' : `${config.grafanaUrl}/d/auth-security`,
+      ATTACK_VISIBILITY: IS_DEVELOPMENT ? '/grafana/d/devsecops-attack-visibility' : `${config.grafanaUrl}/d/devsecops-attack-visibility`,
+      SERVICE_MESH: IS_DEVELOPMENT ? '/grafana/d/service-mesh-security' : `${config.grafanaUrl}/d/service-mesh-security`,
+      INCIDENT_RESPONSE: IS_DEVELOPMENT ? '/grafana/d/incident-response' : `${config.grafanaUrl}/d/incident-response`,
     },
   },
 
   // Direct Service Access (bypassing gateway) - for attack demos
   DIRECT_ACCESS: {
     AUTH: {
-      LOGIN: IS_DEVELOPMENT ? '/direct/auth-service/auth/login' : 'http://localhost:8000/auth/login',
-      MFA_VERIFY: IS_DEVELOPMENT ? '/direct/auth-service/auth/mfa/verify' : 'http://localhost:8000/auth/mfa/verify',
-      REFRESH: IS_DEVELOPMENT ? '/direct/auth-service/auth/token/refresh' : 'http://localhost:8000/auth/token/refresh',
-      HEALTH: IS_DEVELOPMENT ? '/direct/auth-service/health' : 'http://localhost:8000/health',
+      LOGIN: IS_DEVELOPMENT ? '/direct/auth-service/auth/login' : `${config.authServiceUrl}/auth/login`,
+      MFA_VERIFY: IS_DEVELOPMENT ? '/direct/auth-service/auth/mfa/verify' : `${config.authServiceUrl}/auth/mfa/verify`,
+      REFRESH: IS_DEVELOPMENT ? '/direct/auth-service/auth/token/refresh' : `${config.authServiceUrl}/auth/token/refresh`,
+      HEALTH: IS_DEVELOPMENT ? '/direct/auth-service/health' : `${config.authServiceUrl}/health`,
     },
     USER: {
-      PROFILE: (userId: number) => IS_DEVELOPMENT ? `/direct/user-service/profile/${userId}` : `http://localhost:8002/profile/${userId}`,
-      SETTINGS: IS_DEVELOPMENT ? '/direct/user-service/settings' : 'http://localhost:8002/settings',
-      HEALTH: IS_DEVELOPMENT ? '/direct/user-service/health' : 'http://localhost:8002/health',
+      PROFILE: (userId: number) => IS_DEVELOPMENT ? `/direct/user-service/profile/${userId}` : `${config.userServiceUrl}/profile/${userId}`,
+      SETTINGS: IS_DEVELOPMENT ? '/direct/user-service/settings' : `${config.userServiceUrl}/settings`,
+      HEALTH: IS_DEVELOPMENT ? '/direct/user-service/health' : `${config.userServiceUrl}/health`,
     },
   },
 } as const
