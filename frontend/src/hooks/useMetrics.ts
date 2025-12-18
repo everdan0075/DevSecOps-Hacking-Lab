@@ -1,10 +1,10 @@
 /**
  * useMetrics Hook
  *
- * React hook for fetching and auto-refreshing Prometheus metrics
+ * React hook for fetching and auto-refreshing Prometheus metrics using React Query
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { metricsService } from '@/services/metricsService'
 import { REFRESH_INTERVALS } from '@/utils/constants'
 import type { SecurityMetrics } from '@/types/api'
@@ -13,7 +13,7 @@ interface UseMetricsReturn {
   metrics: SecurityMetrics | null
   loading: boolean
   error: string | null
-  refetch: () => Promise<void>
+  refetch: () => void
 }
 
 const DEFAULT_METRICS: SecurityMetrics = {
@@ -26,43 +26,17 @@ const DEFAULT_METRICS: SecurityMetrics = {
 }
 
 export function useMetrics(autoRefresh: boolean = true): UseMetricsReturn {
-  const [metrics, setMetrics] = useState<SecurityMetrics | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const fetchMetrics = useCallback(async () => {
-    try {
-      setError(null)
-      const data = await metricsService.getSecurityMetrics()
-      setMetrics(data)
-      setLoading(false)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch metrics')
-      setMetrics(DEFAULT_METRICS)
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    // Initial fetch
-    fetchMetrics()
-
-    if (!autoRefresh) return
-
-    // Auto-refresh interval
-    const intervalId = setInterval(() => {
-      fetchMetrics()
-    }, REFRESH_INTERVALS.METRICS)
-
-    return () => {
-      clearInterval(intervalId)
-    }
-  }, [fetchMetrics, autoRefresh])
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['metrics', 'security'],
+    queryFn: () => metricsService.getSecurityMetrics(),
+    refetchInterval: autoRefresh ? REFRESH_INTERVALS.METRICS : false,
+    placeholderData: DEFAULT_METRICS,
+  })
 
   return {
-    metrics,
-    loading,
-    error,
-    refetch: fetchMetrics,
+    metrics: data || DEFAULT_METRICS,
+    loading: isLoading,
+    error: error ? (error instanceof Error ? error.message : 'Failed to fetch metrics') : null,
+    refetch,
   }
 }

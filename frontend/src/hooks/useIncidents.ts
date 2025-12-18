@@ -1,10 +1,10 @@
 /**
  * useIncidents Hook
  *
- * React hook for fetching and auto-refreshing security incidents
+ * React hook for fetching and auto-refreshing security incidents using React Query
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useQueries } from '@tanstack/react-query'
 import { incidentService } from '@/services/incidentService'
 import { REFRESH_INTERVALS } from '@/utils/constants'
 import type { Incident, IncidentStatsResponse } from '@/types/api'
@@ -14,54 +14,38 @@ interface UseIncidentsReturn {
   stats: IncidentStatsResponse | null
   loading: boolean
   error: string | null
-  refetch: () => Promise<void>
+  refetch: () => void
 }
 
 export function useIncidents(autoRefresh: boolean = true): UseIncidentsReturn {
-  const [incidents, setIncidents] = useState<Incident[]>([])
-  const [stats, setStats] = useState<IncidentStatsResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const results = useQueries({
+    queries: [
+      {
+        queryKey: ['incidents', 'list'],
+        queryFn: () => incidentService.getIncidents(),
+        refetchInterval: autoRefresh ? REFRESH_INTERVALS.INCIDENT_LIST : false,
+      },
+      {
+        queryKey: ['incidents', 'stats'],
+        queryFn: () => incidentService.getIncidentStats(),
+        refetchInterval: autoRefresh ? REFRESH_INTERVALS.INCIDENT_LIST : false,
+      },
+    ],
+  })
 
-  const fetchIncidents = useCallback(async () => {
-    try {
-      setError(null)
-      const [incidentsList, statsData] = await Promise.all([
-        incidentService.getIncidents(),
-        incidentService.getIncidentStats(),
-      ])
-      setIncidents(incidentsList)
-      setStats(statsData)
-      setLoading(false)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch incidents')
-      setIncidents([])
-      setStats(null)
-      setLoading(false)
-    }
-  }, [])
+  const [incidentsQuery, statsQuery] = results
 
-  useEffect(() => {
-    // Initial fetch
-    fetchIncidents()
-
-    if (!autoRefresh) return
-
-    // Auto-refresh interval (more frequent for incidents)
-    const intervalId = setInterval(() => {
-      fetchIncidents()
-    }, REFRESH_INTERVALS.INCIDENT_LIST)
-
-    return () => {
-      clearInterval(intervalId)
-    }
-  }, [fetchIncidents, autoRefresh])
+  const loading = incidentsQuery.isLoading || statsQuery.isLoading
+  const error = incidentsQuery.error || statsQuery.error
 
   return {
-    incidents,
-    stats,
+    incidents: incidentsQuery.data || [],
+    stats: statsQuery.data || null,
     loading,
-    error,
-    refetch: fetchIncidents,
+    error: error ? (error instanceof Error ? error.message : 'Failed to fetch incidents') : null,
+    refetch: () => {
+      incidentsQuery.refetch()
+      statsQuery.refetch()
+    },
   }
 }
